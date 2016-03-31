@@ -1,0 +1,9 @@
+.cproject
+.cproject~
+.project
+.settings/
+Cairo_example.svg
+Debug/
+src/test_curl.c~
+src/test_glib.h
+
