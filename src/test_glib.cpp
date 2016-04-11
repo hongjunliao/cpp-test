@@ -9,6 +9,11 @@
 #include "test_glib.h"
 #include <gtk/gtk.h>
 G_DEFINE_TYPE(Student, student, G_TYPE_OBJECT)
+static GMainLoop *loop;
+static int timeout_source_id = 0;
+static gboolean timeout_func   (gpointer user_data);
+static int test_glib_timeout_main(int argc, char ** argv);
+
 static void student_class_init(StudentClass*)
 {
 
@@ -23,6 +28,8 @@ void btn_clicked(GtkWidget * obj, gpointer data){
 }
 int test_gtk_main(int argc, char ** argv)
 {
+	return test_glib_timeout_main(argc, argv);
+
 	gtk_init(&argc, &argv);	//required!
 	GtkWidget * wnd = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	g_signal_connect(wnd, "destroy",gtk_main_quit, 0);
@@ -34,18 +41,24 @@ int test_gtk_main(int argc, char ** argv)
 	return 0;
 }
 
-//int test_gtk_main(int argc, char **	argv){
-//	GtkWidget *window;
-//	gtk_init(&argc, &argv);
-//
-//	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-////	g_object_set(window, "hide-titlebar-when-maximized", 1);
-//	gtk_window_set_decorated (GTK_WINDOW(window), FALSE);
-////	gtk_window_set_hide_titlebar_when_maximized(GTK_WINDOW(window), TRUE);
-//	gtk_window_maximize(GTK_WINDOW(window));
-//	gtk_widget_show(window);
-//
-//	gtk_main();
-//
-//	return 0;
-//}
+static gboolean timeout_func   (gpointer user_data)
+{
+	static int count = 5;
+	int argc = *(int *)user_data;
+	printf("%s/%s: argc = %d, left_count = %d\n", __FILE__, __FUNCTION__, argc, count);
+	if(count <= 0){
+		printf("%s/%s: return FALSE, timer stop\n", __FILE__, __FUNCTION__);
+		return FALSE;
+	}
+	--count;
+	return TRUE;
+}
+static int test_glib_timeout_main(int argc, char ** argv)
+{
+	gtk_init(&argc, &argv);	//required!
+	g_timeout_add(1000, timeout_func, (void *)&argc);
+    loop = g_main_loop_new(NULL, FALSE);
+    g_main_loop_run(loop);
+	g_main_loop_quit(loop);
+	return 0;
+}

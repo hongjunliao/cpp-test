@@ -55,6 +55,7 @@ char const * pipe_file_2 = "/tmp/my_fifo_2";
 char const * fdp_make(char const * format, ...);
 int test_pipe_server_2(int argc, char ** argv);
 int test_pipe_client_2(int argc, char ** argv);
+int test_dup_dup2(int argc, char ** argv);
 
 /*14.1 信号量, XSI 版本: sys/sem.h; POSIX semaphore.h*/
 int test_sem(int argc, char ** argv);
@@ -63,9 +64,14 @@ int test_sem(int argc, char ** argv);
 static key_t shm_key = 400;
 int test_shm_server(int argc, char ** argv);
 int test_shm_client(int argc, char ** argv);
-
+static char const * ARGS = "<help|<cmd>|server|server2|shm-server|dup>";
 int test_cpp_main(int argc, char ** argv)
 {
+	if(argc < 2 || argc > 1 && 0 == strcmp(argv[1], "help")){
+		printf("%s %s %s\n", argv[0], TEST_CPP,  ARGS);
+		return 0;
+	}
+	/*测试gobject*/
 //	printf("student s: age = %d, name = %s\n", s.age, s.name);
 
 	char const * cmd = argc > 1? argv[1] : "ls";
@@ -78,29 +84,37 @@ int test_cpp_main(int argc, char ** argv)
 //	execl(cmd, "", 0);
 //	printf("----------Done\n");
 
+	/*管道基本测试*/
 //	test_pipe_1(argc, argv);
 //	test_pipe_2(argc, argv);
 //	test_pipe_3(argc, argv);
 //	test_pipe_4(argc, argv);
 //	test_pipe_5(argc, argv);
 
+	/*测试管道, C/S结构*/
 /*
 	if(0 == strcmp(argv[1], "server"))
 		test_pipe_server(argc, argv);
 	if(0 == strcmp(argv[1], "client"))
 			test_pipe_client(argc, argv);
-
+*/
+	/*测试管道, C/S结构*/
+/*
 	if(0 == strcmp(argv[1], "server2"))
 		test_pipe_server_2(argc, argv);
 	if(0 == strcmp(argv[1], "client2"))
 		test_pipe_client_2(argc, argv);
 */
 
+	/*测试共享内存, C/S结构*/
 	if(0 == strcmp(argv[1], "shm-server"))
 		test_shm_server(argc, argv);
 	if(0 == strcmp(argv[1], "shm-client"))
 			test_shm_client(argc, argv);
 
+	/*测试dup, dup2函数*/
+	if(0 == strcmp(argv[1], "dup"))
+		test_dup_dup2(argc, argv);
 	return 0;
 }
 
@@ -449,4 +463,14 @@ int test_pipe_client_2(int argc, char ** argv)
 	return 0;
 }
 
+int test_dup_dup2(int argc, char ** argv)
+{
+	char const * fname = __FUNCTION__;
+	int oldfd;
+	oldfd = open(fname, O_RDWR|O_CREAT,0644);
+	dup2(oldfd,1);   //复制oldfd到文件描述符1（stdout标准输出）
+	close(oldfd);    //关闭文件描述符oldfd
+	printf("ddd");  //在标准输出上打印出ddd，这时由于标准输出已经被oldfd文件描述符代替
+	return 0;       //打印到标准输出上的内容就全部打印到了文件mytest2中
+}
 
