@@ -8,7 +8,9 @@
 #include <cairo-svg.h>
 #include <stdio.h>
 #include <gdk/gdk.h>
-int test_cairo_main(int argc, char **argv) {
+
+int test_cairo_1()
+{
     cairo_t *cr;
     cairo_surface_t *surface;
     cairo_pattern_t *pattern;
@@ -47,9 +49,32 @@ int test_cairo_main(int argc, char **argv) {
 
     return 0;
 }
-
 int test_cairo_2()
 {
+	cairo_surface_t *surface;
+	cairo_t *cr;
+
+	int width = 640;
+	int height = 480;
+	surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+	cr = cairo_create(surface);
+
+	/* Drawing code goes here */
+	cairo_set_line_width(cr, 10);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_rectangle(cr, width / 4, height / 4, width / 2, height / 2);
+	cairo_stroke(cr);
+
+	/* Write output and clean up */
+	cairo_surface_write_to_png(surface,  "test_cairo_2.png");
+	cairo_destroy(cr);
+	cairo_surface_destroy(surface);
 
 	return 0;
+}
+
+int test_cairo_main(int argc, char **argv) {
+
+	test_cairo_2();
+    return 0;
 }

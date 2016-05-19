@@ -65,8 +65,13 @@ static key_t shm_key = 400;
 int test_shm_server(int argc, char ** argv);
 int test_shm_client(int argc, char ** argv);
 static char const * ARGS = "<help|<cmd>|server|server2|shm-server|dup>";
+
+/*空数组*/
+static int test_empty_array();
 int test_cpp_main(int argc, char ** argv)
 {
+	printf("INT_MAX = %d, ULONG_LONG_MAX = %u!\n", INT_MAX, ULONG_LONG_MAX);
+	test_empty_array();
 	if(argc < 2 || argc > 1 && 0 == strcmp(argv[1], "help")){
 		printf("%s %s %s\n", argv[0], TEST_CPP,  ARGS);
 		return 0;
@@ -474,3 +479,19 @@ int test_dup_dup2(int argc, char ** argv)
 	return 0;       //打印到标准输出上的内容就全部打印到了文件mytest2中
 }
 
+/**
+ * 空数组
+ */
+struct s_fly{
+	int dir[];
+};
+class s_move{
+	int dir[];
+};
+static int test_empty_array()
+{
+	int a[0];
+	printf("sizeof s_fly = %d, sizeof a[0] = %d, 0X%0X\n",
+			sizeof(s_fly), sizeof(a), a);
+	return 0;
+}

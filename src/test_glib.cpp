@@ -22,24 +22,11 @@ static void student_class_init(StudentClass*)
 static void student_init(Student*)
 {
 }
-void btn_clicked(GtkWidget * obj, gpointer data){
+static void btn_clicked(GtkWidget * obj, gpointer data){
 	static int count  = 0;
 	printf("data = %s, count = %d\n", (char *)data, ++count);
 }
-int test_gtk_main(int argc, char ** argv)
-{
-	return test_glib_timeout_main(argc, argv);
 
-	gtk_init(&argc, &argv);	//required!
-	GtkWidget * wnd = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	g_signal_connect(wnd, "destroy",gtk_main_quit, 0);
-	GtkWidget * btn = gtk_button_new_with_label("hello");
-	gtk_container_add(GTK_CONTAINER(wnd), btn);
-	g_signal_connect(btn, "clicked", G_CALLBACK(btn_clicked), (void *)"hello gtk!");
-	gtk_widget_show_all(wnd);
-	gtk_main();
-	return 0;
-}
 
 static gboolean timeout_func   (gpointer user_data)
 {
