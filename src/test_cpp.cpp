@@ -133,7 +133,7 @@ static int test_gcc_c_extension_1()
 {
 	int a = 1;
 	int b = !!a;
-	printf("%s: a= %d, b = %d(b =  !!a)\n", __FUNCTION__);
+	printf("%s: a= %d, b = %d(b =  !!a)\n", __FUNCTION__, a, b);
 	return 0;
 }
 int test_sem(int argc, char ** argv)
