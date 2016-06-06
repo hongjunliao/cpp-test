@@ -68,10 +68,16 @@ static char const * ARGS = "<help|<cmd>|server|server2|shm-server|dup>";
 
 /*空数组*/
 static int test_empty_array();
+/*gcc c extension !!bool syntax
+ * @see spice-common/ring.h/ring_item_is_linked
+ * */
+static int test_gcc_c_extension_1();
+
 int test_cpp_main(int argc, char ** argv)
 {
-	printf("INT_MAX = %d, ULONG_LONG_MAX = %u!\n", INT_MAX, ULONG_LONG_MAX);
-	test_empty_array();
+	test_gcc_c_extension_1(); return 0;
+//	printf("INT_MAX = %d, ULONG_LONG_MAX = %u!\n", INT_MAX, ULONG_LONG_MAX);
+//	test_empty_array();
 	if(argc < 2 || argc > 1 && 0 == strcmp(argv[1], "help")){
 		printf("%s %s %s\n", argv[0], TEST_CPP,  ARGS);
 		return 0;
@@ -123,6 +129,13 @@ int test_cpp_main(int argc, char ** argv)
 	return 0;
 }
 
+static int test_gcc_c_extension_1()
+{
+	int a = 1;
+	int b = !!a;
+	printf("%s: a= %d, b = %d(b =  !!a)\n", __FUNCTION__);
+	return 0;
+}
 int test_sem(int argc, char ** argv)
 {
 	return 0;
