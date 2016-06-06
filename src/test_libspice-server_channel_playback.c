@@ -13,7 +13,7 @@
 #include <math.h>
 
 #include <spice.h>
-#include <spice-audio.h>
+//#include <spice-audio.h>
 //#include "reds.h"
 
 /* test the audio playback interface. Really basic no frils test - create
