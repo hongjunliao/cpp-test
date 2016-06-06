@@ -55,7 +55,6 @@
 
 PCREATE_PROCESS(SimpleH323Process);
 
-
 ///////////////////////////////////////////////////////////////
 
 SimpleH323Process::SimpleH323Process()
@@ -833,11 +832,12 @@ void SimpleH323Connection::OnUserInputString(const PString & value)
 // End of File ///////////////////////////////////////////////////////////////
 /*h323, VOIP*/
 #include "bd_test.h"
-#include <cstdio>
-#include <cstdlib>
 
-int test_h3232_main(int argc, char ** argv)
-{
+int test_h323_main(int argc, char ** argv) {
 
-	return 0;
+	SimpleH323Process *pInstance = new SimpleH323Process();
+	pInstance->PreInitialise(argc, argv, NULL);
+	int terminationValue = pInstance->InternalMain();
+	delete pInstance;
+	return terminationValue;
 }
