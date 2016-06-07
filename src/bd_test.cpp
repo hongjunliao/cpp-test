@@ -26,7 +26,8 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"ppm-to-bmp",test_ppm_to_bmp_main},
 			{TEST_LIB_FREEIMAGE, test_libfreeimageplus_crop_main},
 			{TEST_LIB_PULSEAUDIO, test_pulseaudio_main},
-			{TEST_LIB_H323PLUS,test_h323_main},
+			{TEST_LIB_H323PLUS, test_h323_main},
+			{TEST_LIB_SPICE_SERVER_DISPLAY_STREAMING, test_spice_display_streaming_main},
 
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
