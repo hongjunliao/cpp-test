@@ -52,7 +52,7 @@ int bd_test_main(int argc, char ** argv, char const * stest)
 	auto fn = testmap[stest];
 	if(!fn){
 		fprintf(stderr, "no such test: %s\n", stest);
-		return -2;
+		return BD_TEST_NO_SUCH_TEST;
 	}
 	return fn(argc, argv);
 }

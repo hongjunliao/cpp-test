@@ -74,6 +74,7 @@
 							<tool command="g++ `pkg-config --libs gtk+-3.0`" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GLDErrorParser" id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1965850698" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 								<option id="gnu.cpp.link.option.libs.1022251372" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="usb-1.0"/>
+									<listOptionValue builtIn="false" value="spice-common"/>
 									<listOptionValue builtIn="false" value="pt"/>
 									<listOptionValue builtIn="false" value="h323"/>
 									<listOptionValue builtIn="false" value="pulsecommon-4.0"/>
@@ -87,7 +88,7 @@
 									<listOptionValue builtIn="false" value="curl"/>
 									<listOptionValue builtIn="false" value="gtk-3"/>
 									<listOptionValue builtIn="false" value="json-c"/>
-									<listOptionValue builtIn="false" value="spice-common"/>
+									<listOptionValue builtIn="false" value="gtk-3"/>
 									<listOptionValue builtIn="false" value="xcb"/>
 									<listOptionValue builtIn="false" value="X11"/>
 									<listOptionValue builtIn="false" value="pango-1.0"/>
@@ -101,7 +102,8 @@
 								<option id="gnu.cpp.link.option.flags.817517205" name="Linker flags" superClass="gnu.cpp.link.option.flags" value="-lgtk-3 -lgdk-3 -latk-1.0 -lgio-2.0 -lpangocairo-1.0 -lgdk_pixbuf-2.0 -lcairo-gobject -lpango-1.0 -lcairo -lgobject-2.0 -lglib-2.0  " valueType="string"/>
 								<option id="gnu.cpp.link.option.paths.1530298746" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/home/jun/git/bd-spice-forward/Debug/"/>
-									<listOptionValue builtIn="false" value="/home/jun/spice/spice-0.13.1/spice-common/common/.libs"/>
+									<listOptionValue builtIn="false" value="/home/jun/spice/spice.github/spice-common/common/.libs/"/>
+									<listOptionValue builtIn="false" value="/home/jun/git/bd-spice-forward/Debug/"/>
 									<listOptionValue builtIn="false" value="/usr/lib/x86_64-linux-gnu/pulseaudio"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.66495471" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
