@@ -73,8 +73,17 @@ static int test_empty_array();
  * */
 static int test_gcc_c_extension_1();
 
+static int test_scanf()
+{
+	char cmd[512] = "<empty>";
+	scanf("%512s\n", cmd);
+	printf("%s: %s\n", __FUNCTION__, cmd);
+	FILE * f = stdin;
+	return 0;
+}
 int test_cpp_main(int argc, char ** argv)
 {
+	test_scanf();
 	test_gcc_c_extension_1(); return 0;
 //	printf("INT_MAX = %d, ULONG_LONG_MAX = %u!\n", INT_MAX, ULONG_LONG_MAX);
 //	test_empty_array();
