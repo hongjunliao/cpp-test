@@ -4,6 +4,7 @@
  *  Created on: Mar 24, 2016
  *      Author: liaohj
  */
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"	//required!
 #include <sys/select.h>
 #include <time.h>
@@ -35,3 +36,4 @@ int test_select_main(int argc, char ** argv)
 	}
 	return 0;
 }
+#endif /*__CYGWIN_GCC__*/

@@ -1,3 +1,4 @@
+#ifdef __CYGWIN_GCC__
 #ifndef __SUPPER_CONTAINER_H__
 #define __SUPPER_CONTAINER_H__
 
@@ -33,3 +34,4 @@ GtkWidget* supper_container_new(void);
 G_END_DECLS
 
 #endif
+#endif /*__CYGWIN_GCC__*/

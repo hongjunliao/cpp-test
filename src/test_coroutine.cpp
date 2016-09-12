@@ -4,6 +4,7 @@
  *  Created on: Jan 7, 2016
  *      Author: jun
  */
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <ucontext.h>
 #include <cstdio>
@@ -58,3 +59,4 @@ int test_coroutine_main(int argc, char ** argv)
 	r = test_coroutine_ucontext_swap(argc, argv);
 	return r;
 }
+#endif /*__CYGWIN_GCC__*/

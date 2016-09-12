@@ -23,6 +23,7 @@
  * HTTP PUT with easy interface and read callback
  * </DESC>
  */
+#ifdef __CYGWIN_GCC__
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -177,16 +178,16 @@ int test_http_post_json_main(){
 //	    curl_slist_append(headers, "Content-Type: application/json");
 //	    curl_slist_append(headers, "charset: utf-8");
 //	    curl_slist_append(headers, tmp);
-//	    curl = curl_easy_init();//对curl进行初始化
+//	    curl = curl_easy_init();//瀵筩url杩涜鍒濆鍖�
 //	    if(curl){
-//	        curl_easy_setopt(curl, CURLOPT_URL, url); //设置下载地址
+//	        curl_easy_setopt(curl, CURLOPT_URL, url); //璁剧疆涓嬭浇鍦板潃
 //	        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-//	        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 8);//设置超时时间
-//	        curl_easy_setopt(curl, CURLOPT_POST, 1L);//设置超时时间
-//	        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);//设置超时时间
-////	        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, func);//设置写数据的函数
-//	        curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);//设置写数据的变量
-//	        res = curl_easy_perform(curl);//执行下载
+//	        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 8);//璁剧疆瓒呮椂鏃堕棿
+//	        curl_easy_setopt(curl, CURLOPT_POST, 1L);//璁剧疆瓒呮椂鏃堕棿
+//	        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);//璁剧疆瓒呮椂鏃堕棿
+////	        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, func);//璁剧疆鍐欐暟鎹殑鍑芥暟
+//	        curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);//璁剧疆鍐欐暟鎹殑鍙橀噺
+//	        res = curl_easy_perform(curl);//鎵ц涓嬭浇
 //	        curl_easy_cleanup(curl);
 //	        curl_slist_free_all(headers);
 //	        return res;
@@ -202,3 +203,4 @@ int test_curl_main(int argc, char * argv[])
 	test_http_post_main();
 	test_curl_http_put_main(argc, argv);
 }
+#endif /*__CYGWIN_GCC__*/

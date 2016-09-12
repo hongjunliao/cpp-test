@@ -8,6 +8,7 @@
 /* to compile it use :
  cc x.c -lxcb
 */
+#ifdef __CYGWIN_GCC__
 #include <xcb/xcb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,3 +79,4 @@ int test_xcb_main(int, char **)
 
 
 
+#endif /*__CYGWIN_GCC__*/

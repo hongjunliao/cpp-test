@@ -15,6 +15,7 @@
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
+#ifdef __CYGWIN_GCC__
 #ifndef __BASIC_EVENT_LOOP_H__
 #define __BASIC_EVENT_LOOP_H__
 
@@ -27,3 +28,4 @@ void basic_event_loop_destroy(void);
 void basic_event_loop_mainloop(void);
 
 #endif // __BASIC_EVENT_LOOP_H__
+#endif /*__CYGWIN_GCC__*/

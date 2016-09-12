@@ -15,6 +15,7 @@
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
+#ifdef __CYGWIN_GCC__
 #include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -112,3 +113,4 @@ void basic_event_loop_destroy(void)
     g_main_context_unref(main_context);
     main_context = NULL;
 }
+#endif /*__CYGWIN_GCC__*/

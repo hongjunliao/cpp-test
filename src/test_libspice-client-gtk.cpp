@@ -1,3 +1,4 @@
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <cstdio>
 #include <cstdlib>
@@ -138,3 +139,4 @@ int test_libspice_client_gtk_main(int argc, char ** argv)
     gtk_main();
     return 0;
 }
+#endif /*__CYGWIN_GCC__*/

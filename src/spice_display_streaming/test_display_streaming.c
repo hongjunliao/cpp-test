@@ -21,6 +21,7 @@
  * TODO: stop updating same rect, check (prog) that stream stops
  */
 
+#ifdef __CYGWIN_GCC__
 #include "config.h"
 
 #include <stdio.h>
@@ -251,3 +252,4 @@ int test_spice_display_streaming_main(int argc, char **argv)
     free(commands);
     return 0;
 }
+#endif /*__CYGWIN_GCC__*/

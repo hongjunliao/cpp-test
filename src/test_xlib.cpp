@@ -6,6 +6,7 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 
+#ifdef __CYGWIN_GCC__
 #include <X11/Xlib.h>
 #include <unistd.h>
 #include <cstdio>
@@ -203,3 +204,4 @@ int xlib_draw_rectangle(int x, int y, int w, int h)
 	return 0;
 }
 
+#endif /*__CYGWIN_GCC__*/

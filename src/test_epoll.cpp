@@ -1,3 +1,4 @@
+#ifdef __CYGWIN_GCC__
 #include <iostream>
 #include <sys/socket.h>
 #include <sys/epoll.h>
@@ -47,28 +48,28 @@ int test_epoll_main(int argc, char ** argv) {
 		return 1;
 	}
 
-	//声明epoll_event结构体的变量,ev用于注册事件,数组用于回传要处理的事件
+	//澹版槑epoll_event缁撴瀯浣撶殑鍙橀噺,ev鐢ㄤ簬娉ㄥ唽浜嬩欢,鏁扮粍鐢ㄤ簬鍥炰紶瑕佸鐞嗙殑浜嬩欢
 
 	struct epoll_event ev, events[20];
-	//生成用于处理accept的epoll专用的文件描述符
+	//鐢熸垚鐢ㄤ簬澶勭悊accept鐨別poll涓撶敤鐨勬枃浠舵弿杩扮
 
 	epfd = epoll_create(256);
 	struct sockaddr_in clientaddr;
 	struct sockaddr_in serveraddr = { 0 };
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
-	//把socket设置为非阻塞方式
+	//鎶妔ocket璁剧疆涓洪潪闃诲鏂瑰紡
 
 	//setnonblocking(listenfd);
 
-	//设置与要处理的事件相关的文件描述符
+	//璁剧疆涓庤澶勭悊鐨勪簨浠剁浉鍏崇殑鏂囦欢鎻忚堪绗�
 
 	ev.data.fd = listenfd;
-	//设置要处理的事件类型
+	//璁剧疆瑕佸鐞嗙殑浜嬩欢绫诲瀷
 
 	ev.events = EPOLLIN | EPOLLET;
 	//ev.events=EPOLLIN;
 
-	//注册epoll事件
+	//娉ㄥ唽epoll浜嬩欢
 
 	epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
 	serveraddr.sin_family = AF_INET;
@@ -80,13 +81,13 @@ int test_epoll_main(int argc, char ** argv) {
 	listen(listenfd, LISTENQ);
 
 	for (;;) {
-		//等待epoll事件的发生
+		//绛夊緟epoll浜嬩欢鐨勫彂鐢�
 
 		nfds = epoll_wait(epfd, events, 20, 500);
-		//处理所发生的所有事件
+		//澶勭悊鎵�鍙戠敓鐨勬墍鏈変簨浠�
 
 		for (i = 0; i < nfds; ++i) {
-			if (events[i].data.fd == listenfd) //如果新监测到一个SOCKET用户连接到了绑定的SOCKET端口，建立新的连接。
+			if (events[i].data.fd == listenfd) //濡傛灉鏂扮洃娴嬪埌涓�涓猄OCKET鐢ㄦ埛杩炴帴鍒颁簡缁戝畾鐨凷OCKET绔彛锛屽缓绔嬫柊鐨勮繛鎺ャ��
 
 					{
 				connfd = accept(listenfd, (sockaddr *) &clientaddr, &clilen);
@@ -98,18 +99,18 @@ int test_epoll_main(int argc, char ** argv) {
 
 				char *str = inet_ntoa(clientaddr.sin_addr);
 				cout << "accapt a connection from " << str << endl;
-				//设置用于读操作的文件描述符
+				//璁剧疆鐢ㄤ簬璇绘搷浣滅殑鏂囦欢鎻忚堪绗�
 
 				ev.data.fd = connfd;
-				//设置用于注测的读操作事件
+				//璁剧疆鐢ㄤ簬娉ㄦ祴鐨勮鎿嶄綔浜嬩欢
 
 				ev.events = EPOLLIN | EPOLLET;
 				//ev.events=EPOLLIN;
 
-				//注册ev
+				//娉ㄥ唽ev
 
 				epoll_ctl(epfd, EPOLL_CTL_ADD, connfd, &ev);
-			} else if (events[i].events & EPOLLIN) //如果是已经连接的用户，并且收到数据，那么进行读入。
+			} else if (events[i].events & EPOLLIN) //濡傛灉鏄凡缁忚繛鎺ョ殑鐢ㄦ埛锛屽苟涓旀敹鍒版暟鎹紝閭ｄ箞杩涜璇诲叆銆�
 
 			{
 				cout << "EPOLLIN" << endl;
@@ -127,28 +128,28 @@ int test_epoll_main(int argc, char ** argv) {
 				}
 				line[n] = '/0';
 				cout << "read " << line << endl;
-				//设置用于写操作的文件描述符
+				//璁剧疆鐢ㄤ簬鍐欐搷浣滅殑鏂囦欢鎻忚堪绗�
 
 				ev.data.fd = sockfd;
-				//设置用于注测的写操作事件
+				//璁剧疆鐢ㄤ簬娉ㄦ祴鐨勫啓鎿嶄綔浜嬩欢
 
 				ev.events = EPOLLOUT | EPOLLET;
-				//修改sockfd上要处理的事件为EPOLLOUT
+				//淇敼sockfd涓婅澶勭悊鐨勪簨浠朵负EPOLLOUT
 
 				//epoll_ctl(epfd,EPOLL_CTL_MOD,sockfd,&ev);
 
-			} else if (events[i].events & EPOLLOUT) // 如果有数据发送
+			} else if (events[i].events & EPOLLOUT) // 濡傛灉鏈夋暟鎹彂閫�
 
 			{
 				sockfd = events[i].data.fd;
 				write(sockfd, line, n);
-				//设置用于读操作的文件描述符
+				//璁剧疆鐢ㄤ簬璇绘搷浣滅殑鏂囦欢鎻忚堪绗�
 
 				ev.data.fd = sockfd;
-				//设置用于注测的读操作事件
+				//璁剧疆鐢ㄤ簬娉ㄦ祴鐨勮鎿嶄綔浜嬩欢
 
 				ev.events = EPOLLIN | EPOLLET;
-				//修改sockfd上要处理的事件为EPOLIN
+				//淇敼sockfd涓婅澶勭悊鐨勪簨浠朵负EPOLIN
 
 				epoll_ctl(epfd, EPOLL_CTL_MOD, sockfd, &ev);
 			}
@@ -157,3 +158,4 @@ int test_epoll_main(int argc, char ** argv) {
 	return 0;
 }
 
+#endif /*__CYGWIN_GCC__*/

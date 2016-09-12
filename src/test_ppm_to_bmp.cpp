@@ -1,3 +1,4 @@
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <iostream>
 #include <string>
@@ -107,3 +108,4 @@ int test_ppm_to_bmp_main(int argc, char ** argv) {
 	ofile.close();
 	return 0;
 }
+#endif /*__CYGWIN_GCC__*/

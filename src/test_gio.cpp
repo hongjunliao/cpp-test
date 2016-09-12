@@ -4,6 +4,7 @@
  *  Created on: Mar 31, 2016
  *      Author: jun
  */
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <stdio.h>
 #include <gio/gio.h>
@@ -37,3 +38,4 @@ static gboolean handler_gio_stdin (GIOChannel *source, GIOCondition condition, g
 	g_main_loop_quit(loop);
 	return 0;
 }
+#endif /*__CYGWIN_GCC__*/

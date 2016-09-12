@@ -5,6 +5,7 @@
  *  Created on: Jan 5, 2016
  *      Author: root
  */
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include "test_glib.h"
 #include <gtk/gtk.h>
@@ -111,7 +112,7 @@ static void draw_brush (GtkWidget *widget,
                               FALSE);
 }
 
-/*Gtk顶级窗口嵌入技术------glade技术分析之一*/
+/*Gtk椤剁骇绐楀彛宓屽叆鎶�鏈�------glade鎶�鏈垎鏋愪箣涓�*/
 static int test_gtk_main_3(int argc, char ** argv)
 {
 	GtkWidget *window, *embedded_window;
@@ -155,3 +156,4 @@ static int test_gtk_main_3(int argc, char ** argv)
 
 	return 0;
 }
+#endif /*__CYGWIN_GCC__*/

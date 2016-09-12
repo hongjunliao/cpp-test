@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifdef __CYGWIN_GCC__
 #include <stdio.h>
 
 #include <libusb.h>
@@ -99,3 +100,4 @@ int test_libusb_main(int argc, char * argv[])
 	return 0;
 }
 
+#endif /*__CYGWIN_GCC__*/

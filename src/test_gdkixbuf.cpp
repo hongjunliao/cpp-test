@@ -1,3 +1,4 @@
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <gtk/gtk.h>
 #include <SDL/SDL.h>
@@ -103,3 +104,4 @@ int test_gdkpixbuf_main(int argc, char *argv[]) {
 	gtk_main();
 	return 0;
 }
+#endif /*__CYGWIN_GCC__*/

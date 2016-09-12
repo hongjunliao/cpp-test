@@ -1,3 +1,4 @@
+#ifdef __CYGWIN_GCC__
 #include <libudev.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,3 +76,4 @@ int test_udev_main(int, char**) {
 
 	return 0;
 }
+#endif /*__CYGWIN_GCC__*/

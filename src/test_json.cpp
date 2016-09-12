@@ -4,6 +4,7 @@
  *  Created on: Jan 18, 2016
  *      Author: liaohj
  */
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <json/json.h>
 #include <stdio.h>
@@ -62,7 +63,7 @@ int test_jsonc_main(int, char **)
         return 1;
     }
 
-    /*添加json值类型到数组中*/
+    /*娣诲姞json鍊肩被鍨嬪埌鏁扮粍涓�*/
     json_object_array_add(array_object, json_object_new_int(256));
     json_object_array_add(array_object, json_object_new_int(257));
     json_object_array_add(array_object, json_object_new_int(258));
@@ -71,12 +72,12 @@ int test_jsonc_main(int, char **)
     json_object_object_add(para_object, "MacAddr", json_object_new_string("AA:BB:CC:DD:EE:FF"));
     json_object_object_add(para_object, "Visible", json_object_new_int(1));
 
-    /*添加json名称和值到json对象集合中*/
+    /*娣诲姞json鍚嶇О鍜屽�煎埌json瀵硅薄闆嗗悎涓�*/
     json_object_object_add(infor_object, "method", json_object_new_string("GetSystemInfo"));
     json_object_object_add(infor_object, "param", para_object);
     json_object_object_add(infor_object, "id", json_object_new_string("101"));
 
-    /*添加数组集合到json对象中*/
+    /*娣诲姞鏁扮粍闆嗗悎鍒癹son瀵硅薄涓�*/
     json_object_object_add(infor_object, "array", array_object);
 
     printf("-----------json infor ---------------------------\n");
@@ -114,3 +115,4 @@ int test_jsonc_main(int, char **)
 }
 
 
+#endif /*__CYGWIN_GCC__*/

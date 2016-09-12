@@ -11,6 +11,7 @@
   You should have received a copy of the GNU Lesser General Public License
   along with PulseAudio; if not, see <http://www.gnu.org/licenses/>.
 ***/
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -87,3 +88,4 @@ finish:
         pa_simple_free(s);
     return ret;
 }
+#endif /*__CYGWIN_GCC__*/

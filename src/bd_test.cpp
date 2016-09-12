@@ -4,6 +4,8 @@
 #include <map>
 
 static std::map<std::string, test_main_fn> testmap = {
+#ifdef __CYGWIN_GCC__
+
 			{"xcb",test_xcb_main},
 			{"cairo",test_cairo_main},
 			{"xlib",test_xlib_main},
@@ -28,7 +30,8 @@ static std::map<std::string, test_main_fn> testmap = {
 			{TEST_LIB_PULSEAUDIO, test_pulseaudio_main},
 			{TEST_LIB_H323PLUS, test_h323_main},
 			{TEST_LIB_SPICE_SERVER_DISPLAY_STREAMING, test_spice_display_streaming_main},
-
+#endif /*__CYGWIN_GCC__*/
+			{"cygwin_posix_ipc", test_cygwin_posix_ipc_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 
@@ -56,3 +59,4 @@ int bd_test_main(int argc, char ** argv, char const * stest)
 	}
 	return fn(argc, argv);
 }
+

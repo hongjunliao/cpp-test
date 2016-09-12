@@ -2,6 +2,7 @@
  * test libfreeimageplus-dev
  * PPM图片裁剪
  */
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,3 +68,4 @@ int test_libfreeimage_crop_main(int argc, char ** argv)
 	FreeImage_Unload(dib);
 	return 0;
 }
+#endif /*__CYGWIN_GCC__*/

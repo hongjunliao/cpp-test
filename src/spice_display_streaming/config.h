@@ -13,6 +13,7 @@
 /* #undef C_ALLOCA */
 
 /* Enable compile-time and run-time bounds-checking, and some warnings. */
+#ifdef __CYGWIN_GCC__
 #if !defined _FORTIFY_SOURCE &&  defined __OPTIMIZE__ && __OPTIMIZE__
 # define _FORTIFY_SOURCE 2
 #endif
@@ -131,3 +132,4 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */
+#endif /*__CYGWIN_GCC__*/

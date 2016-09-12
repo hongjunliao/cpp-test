@@ -16,6 +16,7 @@
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef __CYGWIN_GCC__
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -111,3 +112,4 @@ int test_spice_server_main(int argc, char ** argv)
 
     return r;
 }
+#endif /*__CYGWIN_GCC__*/

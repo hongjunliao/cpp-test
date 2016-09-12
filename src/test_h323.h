@@ -25,6 +25,7 @@
  *
  */
 
+#ifdef __CYGWIN_GCC__
 #ifndef _SimpleH323_MAIN_H
 #define _SimpleH323_MAIN_H
 
@@ -105,3 +106,4 @@ class SimpleH323Process : public PProcess
 
 
 // End of File ///////////////////////////////////////////////////////////////
+#endif /*__CYGWIN_GCC__*/

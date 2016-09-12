@@ -2,6 +2,7 @@
 /*
   spice.github/server/test/test_playback.c
 */
+#ifdef __CYGWIN_GCC__
 #include "bd_test.h"
 #include <glib.h>
 #include <stdio.h>
@@ -131,3 +132,4 @@ int test_libspice_server_channel_playback_main(int argc, char ** argv)
 
     return 0;
 }
+#endif /*__CYGWIN_GCC__*/

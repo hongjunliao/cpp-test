@@ -1,3 +1,4 @@
+#ifdef __CYGWIN_GCC__
 #include "gtk_supper_container.h"
 
 struct _SupperContainerPriv {
@@ -326,3 +327,4 @@ GtkWidget*
 supper_container_new(void) {
 	return g_object_new(SUPPER_CONTAINER_TYPE, NULL);
 }
+#endif //__CYGWIN_GCC__

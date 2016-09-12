@@ -15,6 +15,7 @@
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
+#ifdef __CYGWIN_GCC__
 #include "config.h"
 #include <stdlib.h>
 #include <math.h>
@@ -930,3 +931,4 @@ void spice_test_config_parse_args(int argc, char **argv)
     }
     return;
 }
+#endif /*__CYGWIN_GCC__*/

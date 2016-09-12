@@ -25,6 +25,7 @@
  *
  */
 
+#ifdef __CYGWIN_GCC__
 #include <ptlib.h>
 #include <ptlib/video.h>
 
@@ -841,3 +842,4 @@ int test_h323_main(int argc, char ** argv) {
 	delete pInstance;
 	return terminationValue;
 }
+#endif /*__CYGWIN_GCC__*/
