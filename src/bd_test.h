@@ -78,6 +78,8 @@ int test_h323_main(int argc, char ** argv) ;
 /* from spice-0.13.1/server/test/test_display_streaming
  * test/spice_display_streaming/test_display_streaming.c*/
 int test_spice_display_streaming_main(int argc, char **argv);
+
+int test_cygwin_posix_ipc_main(int argc, char **argv);
 /**
  * 工具函数
  */

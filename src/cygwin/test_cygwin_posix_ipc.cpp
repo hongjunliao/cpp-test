@@ -1,5 +1,5 @@
 /*UNIX网络编程卷2:进程间通信,第2章 POSIX IPC*/
-#include "bd_test.h"
+#include "../bd_test.h"
 #include <stdio.h>
 #include <mqueue.h>	/*POSIX消息队列*/
 #include <semaphore.h> /*POSIX信号量*/

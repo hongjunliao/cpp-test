@@ -1,11 +1,11 @@
-/*
+﻿/*
  * test_cpp.cpp
  *
  *  Created on: Jan 5, 2016
  *      Author: root
  */
-#include </usr/include/google/protobuf/message.h>
-#include <cstdio>
+//#include </usr/include/google/protobuf/message.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <cstdlib>
 #include <cstring>
@@ -206,6 +206,7 @@ int test_shm_client(int argc, char ** argv)
 
 int test_pipe_1(int argc, char ** argv)
 {
+#ifdef LINUX_GCC
 	char const * cmd = argc > 1? argv[1] : "ls";
 	//捕获外部程序输出
 //	char buffer[BUFSIZ] = "";
@@ -229,6 +230,7 @@ int test_pipe_1(int argc, char ** argv)
 		pclose(file);
 
 	}
+#endif /*LINUX_GCC*/
 	return 0;
 }
 int test_pipe_2(int argc, char ** argv)

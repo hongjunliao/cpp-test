@@ -38,7 +38,7 @@ static std::map<std::string, test_main_fn> testmap = {
 char const * bd_test_get_test_list()
 {
 	char const * ret = "";
-	std::string s = "[help";
+	static std::string s = "[help|--help|-h|?";
 	for(auto iter = testmap.begin(); iter != testmap.end(); ++iter){
 		s += "|";
 		s += iter->first;
@@ -54,7 +54,7 @@ int bd_test_main(int argc, char ** argv, char const * stest)
 		return -1;
 	auto fn = testmap[stest];
 	if(!fn){
-		fprintf(stderr, "no such test: %s\n", stest);
+		fprintf(stderr, "%s: no such test: %s\n", __FUNCTION__, stest);
 		return BD_TEST_NO_SUCH_TEST;
 	}
 	return fn(argc, argv);
