@@ -1,4 +1,4 @@
-﻿/*
+/*
  * test_cpp.cpp
  *
  *  Created on: Jan 5, 2016

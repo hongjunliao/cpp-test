@@ -32,6 +32,9 @@ static std::map<std::string, test_main_fn> testmap = {
 			{TEST_LIB_SPICE_SERVER_DISPLAY_STREAMING, test_spice_display_streaming_main},
 #endif /*__CYGWIN_GCC__*/
 			{"cygwin_posix_ipc", test_cygwin_posix_ipc_main},
+			{"win32_pipe", test_win32_pipe_main},
+			{"subprocess_with_pipe", test_subprocess_with_pipe_main},
+
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 

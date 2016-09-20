@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <openssl/ssl.h>
+#include <openssl/aes.h>
 
 static char * pwd_file = "docici.acc";	/*passord file*/
 static char * keyword = 0;

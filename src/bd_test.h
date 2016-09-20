@@ -80,6 +80,10 @@ int test_h323_main(int argc, char ** argv) ;
 int test_spice_display_streaming_main(int argc, char **argv);
 
 int test_cygwin_posix_ipc_main(int argc, char **argv);
+/*test_win32_pipe.cpp*/
+int test_win32_pipe_main(int argc, char ** argv);
+int test_subprocess_with_pipe_main(int argc, char ** argv);
+
 /**
  * 工具函数
  */

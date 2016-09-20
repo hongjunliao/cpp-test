@@ -1,0 +1,120 @@
+#include "bd_test.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+
+int execute_with_pipe(char * cmd, void (*stdout_cb)(void * data, int length));
+static void get_stdout(void * data, int len)
+{
+	fprintf(stdout, "%s: >>>[%s]<<<", __FUNCTION__, (char *)data);
+}
+
+
+int execute_with_pipe(char * cmd, void (*stdout_cb)(void * data, int length))
+{
+	HANDLE hReadPipe;
+	HANDLE hWritePipe;
+	SECURITY_ATTRIBUTES sa = { 0};
+	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+	sa.bInheritHandle = TRUE;
+	DWORD nSize = 0;
+	BOOL r = ::CreatePipe(&hReadPipe, &hWritePipe, &sa, nSize);
+	if(!r){
+		fprintf(stderr, "%s: CreatePipe failed\n", __FUNCTION__);
+		return 1;
+	}
+
+	STARTUPINFO si  = {0};
+	GetStartupInfo(&si);
+	si.cb = sizeof(STARTUPINFO);
+	si.hStdError = hWritePipe; //设定其标准错误输出为hWritePipe
+	si.hStdOutput = hWritePipe; //设定其标准输出为hWritePipe
+	si.wShowWindow = SW_HIDE;
+	si.dwFlags = STARTF_USESTDHANDLES;
+
+	PROCESS_INFORMATION pi;
+	r = CreateProcess(NULL, cmd, NULL, NULL, TRUE, NULL, NULL, NULL, &si, &pi);
+	if (!r) {
+		fprintf(stderr, "%s: CreateProcess failed\n", __FUNCTION__);
+		return 1;
+	}
+	for(bool keep = true; keep;){
+		keep = false;
+		DWORD dw = WaitForSingleObject(pi.hProcess, 20);
+		switch(dw){
+		case WAIT_FAILED:{
+			fprintf(stderr, "%s: WaitForSingleObject failed\n", __FUNCTION__);
+			return 1;
+		}
+		case WAIT_TIMEOUT:
+		case WAIT_OBJECT_0:{
+			char readbuff[1024 * 5] = "";
+			DWORD bytesRead = 0;
+			BOOL r = ReadFile(hReadPipe, readbuff, sizeof(readbuff), &bytesRead, NULL);
+			if(!r){
+				fprintf(stderr, "%s: ReadFile failed\n", __FUNCTION__);
+				return 1;
+			}
+			readbuff[bytesRead] = 0;
+
+			if(bytesRead != 0){
+				stdout_cb(readbuff, bytesRead);
+			}
+			if(dw == WAIT_OBJECT_0){
+				CloseHandle(hWritePipe);
+				fprintf(stderr, "%s: process finished\n", __FUNCTION__);
+			}
+			else
+				keep = true;
+			break;
+		}
+		default:
+			fprintf(stderr, "%s: WaitForSingleObject internal error\n", __FUNCTION__);
+			break;
+		}
+	}
+	return 0;
+}
+
+int test_win32_pipe_main(int argc, char ** argv)
+{
+	HANDLE hReadPipe;
+	HANDLE hWritePipe;
+	SECURITY_ATTRIBUTES sa = { 0};
+	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+	sa.bInheritHandle = TRUE;
+	DWORD nSize = 0;
+	BOOL r = ::CreatePipe(&hReadPipe, &hWritePipe, &sa, nSize);
+	if(!r){
+		fprintf(stderr, "%s: CreatePipe failed\n", __FUNCTION__);
+		return 1;
+	}
+	char buff[] = "hello, pipe";
+	DWORD bytesWrite = 0;
+	r = WriteFile(hWritePipe, buff, sizeof(buff), &bytesWrite, NULL);
+	if(!r){
+		fprintf(stderr, "%s: WriteFile failed\n", __FUNCTION__);
+		return 1;
+	}
+	fprintf(stdout, "%s: write to pipe: %s, size = %d\n", __FUNCTION__, buff, bytesWrite);
+//	CloseHandle(hWritePipe);
+	char readbuff[1024 * 5] = "";
+	DWORD bytesRead = 0;
+	r = ReadFile(hReadPipe, readbuff, sizeof(readbuff), &bytesRead, NULL);
+	if(!r){
+		fprintf(stderr, "%s: ReadFile failed\n", __FUNCTION__);
+		return 1;
+	}
+	fprintf(stdout, "%s: read from pipe: %s, size = %d\n", __FUNCTION__, readbuff, bytesRead);
+	return 0;
+}
+
+int test_subprocess_with_pipe_main(int argc, char ** argv)
+{
+	char defcmd[512] = "git --help";
+	char * cmd = argc > 1? argv[1] : defcmd;
+	fprintf(stdout, "%s: cmd = %s\n", __FUNCTION__, cmd);
+	execute_with_pipe(cmd, get_stdout);
+	return 0;
+}
+
