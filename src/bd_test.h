@@ -83,6 +83,7 @@ int test_cygwin_posix_ipc_main(int argc, char **argv);
 /*test_win32_pipe.cpp*/
 int test_win32_pipe_main(int argc, char ** argv);
 int test_subprocess_with_pipe_main(int argc, char ** argv);
+int test_subprocess_wait_pipe_handle_main(int argc, char ** argv);
 
 /**
  * 工具函数

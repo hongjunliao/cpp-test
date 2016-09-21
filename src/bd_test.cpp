@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <string>
 #include <map>
-
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -34,6 +33,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"cygwin_posix_ipc", test_cygwin_posix_ipc_main},
 			{"win32_pipe", test_win32_pipe_main},
 			{"subprocess_with_pipe", test_subprocess_with_pipe_main},
+			{"subprocess_wait_pipe_handle", test_subprocess_wait_pipe_handle_main},
 
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
