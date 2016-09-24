@@ -34,14 +34,14 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"win32_pipe", test_win32_pipe_main},
 			{"subprocess_with_pipe", test_subprocess_with_pipe_main},
 			{"subprocess_wait_pipe_handle", test_subprocess_wait_pipe_handle_main},
-
+			{"mykeys", mykeys_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 
 char const * bd_test_get_test_list()
 {
 	char const * ret = "";
-	static std::string s = "[help|--help|-h|?";
+	static std::string s = "[help|--help|-h";
 	for(auto iter = testmap.begin(); iter != testmap.end(); ++iter){
 		s += "|";
 		s += iter->first;

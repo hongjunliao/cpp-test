@@ -1,9 +1,9 @@
-/*UNIXÍøÂç±à³Ì¾í2:½ø³Ì¼äÍ¨ÐÅ,µÚ2ÕÂ POSIX IPC*/
-#include "../bd_test.h"
+/*UNIXï¿½ï¿½ï¿½ï¿½ï¿½Ì¾ï¿½2:ï¿½ï¿½ï¿½Ì¼ï¿½Í¨ï¿½ï¿½,ï¿½ï¿½2ï¿½ï¿½ POSIX IPC*/
+#include "bd_test.h"
 #include <stdio.h>
-#include <mqueue.h>	/*POSIXÏûÏ¢¶ÓÁÐ*/
-#include <semaphore.h> /*POSIXÐÅºÅÁ¿*/
-#include <sys/mman.h> /*POSIX¹²ÏíÇø*/
+#include <mqueue.h>	/*POSIXï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½*/
+#include <semaphore.h> /*POSIXï¿½Åºï¿½ï¿½ï¿½*/
+#include <sys/mman.h> /*POSIXï¿½ï¿½ï¿½ï¿½ï¿½ï¿½*/
 #include <fcntl.h>
 #include <unistd.h>	/*sysconf*/
 int test_cygwin_posix_ipc_main(int argc, char ** arg)
