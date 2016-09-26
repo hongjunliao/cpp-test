@@ -8,8 +8,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <iostream>
 #include <string>
+#include <regex>
 #include <regex>
 
 #include "termio_util.h"	/*set_disp_mode*/
@@ -17,7 +17,7 @@
 static char const * key_file = "docici.acc",	/*key file*/
 		* keyword = "",			/*key word to search*/
 		* password = "";		/*password*/
-static std::string keys;		/*all keys, in memory*/
+static std::vector<std::string> keys;		/*all keys, in memory*/
 static bool is_debug = false;
 #define COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -27,7 +27,7 @@ extern int execute_with_pipe(char * cmd, void (*stdout_cb)(void * data, int leng
 
 static void show_usage(char const * argv0)
 {
-	fprintf(stdout, "%s key_file(default docici.acc) keyword password\n", argv0);
+	fprintf(stdout, "%s key_file(default docici.acc) keyword (password | --debug | -d)\n", argv0);
 }
 
 int mykeys_main(int argc, char ** argv)
@@ -91,14 +91,23 @@ int mykeys_main(int argc, char ** argv)
 	}
 	std::regex reg(keyword, std::regex::icase);
 	std::smatch sm;
-	while(regex_search(keys, sm, reg)){
-		fprintf(stdout, "%s\n", sm.str().c_str());
-		keys = sm.suffix();
+	for(auto iter  = keys.begin(); iter != keys.end(); ++iter){
+		if(regex_search(*iter, sm, reg))
+			fprintf(stdout, "%s\n", iter->c_str());
 	}
 	return 0;
 }
 
 static void openssl_stdout(void * data, int length)
 {
-	keys += (char * )data;
+	char * cdata = (char * )data;
+	for(char * p = cdata, *q = cdata; *q; ++q){
+		if(*q == '\n'){
+			std::string line(p, q - p);
+			keys.push_back(line);
+			p = ++q;
+//			if(is_debug)
+//				fprintf(stdout, "%s\n", line.c_str());
+		}
+	}
 }

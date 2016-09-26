@@ -237,3 +237,37 @@ char const * get_last_err_msg()
     }
     return errstr;
 }
+
+int test_process_ioredir_with_file()
+{
+	STARTUPINFO   startupinfo = {  0 };
+	startupinfo.cb=sizeof(STARTUPINFO);
+//	GetStartupInfo(&startupinfo);
+	startupinfo.dwFlags=STARTF_USESTDHANDLES;
+	startupinfo.wShowWindow=SW_HIDE;
+
+	SECURITY_ATTRIBUTES psa={sizeof(psa),NULL,TRUE};;
+	psa.bInheritHandle=TRUE;
+
+	char const * outfile = "rsync.log";
+
+	HANDLE houtputfile = CreateFile(outfile, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, &psa, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if(houtputfile == INVALID_HANDLE_VALUE){
+		fprintf(stderr, "create file error\n");
+		return GetLastError();
+	}
+	startupinfo.hStdOutput = houtputfile;
+	startupinfo.hStdError = houtputfile;
+
+
+	PROCESS_INFORMATION   pinfo;
+	char szcmdline[512] = "ls";
+	if(!CreateProcess(NULL, (LPSTR)szcmdline, NULL, NULL, TRUE, NULL, NULL, NULL, &startupinfo, &pinfo))
+	{
+		fprintf(stderr, "CreateProcess failed\n");
+		return GetLastError();
+	}
+	WaitForSingleObject(pinfo.hProcess, 120 * 1000);
+	CloseHandle(houtputfile);
+	return 0;
+}
