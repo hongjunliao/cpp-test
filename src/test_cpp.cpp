@@ -88,7 +88,7 @@ int test_cpp_main(int argc, char ** argv)
 //	printf("INT_MAX = %d, ULONG_LONG_MAX = %u!\n", INT_MAX, ULONG_LONG_MAX);
 //	test_empty_array();
 	if(argc < 2 || argc > 1 && 0 == strcmp(argv[1], "help")){
-		printf("%s %s %s\n", argv[0], TEST_CPP,  ARGS);
+		printf("%s %s %s\n", argv[0], "cpp",  ARGS);
 		return 0;
 	}
 	/*测试gobject*/

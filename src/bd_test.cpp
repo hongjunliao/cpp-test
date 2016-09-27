@@ -2,6 +2,20 @@
 #include <algorithm>
 #include <string>
 #include <map>
+
+//!
+typedef int(*test_main_fn)(int argc, char * argv[]);
+
+#define  TEST_CPP "cpp"
+#define  TEST_BMP_IO "bmp_io"
+#define  TEST_LIB_FREEIMAGE "libfreeimage"
+#define  TEST_XLIB "xlib"
+#define  SPICE_SERVER_CHANNEL_PLAYBACK "spice-server_channel_playback"
+#define  TEST_LIB_PULSEAUDIO "libpulseaudio"
+#define  TEST_LIB_H323PLUS	"libh323plus"
+#define  TEST_LIB_SPICE_SERVER_DISPLAY_STREAMING	"libspice-server_display_streaming"
+
+
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 

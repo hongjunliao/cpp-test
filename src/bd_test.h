@@ -1,27 +1,13 @@
-/*
- * test_glib.h
- *
- *  Created on: Jan 5, 2016
- *      Author: root
+/*!
+ * include file for cpp-test
+ * @author hongjun.liao<docici@126.com>
  */
 
-#ifndef TEST_H_
-#define TEST_H_
+#ifndef CPP_TEST_H_
+#define CPP_TEST_H_
 #ifdef __cplusplus
 extern "C"{
 #endif
-#define  TEST_CPP "cpp"
-#define  TEST_BMP_IO "bmp_io"
-#define  TEST_LIB_FREEIMAGE "libfreeimage"
-#define  TEST_XLIB "xlib"
-#define  SPICE_SERVER_CHANNEL_PLAYBACK "spice-server_channel_playback"
-#define  TEST_LIB_PULSEAUDIO "libpulseaudio"
-#define  TEST_LIB_H323PLUS	"libh323plus"
-#define  TEST_LIB_SPICE_SERVER_DISPLAY_STREAMING	"libspice-server_display_streaming"
-
-/*error code*/
-#define BD_TEST_NO_SUCH_TEST -2
-
 /*test_cpp.cpp, c++ language*/
 int test_cpp_main(int argc, char **argv);
 //test cario
@@ -62,10 +48,6 @@ int test_ppm_to_bmp_main(int, char **);
 
 //libfreeimage-dev
 int test_libfreeimageplus_crop_main(int, char **);
-//!
-typedef int(*test_main_fn)(int argc, char * argv[]);
-
-void test_main_add(test_main_fn);
 
 /*test_libspice-server_channel_playback.c*/
 int test_libspice_server_channel_playback_main(int argc, char ** argv);
@@ -92,10 +74,13 @@ int mykeys_main(int argc, char ** argv);
  */
 int xlib_draw_rectangle(int x, int y, int w, int h);
 
-/*for test*/
+/*error code*/
+#define BD_TEST_NO_SUCH_TEST -2
+
+/*call test, no @param stest then return @see BD_TEST_NO_SUCH_TEST*/
 int bd_test_main(int argc, char ** argv, char const * stest);
 char const * bd_test_get_test_list();
 #ifdef __cplusplus
 }
 #endif	//__cplusplus
-#endif /* TEST_H_ */
+#endif /* CPP_TEST_H_ */
