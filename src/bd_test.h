@@ -74,6 +74,12 @@ int mykeys_main(int argc, char ** argv);
  */
 int xlib_draw_rectangle(int x, int y, int w, int h);
 
+/*mykeys.cpp*/
+/*!
+ * @param sep, seperator: "\r\n"
+ */
+int mykeys_regex_search(char const * key_file, char const * password, char const * keyword,
+		char const * sep, char * matches, int len);
 /*error code*/
 #define BD_TEST_NO_SUCH_TEST -2
 

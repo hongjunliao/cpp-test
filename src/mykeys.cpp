@@ -22,8 +22,9 @@ static bool is_debug = false;
 #define COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
 static void openssl_stdout(void * data, int length);
+static int mykeys_regex_search(char const * key_file, char const * password, char const * keyword, std::vector<std::string>& matches);
 /*test_win32_pipe.cpp*/
-extern int execute_with_pipe(char * cmd, void (*stdout_cb)(void * data, int length));
+extern int execute_with_wait_pipe(char * cmd, void (*stdout_cb)(void * data, int length));
 
 static void show_usage(char const * argv0)
 {
@@ -76,12 +77,25 @@ int mykeys_main(int argc, char ** argv)
 		return -1;
 	}
 
-	static char cmd[128] = "";
-	snprintf(cmd, COUNT_OF(cmd), "openssl enc -d -aes-256-cbc -in %s -pass pass:%s", key_file, password);
-	if(is_debug){
-		fprintf(stdout, "cmd: %s\n", cmd);
+	std::vector<std::string> matches;
+	if(mykeys_regex_search(key_file, password, keyword, matches) != 0){
+		return -1;
 	}
-	if(execute_with_pipe(cmd, openssl_stdout) != 0){
+	for(auto iter  = matches.begin(); iter != matches.end(); ++iter){
+		fprintf(stdout, "%s\n", iter->c_str());
+	}
+	return 0;
+}
+
+static int mykeys_regex_search(char const * key_file, char const * password, char const * keyword, std::vector<std::string>& matches)
+{
+	static char cmd[128] = "";
+	snprintf(cmd, COUNT_OF(cmd), "openssl enc -d -aes-256-cbc -in %s -pass pass:%s",
+			key_file, password? (is_debug? "***" : password) : "<null>");
+	if(is_debug){
+		fprintf(stdout, "%s: cmd %s\n", __FUNCTION__, cmd);
+	}
+	if(execute_with_wait_pipe(cmd, openssl_stdout) != 0){
 		fprintf(stderr, "decript failed\n");
 		return -1;
 	}
@@ -93,9 +107,26 @@ int mykeys_main(int argc, char ** argv)
 	std::smatch sm;
 	for(auto iter  = keys.begin(); iter != keys.end(); ++iter){
 		if(regex_search(*iter, sm, reg))
-			fprintf(stdout, "%s\n", iter->c_str());
+			matches.push_back(iter->c_str());
 	}
 	return 0;
+}
+
+int mykeys_regex_search(char const * key_file, char const * password, char const * keyword,
+		char const * sep, char * matches, int len)
+{
+	std::vector<std::string> smatches;
+	int ret = mykeys_regex_search(key_file, password, keyword, smatches);
+	if(ret != 0){
+		return ret;
+	}
+	std::string s;
+	for(auto const& item : smatches){
+		s += item;
+		s += sep? sep : "";
+	}
+	strncpy(matches, s.c_str(), len);
+	return ret;
 }
 
 static void openssl_stdout(void * data, int length)
@@ -111,3 +142,4 @@ static void openssl_stdout(void * data, int length)
 		}
 	}
 }
+

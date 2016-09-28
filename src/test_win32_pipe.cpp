@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <windows.h>
 
+/*with BUGS*/
 int execute_with_pipe(char * cmd, void (*stdout_cb)(void * data, int length));
+
+int execute_with_wait_pipe(char * cmd, void (*stdout_cb)(void * data, int length));
+
 char const * get_last_err_msg();
 
 static void get_stdout(void * data, int len)
@@ -36,7 +40,7 @@ int execute_with_pipe(char * cmd, void (*stdout_cb)(void * data, int length))
 	si.dwFlags = STARTF_USESTDHANDLES;
 
 	PROCESS_INFORMATION pi;
-	r = CreateProcess(NULL, cmd, NULL, NULL, TRUE, NULL, NULL, NULL, &si, &pi);
+	r = CreateProcess(NULL, cmd, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 	if (!r) {
 		fprintf(stderr, "%s: CreateProcess failed\n", __FUNCTION__);
 		return 1;
@@ -121,12 +125,8 @@ int test_subprocess_with_pipe_main(int argc, char ** argv)
 	return 0;
 }
 
-int test_subprocess_wait_pipe_handle_main(int argc, char ** argv)
+int execute_with_wait_pipe(char * cmd, void (*stdout_cb)(void * data, int length))
 {
-	char defcmd[512] = "git --help";
-	char * cmd = argc > 1? argv[1] : defcmd;
-	fprintf(stdout, "%s: cmd = %s\n", __FUNCTION__, cmd);
-
 	HANDLE hReadPipe;
 	HANDLE hWritePipe;
 	SECURITY_ATTRIBUTES sa = { 0};
@@ -148,7 +148,7 @@ int test_subprocess_wait_pipe_handle_main(int argc, char ** argv)
 	si.dwFlags = STARTF_USESTDHANDLES;
 
 	PROCESS_INFORMATION pi;
-	r = CreateProcess(NULL, cmd, NULL, NULL, TRUE, NULL, NULL, NULL, &si, &pi);
+	r = CreateProcess(NULL, cmd, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 	CloseHandle(hWritePipe);	//@IMPORTANT! or ReadFile() will blocked
 	if (!r) {
 		fprintf(stderr, "%s: CreateProcess failed\n", __FUNCTION__);
@@ -180,7 +180,7 @@ int test_subprocess_wait_pipe_handle_main(int argc, char ** argv)
 				continue;
 			}
 			readbuff[bytesRead] = 0;
-			get_stdout(readbuff, bytesRead);
+			stdout_cb(readbuff, bytesRead);
 		}
 		else if(dw == WAIT_TIMEOUT){
 			fprintf(stderr, "%s: WaitForSingleObject timeout\n", __FUNCTION__);
@@ -196,6 +196,15 @@ int test_subprocess_wait_pipe_handle_main(int argc, char ** argv)
 		}
 	}
 	return 0;
+}
+int test_subprocess_wait_pipe_handle_main(int argc, char ** argv)
+{
+	char defcmd[512] = "git --help";
+	char * cmd = argc > 1? argv[1] : defcmd;
+	fprintf(stdout, "%s: cmd = %s\n", __FUNCTION__, cmd);
+
+	return execute_with_wait_pipe(cmd, get_stdout);
+
 }
 
 char const * get_last_err_msg()
