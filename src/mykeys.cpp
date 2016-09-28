@@ -14,9 +14,7 @@
 
 #include "termio_util.h"	/*set_disp_mode*/
 
-static char const * key_file = "docici.acc",	/*key file*/
-		* keyword = "",			/*key word to search*/
-		* password = "";		/*password*/
+
 static std::vector<std::string> keys;		/*all keys, in memory*/
 static bool is_debug = false;
 #define COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
@@ -40,6 +38,9 @@ int mykeys_main(int argc, char ** argv)
 		show_usage(argv[0]);
 		return -1;
 	}
+	static char const * key_file = "docici.acc",	/*key file*/
+			* keyword = "",			/*key word to search*/
+			* password = "";		/*password*/
 	int pwd_index = 2;
 	if(argc == 2){
 		keyword = argv[1];
@@ -89,12 +90,13 @@ int mykeys_main(int argc, char ** argv)
 
 static int mykeys_regex_search(char const * key_file, char const * password, char const * keyword, std::vector<std::string>& matches)
 {
-	static char cmd[128] = "";
+	char cmd[128] = "";
 	snprintf(cmd, COUNT_OF(cmd), "openssl enc -d -aes-256-cbc -in %s -pass pass:%s",
 			key_file, password? (is_debug? "***" : password) : "<null>");
 	if(is_debug){
 		fprintf(stdout, "%s: cmd %s\n", __FUNCTION__, cmd);
 	}
+	keys.clear();
 	if(execute_with_wait_pipe(cmd, openssl_stdout) != 0){
 		fprintf(stderr, "decript failed\n");
 		return -1;
