@@ -11,16 +11,16 @@
 					</externalSetting>
 				</externalSettings>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.Cygwin_PE" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.Cygwin_PE" point="org.eclipse.cdt.core.BinaryParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="dll" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901" name="Debug" parent="cdt.managedbuild.config.gnu.cygwin.so.debug" postbuildStep="ln -f cpp-test.dll ${WS_DEBUG_DIR}">
+				<configuration artifactExtension="dll" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901" name="Debug" parent="cdt.managedbuild.config.gnu.cygwin.so.debug" postbuildStep="ln -f cpp-test.dll /usr/bin/">
 					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cygwin.so.debug.49371827" name="Cygwin GCC" superClass="cdt.managedbuild.toolchain.gnu.cygwin.so.debug">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.cygwin.so.debug.1660323150" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.cygwin.so.debug"/>
@@ -34,7 +34,9 @@
 								<option id="gnu.cpp.compiler.cygwin.so.debug.option.debugging.level.1453511898" name="Debug Level" superClass="gnu.cpp.compiler.cygwin.so.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.dialect.std.1397491084" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.c++11" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1869133751" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths"/>
-								<option id="gnu.cpp.compiler.option.preprocessor.def.18682894" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def"/>
+								<option id="gnu.cpp.compiler.option.preprocessor.def.18682894" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value=""/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.9601632" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.cygwin.so.debug.1386509370" name="Cygwin C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.cygwin.so.debug">
@@ -58,6 +60,14 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.1803480535" name="test_nginx_log_analysis.cpp" rcbsApplicability="disable" resourcePath="src/test_nginx_log_analysis.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.so.debug.1410225188.1527628785">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.so.debug.1410225188.1527628785" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.so.debug.1410225188">
+							<option id="gnu.cpp.compiler.option.preprocessor.def.795943635" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+								<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+							</option>
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.1389617198" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
+						</tool>
+					</fileInfo>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
@@ -72,16 +82,16 @@
 					</externalSetting>
 				</externalSettings>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.Cygwin_PE" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.Cygwin_PE" point="org.eclipse.cdt.core.BinaryParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="dll" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205" name="Release" parent="cdt.managedbuild.config.gnu.cygwin.so.release">
+				<configuration artifactExtension="dll" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205" name="Release" parent="cdt.managedbuild.config.gnu.cygwin.so.release">
 					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cygwin.so.release.1259255025" name="Cygwin GCC" superClass="cdt.managedbuild.toolchain.gnu.cygwin.so.release">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.cygwin.so.release.523245569" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.cygwin.so.release"/>
@@ -144,4 +154,5 @@
 			<resource resourceType="PROJECT" workspacePath="/cpp-test"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

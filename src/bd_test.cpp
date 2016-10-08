@@ -49,6 +49,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"subprocess_with_pipe", test_subprocess_with_pipe_main},
 			{"subprocess_wait_pipe_handle", test_subprocess_wait_pipe_handle_main},
 			{"mykeys", mykeys_main},
+			{"nginx_log_analysis", test_nginx_log_analysis_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 
