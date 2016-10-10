@@ -71,7 +71,8 @@ int test_subprocess_wait_pipe_handle_main(int argc, char ** argv);
 int mykeys_main(int argc, char ** argv);
 
 /*test_nginx_log_analysis.cpp*/
-int test_nginx_log_analysis_main(int argc, char ** argv);
+int test_nginx_log_split_main(int argc, char ** argv);
+int test_nginx_log_stats_main(int argc, char ** argv);
 /**
  * 工具函数
  */
