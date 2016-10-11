@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <fnmatch.h>	/*fnmatch*/
 
+#include <sys/mman.h>
 /*for get local ip*/
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -45,6 +46,8 @@ static int find_site_id(const char* file, const char* site);
 static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
 static int get_device_id(std::unordered_map<int, char[16]> const& devicelist);
 
+/*hexdum.cpp*/
+extern void hexdump(void *pAddressIn, long  lSize);
 //////////////////////////////////////////////////////////////////////////////////
 struct log_item{
 	char time_local[21];
@@ -590,6 +593,51 @@ static int test_get_if_addrs_main(int argc, char ** argv)
     return 0;
 }
 
+static int test_alloc_mmap_main(int argc, char * argv[])
+{
+	//	for(int i = 0; i < 12; ++i){
+//		long sz = 1024 * 1024 * 500;
+//		char * buff = (char *)malloc(sz);
+//		fprintf(stdout, "malloc done, addr=%p, size=500M\n", buff);
+//		memset(buff, 'a', sz);
+//		sleep(1);
+//	}
+//	fgetc(stdin);
+
+//	long sz = 1024 * 1024 * 500;
+//	for(int i = 0; i < 5; ++i){
+//		char filename[512];
+//		sprintf(filename, "500M_0%d", i);
+//		FILE * test_file = fopen(filename, "r");
+//		if(!test_file){
+//			fprintf(stderr, "fopen file %s failed\n", filename);
+//			return 1;
+//		}
+//		char const * ptr = (char const *)mmap(NULL, sz, PROT_READ, MAP_PRIVATE, fileno(test_file), 0);
+//		if(ptr == MAP_FAILED){
+//			fprintf(stderr, "mmap file %s failed\n", filename);
+//			return 1;
+//		}
+//		char buff[64];
+//		memcpy(buff, ptr + sz - 65, 64);
+//		hexdump(buff, 64);
+//		sleep(1);
+//	}
+
+	srand(time(0)); //use current time as seed for random generator
+	std::map<std::string, char[1024]> mapdata;
+	for(long i = 0; i < 10000 * 4000; ++i){
+		time_t t = time(NULL);
+		char key[512];
+		sprintf(key, "%s_%06d", ctime(&t), rand());
+		memcpy(mapdata[key], key, 1024);
+		if(i % 1000000 == 0){
+			fprintf(stdout, "current=%ld, count=%ld, [%s-%s]\n",
+					i, mapdata.size(), key, mapdata.at(key));
+		}
+	}
+	return 0;
+}
 int test_nginx_log_stats_main(int argc, char ** argv)
 {
 	//	test_strptime_main(argc, argv);
@@ -597,6 +645,11 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	/*siteuidlist.txt www.haipin.com*/
 //	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));
 //	test_get_if_addrs_main(argc, argv);
+	test_alloc_mmap_main(argc, argv);
+	fprintf(stdout, "done, press anykey to exit.");
+	getc(stdin);
+	return 0;
+
 	if(argc < 5){
 		fprintf(stderr, "analysis nginx log file.\n"
 				"usage: %s <nginx_log_file> <interval> <devicelist_file>\n"
