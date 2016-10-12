@@ -46,14 +46,19 @@ static int find_site_id(const char* file, const char* site);
 static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
 static int get_device_id(std::unordered_map<int, char[16]> const& devicelist);
 
+/* url manage:
+ * if @param str NOT exist, then add as new, else return exist*/
+static char const * str_find(char const *str, int len);
 /*hexdum.cpp*/
 extern void hexdump(void *pAddressIn, long  lSize);
+/*test_mem.cpp*/
+extern int test_alloc_mmap_main(int argc, char * argv[]);
 //////////////////////////////////////////////////////////////////////////////////
 struct log_item{
-	char time_local[21];
+	time_t time_local;
 	char server_name[64];
 	char remote_addr[16];
-	char request_url[1024];
+	char *request_url;
 	double bytes_sent;
 	int status;
 };
@@ -70,6 +75,7 @@ public:
 	operator bool() const;
 	time_mark next_mark() const;
 	time_mark& mark(char const * strtime);
+	time_mark& mark(time_t const& t);
 	char const * c_str() const;
 private:
 	friend bool operator ==(const time_mark& one, const time_mark& another);
@@ -106,14 +112,16 @@ time_mark& time_mark::mark(const char* strtime)
 
 	my_tm.tm_isdst = 0;
 	time_t t = mktime(&my_tm);
-	long n = difftime(t, _t) / _interval_sec;
-
-	_t += n * _interval_sec;
 //	fprintf(stdout, "%s: %s, t=%ld,_t=%ld\n", __FUNCTION__, ctime(&t), t, _t);
-
-	return *this;
+	return mark(t);
 }
 
+time_mark& time_mark::mark(time_t const& t)
+{
+	long n = difftime(t, _t) / _interval_sec;
+	_t += n * _interval_sec;
+	return *this;
+}
 bool operator <(const time_mark& one, const time_mark& another)
 {
 	return one._t < another._t;
@@ -314,10 +322,20 @@ static int parse_log_item(char const * logitem, log_item & item)
 		return 1;
 	}
 	/*format: [17/Sep/2016:00:26:08 +0800]*/
-	strncpy(item.time_local, items[4] + 1, 20);
-	char const * url = strchr(items[6], '/'); /*url may have params, del it: "GET /abc?param1=abc"*/
-	char const * url_param = strchr(url, '?');
-	strncpy(item.request_url, url, (url_param? url_param - url : strchr(url, ' ') - url));
+	char time_local[21];
+	strncpy(time_local, items[4] + 1, 20);
+	tm my_tm;
+	if(!strptime(time_local, "%d/%b/%Y:%H:%M:%S" , &my_tm))
+		return -1;
+	my_tm.tm_isdst = 0;
+	item.time_local = mktime(&my_tm);
+
+	char const * url = strchr(items[6], '/'); /*"GET /abc?param1=abc"*/
+	int len = strchr(url, ' ') - url;
+	item.request_url = new char[len + 1];
+	strncpy(item.request_url, url, len);
+	item.request_url[len] = '\0';
+
 	char const * p = items[8];
 	char * end;
 	item.bytes_sent = strtod(p, &end);
@@ -593,50 +611,58 @@ static int test_get_if_addrs_main(int argc, char ** argv)
     return 0;
 }
 
-static int test_alloc_mmap_main(int argc, char * argv[])
+int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist)
 {
-	//	for(int i = 0; i < 12; ++i){
-//		long sz = 1024 * 1024 * 500;
-//		char * buff = (char *)malloc(sz);
-//		fprintf(stdout, "malloc done, addr=%p, size=500M\n", buff);
-//		memset(buff, 'a', sz);
-//		sleep(1);
+	if(!file) return -1;
+	FILE * f = fopen(file, "r");
+	if(!f) {
+		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
+		return 1;
+	}
+	char data[1024] = "";
+	while(fgets(data, sizeof(data), f)){
+		data[strlen(data) - 1] = '\0';
+		char const * token = strtok(data, " ");
+		int id = atoi(token);
+		token = strtok(NULL, " ");
+		strncpy(devicelist[id], token, 15);
+	}
+//	for(auto const& item : devicelist){
+//		fprintf(stdout, "%d--%s\n", item.first, item.second);
 //	}
-//	fgetc(stdin);
+	return 0;
+}
 
-//	long sz = 1024 * 1024 * 500;
-//	for(int i = 0; i < 5; ++i){
-//		char filename[512];
-//		sprintf(filename, "500M_0%d", i);
-//		FILE * test_file = fopen(filename, "r");
-//		if(!test_file){
-//			fprintf(stderr, "fopen file %s failed\n", filename);
-//			return 1;
-//		}
-//		char const * ptr = (char const *)mmap(NULL, sz, PROT_READ, MAP_PRIVATE, fileno(test_file), 0);
-//		if(ptr == MAP_FAILED){
-//			fprintf(stderr, "mmap file %s failed\n", filename);
-//			return 1;
-//		}
-//		char buff[64];
-//		memcpy(buff, ptr + sz - 65, 64);
-//		hexdump(buff, 64);
-//		sleep(1);
-//	}
-
-	srand(time(0)); //use current time as seed for random generator
-	std::map<std::string, char[1024]> mapdata;
-	for(long i = 0; i < 10000 * 4000; ++i){
-		time_t t = time(NULL);
-		char key[512];
-		sprintf(key, "%s_%06d", ctime(&t), rand());
-		memcpy(mapdata[key], key, 1024);
-		if(i % 1000000 == 0){
-			fprintf(stdout, "current=%ld, count=%ld, [%s-%s]\n",
-					i, mapdata.size(), key, mapdata.at(key));
+static int get_device_id(std::unordered_map<int, char[16]> const & devicelist)
+{
+	char ips[64][16];
+	int count = 64;
+	int result  = get_if_addrs(ips[0], count, 16);
+	if(result != 0)
+		return -1;
+	//std::find_first_of();
+	for(int i = 0; i < count; ++i){
+		for(auto const& item : devicelist){
+			if(strcmp(item.second, ips[i]) == 0)
+				return item.first;
 		}
 	}
 	return 0;
+}
+
+static char const * str_find(char const *str, int len)
+{
+	if(!str || len <= 0 || str[0] == '\0')
+		return NULL;
+	static std::unordered_map<std::string, char *> urls;
+	char * md5str = NULL;
+	char *& s = urls[md5str];
+	if(!s){
+		s = new char[len + 1];
+		strncpy(s, str, len);
+		s[len] = '\0';
+	}
+	return s;
 }
 int test_nginx_log_stats_main(int argc, char ** argv)
 {
@@ -645,24 +671,18 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	/*siteuidlist.txt www.haipin.com*/
 //	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));
 //	test_get_if_addrs_main(argc, argv);
-	test_alloc_mmap_main(argc, argv);
-	fprintf(stdout, "done, press anykey to exit.");
-	getc(stdin);
-	return 0;
-
-	if(argc < 5){
-		fprintf(stderr, "analysis nginx log file.\n"
-				"usage: %s <nginx_log_file> <interval> <devicelist_file>\n"
-				"  <nginx_log_file>     required, nginx log file, splitted by domain\n"
-				"  <interval>           required, interval in seconds, 300 eg. \n"
-				"  <devicelist_file>    required, devicelist file(fields: device_id, ip), devicelist.txt eg.\n"
-				"  <output_file>        required, output file. format:\n"
-				"                       device_id datetime(format YYYYmmDDHHMM) user_id access bytes bandwidth pvs_m px_m\n"
-				, __FUNCTION__);
+//	test_alloc_mmap_main(argc, argv);
+//	fprintf(stdout, "done, press anykey to exit.");
+//	getc(stdin);
+//	return 0;
+	if(argc < 4){
+		fprintf(stderr, "%s: argc >= 4\n",__FUNCTION__);
 		return 1;
 	}
+	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s\n",
+			__FUNCTION__, argv[1], argv[2], argv[3]);
+
 	int result = load_devicelist(argv[3], g_devicelist);
-	return 0;
 	if(result != 0){
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);
 		return 1;
@@ -699,47 +719,6 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	std::map<time_mark, log_stat> logstats;
 	result = log_stats(logs, logstats);
 	result = print_stats(stdout, logstats, -1);
-	if(result != 0){
-		fprintf(stderr, "write output file %s failed%s\n", __FUNCTION__, argv[4]);
-		return 1;
-	}
 	return 0;
 }
 
-int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist)
-{
-	if(!file) return -1;
-	FILE * f = fopen(file, "r");
-	if(!f) {
-		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
-		return 1;
-	}
-	char data[1024] = "";
-	while(fgets(data, sizeof(data), f)){
-		data[strlen(data) - 1] = '\0';
-		char const * token = strtok(data, " ");
-		int id = atoi(token);
-		token = strtok(NULL, " ");
-		strncpy(devicelist[id], token, 15);
-	}
-//	for(auto const& item : devicelist){
-//		fprintf(stdout, "%d--%s\n", item.first, item.second);
-//	}
-	return 0;
-}
-static int get_device_id(std::unordered_map<int, char[16]> const & devicelist)
-{
-	char ips[64][16];
-	int count = 64;
-	int result  = get_if_addrs(ips[0], count, 16);
-	if(result != 0)
-		return -1;
-	//std::find_first_of();
-	for(int i = 0; i < count; ++i){
-		for(auto const& item : devicelist){
-			if(strcmp(item.second, ips[i]) == 0)
-				return item.first;
-		}
-	}
-	return 0;
-}

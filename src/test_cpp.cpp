@@ -81,8 +81,50 @@ static int test_scanf()
 	FILE * f = stdin;
 	return 0;
 }
+static int test_strncpy()
+{
+	char src[] = "hi";
+	char dest[] = "abcdef"; // no null terminator
+	printf("dest=%s\n", dest);
+	strncpy(dest, src, 5); // writes five characters 'h', 'i', '\0', '\0', '\0' to dest
+	printf("strncpy(dest, src, 5) to a 6-byte dest gives : ");
+	for(size_t n = 0; n < sizeof dest; ++n) {
+		char c = dest[n];
+		c ? printf("'%c' ", c) : printf("'\\0' ");
+	}
+
+	printf("\nstrncpy(dest2, src, 2) to a 2-byte dst gives : ");
+	char dest2[2];
+	strncpy(dest2, src, 2); // truncation: writes two characters 'h', 'i', to dest2
+	for(size_t n = 0; n < sizeof dest2; ++n) {
+		char c = dest2[n];
+		c ? printf("'%c' ", c) : printf("'\\0' ");
+	}
+	printf("\n");
+
+#ifdef __STDC_LIB_EXT1__
+	set_constraint_handler_s(ignore_handler_s);
+	char dst1[6], src1[100] = "hello";
+	int r1 = strncpy_s(dst1, 6, src1, 100);      // writes 0 to r1, 6 characters to dst1
+	printf("dst1 = \"%s\", r1 = %d\n", dst1,r1); // 'h','e','l','l','o','\0' to dst1
+
+	char dst2[5], src2[7] = {'g','o','o','d','b','y','e'};
+	int r2 = strncpy_s(dst2, 5, src2, 7);        // copy overflows the destination array
+	printf("dst2 = \"%s\", r2 = %d\n", dst2,r2); // writes nonzero to r2,'\0' to dst2[0]
+
+	char dst3[5];
+	int r3 = strncpy_s(dst3, 5, src2, 4);        // writes 0 to r3, 5 characters to dst3
+	printf("dst3 = \"%s\", r3 = %d\n", dst3,r3); // 'g', 'o', 'o', 'd', '\0' to dst3
+#endif
+
+	return 0;
+}
 int test_cpp_main(int argc, char ** argv)
 {
+	if(argc > 1){
+		if(strcmp(argv[1], "strncpy") == 0)
+			test_strncpy();
+	}
 	test_scanf();
 	test_gcc_c_extension_1(); return 0;
 //	printf("INT_MAX = %d, ULONG_LONG_MAX = %u!\n", INT_MAX, ULONG_LONG_MAX);
