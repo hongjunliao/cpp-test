@@ -11,57 +11,67 @@
 #include <assert.h>
 #include <fnmatch.h>	/*fnmatch*/
 
-#include <sys/mman.h>
-/*for get local ip*/
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <ifaddrs.h>	/*struct ifaddrs*/
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 /*declares*/
 struct log_item;
+struct site_info;
+struct url_count;
 class time_mark;
 class url_stat;
 class log_stat;
 
-/*GLOBAL vars*/
-/*map<device_id, ip_addr>*/
-static std::unordered_map<int, char[16]> g_devicelist;
-static int g_device_id = 0;
-
 static int test_strptime_main(int argc, char ** argv);
 static int test_time_mark_main(int argc, char ** argv);
 static int test_get_if_addrs_main(int argc, char ** argv);
+/*test_mem.cpp*/
+extern int test_alloc_mmap_main(int argc, char * argv[]);
 
 /*parse a nginx log*/
 static int parse_log_item(char const * logitem, log_item & item);
-static int log_stats(std::vector<log_item> const& logvec, std::map<time_mark, log_stat>& logstats);
+static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, log_stat>& logstats);
+/*print ouput*/
 static int print_stats(FILE * stream, std::map<time_mark, log_stat> const& stats, int top = 10);
-/*find site_id by site_name/domain*/
-static int find_site_id(const char* file, const char* site);
+static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const& stats,
+		int device_id, int site_id, int user_id);
 /*load devicelist, @param devicelist map<device_id, ip>*/
 static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
+/*load sitelist*/
+static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist);
+
+/*find site_id by site_name/domain*/
+static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int * user_id = NULL);
+/*get device_id by ip*/
 static int get_device_id(std::unordered_map<int, char[16]> const& devicelist);
 
+/*read domain from log_file*/
+static char const * find_domain(char const * nginx_log_file);
 /* url manage:
  * if @param str NOT exist, then add as new, else return exist*/
-static char const * str_find(char const *str, int len);
-/*hexdum.cpp*/
-extern void hexdump(void *pAddressIn, long  lSize);
-/*test_mem.cpp*/
-extern int test_alloc_mmap_main(int argc, char * argv[]);
+static char const * str_find(char const *str, int len = -1);
+
+/*string_util.cpp*/
+extern char const * md5sum(char const * str, int len);
+/*net_util.cpp*/
+extern int get_if_addrs(char *ips, int & count, int sz);
 //////////////////////////////////////////////////////////////////////////////////
 struct log_item{
 	time_t time_local;
 	char server_name[64];
 	char remote_addr[16];
-	char *request_url;
+	char const *request_url;
 	double bytes_sent;
 	int status;
 };
+//////////////////////////////////////////////////////////////////////////////////
+struct site_info{
+	int site_id;
+	int user_id;
+};
+
+
+/*GLOBAL vars*/
+/*map<device_id, ip_addr>*/
+static std::unordered_map<int, char[16]> g_devicelist;
+static std::unordered_map<std::string, site_info> g_sitelist;
 
 //////////////////////////////////////////////////////////////////////////////////
 class time_mark{
@@ -76,7 +86,7 @@ public:
 	time_mark next_mark() const;
 	time_mark& mark(char const * strtime);
 	time_mark& mark(time_t const& t);
-	char const * c_str() const;
+	char const * c_str(char const * fmt = "%Y-%m-%d %H:%M:%S") const;
 private:
 	friend bool operator ==(const time_mark& one, const time_mark& another);
 	friend bool operator <(const time_mark& one, const time_mark& another);
@@ -95,11 +105,13 @@ time_mark::operator bool() const
 	return 1;
 }
 
-const char* time_mark::c_str() const
+const char* time_mark::c_str(char const * fmt) const
 {
 //	return ctime(&_t);
 	static char buff[20] = "";
-	strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&_t));
+	if(!fmt)
+		return "<null time_mark>";
+	strftime(buff, 20, fmt, localtime(&_t));
 	return buff;
 }
 
@@ -201,7 +213,7 @@ url_stat& url_stat::operator+=(url_stat const& another)
 //////////////////////////////////////////////////////////////////////////////////
 class log_stat{
 public:
-	std::unordered_map<std::string, url_stat> _url_stats;	/*url:url_stat*/
+	std::unordered_map<char const *, url_stat> _url_stats;	/*url:url_stat*/
 public:
 	log_stat();
 public:
@@ -332,9 +344,7 @@ static int parse_log_item(char const * logitem, log_item & item)
 
 	char const * url = strchr(items[6], '/'); /*"GET /abc?param1=abc"*/
 	int len = strchr(url, ' ') - url;
-	item.request_url = new char[len + 1];
-	strncpy(item.request_url, url, len);
-	item.request_url[len] = '\0';
+	item.request_url = str_find(url, len);
 
 	char const * p = items[8];
 	char * end;
@@ -345,7 +355,7 @@ static int parse_log_item(char const * logitem, log_item & item)
 
 struct url_count
 {
-	std::string url;
+	char const * url;
 	long count;
 };
 
@@ -355,7 +365,7 @@ bool compare_by_access_count(url_count const& a, url_count const& b)
 }
 static void url_top_n(std::map<time_mark, log_stat> const& stats, std::vector<url_count>& urlcount)
 {
-	std::unordered_map<std::string, url_stat> urlstats;
+	std::unordered_map<char const *, url_stat> urlstats;
 	for(auto it = stats.begin(); it != stats.end(); ++it){
 		auto const& urlstat = it->second._url_stats;
 		for(auto const& item : urlstat){
@@ -368,6 +378,7 @@ static void url_top_n(std::map<time_mark, log_stat> const& stats, std::vector<ur
 	}
 	std::sort(urlcount.begin(), urlcount.end(), compare_by_access_count);
 }
+
 static int print_stats(FILE* stream, const std::map<time_mark, log_stat>& stats, int top)
 {
 	fprintf(stream, "%-20s%-120s%-10s%-20s\n", "Time", "Url", "Count", "Bytes");
@@ -384,15 +395,15 @@ static int print_stats(FILE* stream, const std::map<time_mark, log_stat>& stats,
 		access_200 += stat.access(200);
 		access_206 += stat.access(206);
 
-		fprintf(stream, "%-20s%-120s%-10s%-20.0f\n", it->first.c_str(), " ", " ", stat.bytes_total());
-		if(top > 0 && --top <= 0)
-			break;
-
-		for(auto it2 = stat._url_stats.begin(); it2 != stat._url_stats.end(); ++it2){
-			fprintf(stream, "%-20s%-120s%-10ld%-20s\n", " ", it2->first.c_str(), it2->second.access_total(), " ");
-		}
+//		fprintf(stream, "%-20s%-120s%-10s%-20.0f\n", it->first.c_str(), " ", " ", stat.bytes_total());
+//		if(top > 0 && --top <= 0)
+//			break;
+//
+//		for(auto it2 = stat._url_stats.begin(); it2 != stat._url_stats.end(); ++it2){
+//			fprintf(stream, "%-20s%-120s%-10ld%-20s\n", " ", it2->first, it2->second.access_total(), " ");
+//		}
 	}
-	fprintf(stream, "Sum\n%-15s%-15s%-20s%-20s%-20s%-20s%-20s%-40s\n", "access_total", "access_200", "access_206",
+	fprintf(stream, "%-15s%-15s%-20s%-20s%-20s%-20s%-20s%-40s\n", "access_total", "access_200", "access_206",
 			"bytes_200", "bytes_206", "200+206", "other", "Total Byte/GB");
 	fprintf(stream, "%-15ld%-15ld%-20ld%-20.6f%-20.6f%-20.6f%-20.6f%-20.6f/%-20.6f\n",
 			access_total, access_200, access_206, bytes_200,
@@ -400,13 +411,46 @@ static int print_stats(FILE* stream, const std::map<time_mark, log_stat>& stats,
 
 	std::vector<url_count> urlcount;
 	url_top_n(stats, urlcount);
-	fprintf(stream, "top url:\n%-100s%-70s\n", "url", "count");
+	fprintf(stream, "%-100s%-70s\n", "url", "count");
 	int left = 10;
 	for(auto it = urlcount.begin(); it != urlcount.end() && left > 0; ++it){
-		fprintf(stream, "%-100s%-70ld\n", it->url.c_str(), it->count);
+		fprintf(stream, "%-100s%-70ld\n", it->url, it->count);
 		--left;
 	}
 	return 0;
+}
+
+static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const& stats,
+		int device_id, int site_id, int user_id)
+{
+	std::string buff;
+	int i = 0;
+	for(auto const& item : stats){
+		log_stat const& stat = item.second;
+		char line[512];
+		int sz = snprintf(line, 512, "%d %s %d %ld %.0f %d %d %d\n",
+				site_id, item.first.c_str("%Y%m%d%H%M"), device_id, stat.access_total()
+				, stat.bytes_total(), user_id, 0, 0);
+		if(sz <= 0){
+			++i;
+			continue;
+		}
+		buff += line;
+		if(buff.size() > 1024 * 1024 * 16){
+			size_t r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
+			if(r != buff.size())
+				fprintf(stderr, "%s: NOT all data written, total=%ld, written=%ld\n",
+						__FUNCTION__, buff.size(), r);
+			buff.clear();
+		}
+	}
+	size_t r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
+	if(r != buff.size())
+		fprintf(stderr, "%s: NOT all data written, total=%ld, written=%ld\n",
+				__FUNCTION__, buff.size(), r);
+
+	if(i != 0)
+		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
 inline int log_stats(const std::vector<log_item>& logvec,
@@ -422,6 +466,17 @@ inline int log_stats(const std::vector<log_item>& logvec,
 		urlstat._bytes[item.status] += item.bytes_sent;
 
 	}
+	return 0;
+}
+
+static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, log_stat>& logstats)
+{
+	m.mark(item.time_local);
+	log_stat& logsstat = logstats[m];
+
+	url_stat& urlstat = logsstat._url_stats[item.request_url];
+	++urlstat._status[item.status];
+	urlstat._bytes[item.status] += item.bytes_sent;
 	return 0;
 }
 
@@ -512,103 +567,58 @@ int test_nginx_log_split_main(int argc, char ** argv)
 	return 0;
 }
 
-/*FIXME: open file once*/
-static int find_site_id(const char* file, const char* site)
+static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist)
 {
 	int ret = -1;
-	if(!file || !site) return -1;
+	if(!file || file[0] == '\0') return -1;
 	FILE * f = fopen(file, "r");
 	if(!f){
 		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
 		return -1;
 	}
-	std::unordered_map<std::string, int> siteid;
 	char data[1024] = "";
 	while(fgets(data, sizeof(data), f)){
 		data[strlen(data) - 1] = '\0';
-		int i = 0;
-		int id = 0;
-		for(char const * token = strtok(data, " "); token && i <= 2; token = strtok(NULL, " ")){
-//			fprintf(stdout, "[%d: %s]", i, token);
-			if(i == 0){
-				id = atoi(token);
-			}
-			else if(i == 2 && id != 0 && strlen(token) > 0){
-				siteid[token] = id;
-			}
-			++i;
-		}
-//		fprintf(stdout, "\n");
+
+		site_info sitel;
+		char const * token = strtok(data, " ");
+//		fprintf(stdout, "[%d: %s]", i, token);
+		sitel.site_id = atoi(token);
+
+		token = strtok(NULL, " ");
+		sitel.user_id = atoi(token);
+
+		token = strtok(NULL, " ");
+		sitelist[token] = sitel;
 	}
-	if(siteid.count(site) != 0){
+
+}
+
+static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int * user_id)
+{
+	if(!site || site[0] == '\0')
+		return -1;
+
+	site_info  const * si = NULL;
+
+	if(sitelist.count(site) != 0){
 //		fprintf(stdout, "%s: FULL matched\n", __FUNCTION__);
-		return siteid.at(site);
+		si = &sitelist.at(site);
 	}
-	for(auto it = siteid.begin(); it != siteid.end(); ++it){
-		if(fnmatch(it->first.c_str(), site, 0) == 0){
-//			fprintf(stdout, "%s: WILDCARD matched, pattern=%s\n", __FUNCTION__, it->first.c_str());
-			return it->second;
+	else{
+		for(auto const & item : sitelist){
+			if(fnmatch(item.first.c_str(), site, 0) == 0){
+	//			fprintf(stdout, "%s: WILDCARD matched, pattern=%s\n", __FUNCTION__, it->first.c_str());
+				si = &item.second;
+				break;
+			}
 		}
 	}
-	return ret;
-}
-
-/*implementation from shell: man getifaddrs, @param count rows, @param sz cows*/
-static int get_if_addrs(char *ips, int & count, int sz)
-{
-    struct ifaddrs *ifaddr;
-    if (getifaddrs(&ifaddr) == -1) {
-        return -1;
-    }
-    int i = 0;
-    for (ifaddrs * ifa = ifaddr; ifa ; ifa = ifa->ifa_next) {
-        if (!ifa->ifa_addr)
-            continue;
-        int family = ifa->ifa_addr->sa_family;
-        if (!(family == AF_INET || family == AF_INET6)) {
-        	continue;
-        }
-		char host[NI_MAXHOST];
-        int s = getnameinfo(ifa->ifa_addr,
-                (family == AF_INET) ? sizeof(struct sockaddr_in) :
-                                      sizeof(struct sockaddr_in6),
-                host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-        if (s != 0) {
-//          printf("getnameinfo() failed: %s\n", gai_strerror(s));
-            continue;
-        }
-        strncpy((ips + i * sz), host, sz);
-        ++i;
-        if(i == count)
-        	break;
-    }
-    count = i;
-    freeifaddrs(ifaddr);
-    return 0;
-}
-
-static int get_if_addrs(std::vector<std::string>& ipvec)
-{
-	char ips[64][16];
-	int count = 64;
-	int result  = get_if_addrs(ips[0], count, 16);
-	if(result != 0)
+	if(!si)
 		return -1;
-	for(int i = 0; i < count; ++i){
-		ipvec.push_back(ips[i]);
-	}
-}
-static int test_get_if_addrs_main(int argc, char ** argv)
-{
-	char ips[64][16];
-	int count = 64;
-	int result  = get_if_addrs(ips[0], count, 16);
-	if(result != 0)
-		return -1;
-	for(int i = 0; i < count; ++i){
-		fprintf(stdout, "%s\n", ips[i]);
-	}
-    return 0;
+	if(user_id)
+		*user_id = si->user_id;
+	return si->site_id;
 }
 
 int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist)
@@ -650,12 +660,32 @@ static int get_device_id(std::unordered_map<int, char[16]> const & devicelist)
 	return 0;
 }
 
+static char const * find_domain(char const * nginx_log_file)
+{
+	static char domain[512] = "<error domain>";
+	FILE * f = fopen(nginx_log_file, "r");
+	if(!f) {
+		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, nginx_log_file);
+		return domain;
+	}
+	char data[512] = "";
+	if(!fgets(data, sizeof(data), f))
+		return domain;
+	int len = strchr(data, ' ') - data;
+	strncpy(domain, data, len);
+	domain[len] = '\0';
+	fclose(f);
+
+	return domain;
+}
+
 static char const * str_find(char const *str, int len)
 {
-	if(!str || len <= 0 || str[0] == '\0')
+	if(!str || str[0] == '\0')
 		return NULL;
 	static std::unordered_map<std::string, char *> urls;
-	char * md5str = NULL;
+	len = (len != -1? len : strlen(str));
+	char const * md5str = md5sum(str, len);
 	char *& s = urls[md5str];
 	if(!s){
 		s = new char[len + 1];
@@ -664,45 +694,80 @@ static char const * str_find(char const *str, int len)
 	}
 	return s;
 }
-int test_nginx_log_stats_main(int argc, char ** argv)
+static int do_test(int argc, char ** argv)
 {
 	//	test_strptime_main(argc, argv);
 	//	test_time_mark_main(argc, argv);
-	/*siteuidlist.txt www.haipin.com*/
-//	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));
-//	test_get_if_addrs_main(argc, argv);
-//	test_alloc_mmap_main(argc, argv);
-//	fprintf(stdout, "done, press anykey to exit.");
-//	getc(stdin);
-//	return 0;
-	if(argc < 4){
-		fprintf(stderr, "%s: argc >= 4\n",__FUNCTION__);
+
+		/*siteuidlist.txt www.haipin.com*/
+	//	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));
+
+	//	test_get_if_addrs_main(argc, argv);
+	//	test_alloc_mmap_main(argc, argv);
+	//	fprintf(stdout, "done, press anykey to exit.");
+	//	getc(stdin);
+
+	//	char str1[] = "hello", str2[] = "jack", str3[] =  "hello";
+	//	fprintf(stdout, "%s: test str_find()\n"
+	//			"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n"
+	//			"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n", __FUNCTION__,
+	//			str1, str1, str_find(str1), str2, str2, str_find(str2),
+	//			str3, str3, str_find(str3), str2, str2, str_find(str2));
+	return 0;
+}
+
+int test_nginx_log_stats_main(int argc, char ** argv)
+{
+	do_test(argc, argv);
+	if(argc == 3 && strcmp(argv[1], "-q") == 0){	//query device_id and return
+		int result = load_devicelist(argv[2], g_devicelist);
+		if(result != 0){
+			fprintf(stdout, "0\n");
+			return 1;
+		}
+		fprintf(stdout, "%d\n", get_device_id(g_devicelist));
+		return 0;
+	}
+	if(argc < 6){
+		fprintf(stderr, "%s: argc >= 5\n",__FUNCTION__);
 		return 1;
 	}
-	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s\n",
-			__FUNCTION__, argv[1], argv[2], argv[3]);
+	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s, sitelist=%s, outputfile=%s\n",
+			__FUNCTION__, argv[1], argv[2], argv[3], argv[4], argv[5]);
 
 	int result = load_devicelist(argv[3], g_devicelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);
 		return 1;
 	}
-	char data[1024] = "";
-	FILE * f = fopen(argv[1], "r");
-	if(!f) {
+	result = load_sitelist(argv[4], g_sitelist);
+	if(result != 0){
+		fprintf(stderr, "%s: load_sitelist() failed\n", __FUNCTION__);
+		return 1;
+	}
+	FILE * nginx_log_file = fopen(argv[1], "r");
+	if(!nginx_log_file) {
 		fprintf(stderr, "fopen file %s failed\n", argv[1]);
 		return 1;
 	}
-	g_device_id = get_device_id(g_devicelist);
-	fprintf(stdout, "device_id=%d\n", g_device_id);
 
 	int interval = atoi(argv[2]);
 	if(interval < 300 || interval > 3600){
 		fprintf(stdout, "%s: WARNING, interval(%d) too %s\n", __FUNCTION__, interval, interval < 300? "small" : "large");
 	}
-	std::vector<log_item> logs;
+	time_mark::_interval_sec = interval;
+
+	int device_id = 0, site_id = 0, user_id  = 0;
+	device_id = get_device_id(g_devicelist);
+	site_id = find_site_id(g_sitelist, find_domain(argv[1]), &user_id);
+	fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
+			device_id, site_id, user_id);
+
 	long linecount = 0;
-	while(fgets(data, sizeof(data), f)){
+	time_mark m;
+	std::map<time_mark, log_stat> logstats;
+	char data[1024] = "";
+	while(fgets(data, sizeof(data), nginx_log_file)){
 		++linecount;
 		fprintf(stdout, "\rprocessing %8ld line ...", linecount);
 		fflush(stdout);
@@ -712,13 +777,11 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 			fprintf(stderr, "parse failed for %s\n", data);
 			continue;
 		}
-		logs.push_back(item);
+		log_stats(m, item, logstats);
 	}
 	fprintf(stdout, "\n");
-	time_mark::_interval_sec = interval;
-	std::map<time_mark, log_stat> logstats;
-	result = log_stats(logs, logstats);
-	result = print_stats(stdout, logstats, -1);
+//	result = print_stats(stdout, logstats, -1);
+	print_flow_table(stdout, logstats, device_id, site_id, user_id);
 	return 0;
 }
 

@@ -51,7 +51,9 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.so.debug.651116077" name="Cygwin C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.so.debug">
 								<option defaultValue="true" id="gnu.cpp.link.cygwin.so.debug.option.shared.278708855" name="Shared (-shared)" superClass="gnu.cpp.link.cygwin.so.debug.option.shared" value="false" valueType="boolean"/>
 								<option id="gnu.cpp.link.option.flags.1847507802" name="Linker flags" superClass="gnu.cpp.link.option.flags" value="-shared -static" valueType="string"/>
-								<option id="gnu.cpp.link.option.libs.1896399589" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs"/>
+								<option id="gnu.cpp.link.option.libs.1896399589" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="crypto"/>
+								</option>
 								<option id="gnu.cpp.link.option.paths.624621736" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.432195685" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -62,7 +64,7 @@
 					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.1803480535" name="test_nginx_log_analysis.cpp" rcbsApplicability="disable" resourcePath="src/test_nginx_log_analysis.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.so.debug.1410225188.1527628785">
 						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.so.debug.1410225188.1527628785" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.so.debug.1410225188">
-							<option id="gnu.cpp.compiler.option.preprocessor.def.795943635" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+							<option id="gnu.cpp.compiler.option.preprocessor.def.795943635" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 								<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
 							</option>
 							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.1389617198" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
