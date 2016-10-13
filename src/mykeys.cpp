@@ -1,3 +1,4 @@
+#ifdef __CYGWIN__
 /*!
  * mykeys, get keys or add keys use openssl enc -d -aes-256-cbc
  */
@@ -145,3 +146,4 @@ static void openssl_stdout(void * data, int length)
 	}
 }
 
+#endif /*__CYGWIN__*/

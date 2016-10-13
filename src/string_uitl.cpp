@@ -1,3 +1,4 @@
+#include "bd_test.h"
 #include <stdio.h>
 #include <openssl/md5.h> /*openssl MD5()*/
 
@@ -15,3 +16,27 @@ char const * md5sum(char const * str, int len)
 //	fprintf(stdout, "str=%-50s, len=%-10d, md5sum=%-35s\n", str, len, ret);
 	return ret;
 }
+
+#if (defined __GNUC__) && !(defined __CYGWIN__)
+
+char *strlwr(char *s)
+{
+	for (char *str = s; *str; ++str) {
+		if (*str >= 'A' && *str <= 'Z') {
+			*str += ('a' - 'A');
+		}
+	}
+	return s;
+}
+
+char *strupr(char *s)
+{
+	for (char *str = s; *str; ++str) {
+		if (*str >= 'a' && *str <= 'z') {
+			*str -= ('a' - 'A');
+		}
+	}
+	return s;
+}
+
+#endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/

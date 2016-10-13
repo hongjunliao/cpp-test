@@ -1,3 +1,4 @@
+#ifdef __CYGWIN__
 #include "bd_test.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -280,3 +281,5 @@ int test_process_ioredir_with_file()
 	CloseHandle(houtputfile);
 	return 0;
 }
+
+#endif /*__CYGWIN__*/

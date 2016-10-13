@@ -723,6 +723,10 @@ static int do_test(int argc, char ** argv)
 	//			"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n", __FUNCTION__,
 	//			str1, str1, str_find(str1), str2, str2, str_find(str2),
 	//			str3, str3, str_find(str3), str2, str2, str_find(str2));
+
+//	char str1[] = "hello", str2[] = "HELLO";
+//	fprintf(stdout, "strlupr(): str=%s, strupr=%s\n, strlwr(): str=%s, strulwr=%s\n",
+//			"hello", strupr(str1), "HELLO", strlwr(str2));
 	return 0;
 }
 

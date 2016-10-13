@@ -4,7 +4,9 @@
 #include <string.h>
 #include <sys/mman.h> /*mmap*/
 #include <map>
+#ifdef _WIN32
 #include <memoryapi.h>	/*VirtualAlloc*/
+#endif /*_WIN32*/
 #include <unistd.h> /*sleep*/
 
 int test_alloc_mmap_main(int argc, char * argv[])
