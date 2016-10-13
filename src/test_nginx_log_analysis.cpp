@@ -55,11 +55,10 @@ extern int get_if_addrs(char *ips, int & count, int sz);
 //////////////////////////////////////////////////////////////////////////////////
 struct log_item{
 	time_t time_local;
-	char server_name[64];
-	char remote_addr[16];
 	char const *request_url;
 	double bytes_sent;
 	int status;
+	bool is_hit;
 };
 //////////////////////////////////////////////////////////////////////////////////
 struct site_info{
@@ -214,6 +213,8 @@ url_stat& url_stat::operator+=(url_stat const& another)
 class log_stat{
 public:
 	std::unordered_map<char const *, url_stat> _url_stats;	/*url:url_stat*/
+	double _bytes_m;
+	long _access_m;
 public:
 	log_stat();
 public:
@@ -224,6 +225,8 @@ public:
 };
 
 log_stat::log_stat()
+: _bytes_m(0)
+, _access_m(0)
 {
 	//none
 }
@@ -262,6 +265,7 @@ long log_stat::access(int code) const
 	}
 	return ret;
 }
+
 /*
  * parse ' ' splitted logitem, nginx log:
  * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
@@ -350,6 +354,7 @@ static int parse_log_item(char const * logitem, log_item & item)
 	char * end;
 	item.bytes_sent = strtod(p, &end);
 	item.status = atoi(items[7]);
+	item.is_hit = (strcmp(strupr(items[3]),"HIT") == 0);
 	return 0;
 }
 
@@ -428,9 +433,9 @@ static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const&
 	for(auto const& item : stats){
 		log_stat const& stat = item.second;
 		char line[512];
-		int sz = snprintf(line, 512, "%d %s %d %ld %.0f %d %d %d\n",
+		int sz = snprintf(line, 512, "%d %s %d %ld %.0f %d %ld %.0f\n",
 				site_id, item.first.c_str("%Y%m%d%H%M"), device_id, stat.access_total()
-				, stat.bytes_total(), user_id, 0, 0);
+				, stat.bytes_total(), user_id, stat._access_m, stat._bytes_m);
 		if(sz <= 0){
 			++i;
 			continue;
@@ -439,14 +444,14 @@ static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const&
 		if(buff.size() > 1024 * 1024 * 16){
 			size_t r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
 			if(r != buff.size())
-				fprintf(stderr, "%s: NOT all data written, total=%ld, written=%ld\n",
+				fprintf(stderr, "%s: WARNING, total=%ld, written=%ld\n",
 						__FUNCTION__, buff.size(), r);
 			buff.clear();
 		}
 	}
 	size_t r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
 	if(r != buff.size())
-		fprintf(stderr, "%s: NOT all data written, total=%ld, written=%ld\n",
+		fprintf(stderr, "%s: WARNING, total=%ld, written=%ld\n",
 				__FUNCTION__, buff.size(), r);
 
 	if(i != 0)
@@ -477,6 +482,11 @@ static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, lo
 	url_stat& urlstat = logsstat._url_stats[item.request_url];
 	++urlstat._status[item.status];
 	urlstat._bytes[item.status] += item.bytes_sent;
+
+	if(!item.is_hit){
+		logsstat._bytes_m += item.bytes_sent;
+		++logsstat._access_m;
+	}
 	return 0;
 }
 
@@ -719,7 +729,7 @@ static int do_test(int argc, char ** argv)
 int test_nginx_log_stats_main(int argc, char ** argv)
 {
 	do_test(argc, argv);
-	if(argc == 3 && strcmp(argv[1], "-q") == 0){	//query device_id and return
+	if(argc == 3 && strcmp(argv[1], "--device-id") == 0){	//query device_id and return
 		int result = load_devicelist(argv[2], g_devicelist);
 		if(result != 0){
 			fprintf(stdout, "0\n");
@@ -732,8 +742,8 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		fprintf(stderr, "%s: argc >= 5\n",__FUNCTION__);
 		return 1;
 	}
-	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s, sitelist=%s, outputfile=%s\n",
-			__FUNCTION__, argv[1], argv[2], argv[3], argv[4], argv[5]);
+//	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s, sitelist=%s, outputfile=%s\n",
+//			__FUNCTION__, argv[1], argv[2], argv[3], argv[4], argv[5]);
 
 	int result = load_devicelist(argv[3], g_devicelist);
 	if(result != 0){
@@ -750,7 +760,11 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		fprintf(stderr, "fopen file %s failed\n", argv[1]);
 		return 1;
 	}
-
+	FILE * output_file = fopen(argv[5], "a");
+	if(!output_file) {
+		fprintf(stderr, "fopen file %s for append failed\n", argv[5]);
+		return 1;
+	}
 	int interval = atoi(argv[2]);
 	if(interval < 300 || interval > 3600){
 		fprintf(stdout, "%s: WARNING, interval(%d) too %s\n", __FUNCTION__, interval, interval < 300? "small" : "large");
@@ -769,7 +783,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	char data[1024] = "";
 	while(fgets(data, sizeof(data), nginx_log_file)){
 		++linecount;
-		fprintf(stdout, "\rprocessing %8ld line ...", linecount);
+		fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, linecount);
 		fflush(stdout);
 		log_item item;
 		int result = parse_log_item(data, item);
@@ -781,7 +795,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	}
 	fprintf(stdout, "\n");
 //	result = print_stats(stdout, logstats, -1);
-	print_flow_table(stdout, logstats, device_id, site_id, user_id);
+	print_flow_table(output_file, logstats, device_id, site_id, user_id);
 	return 0;
 }
 
