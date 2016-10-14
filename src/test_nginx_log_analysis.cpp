@@ -743,11 +743,11 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		return 0;
 	}
 	if(argc < 6){
-		fprintf(stderr, "%s: argc >= 5\n",__FUNCTION__);
+		fprintf(stderr, "%s: argc=%d, argc >= 6 required\n",__FUNCTION__, argc);
 		return 1;
 	}
-//	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s, sitelist=%s, outputfile=%s\n",
-//			__FUNCTION__, argv[1], argv[2], argv[3], argv[4], argv[5]);
+	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s, sitelist=%s, outputfile=%s\n",
+			__FUNCTION__, argv[1], argv[2], argv[3], argv[4], argv[5]);
 
 	int result = load_devicelist(argv[3], g_devicelist);
 	if(result != 0){
@@ -789,7 +789,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	while(fgets(data, sizeof(data), nginx_log_file)){
 		++linecount;
 		if(linecount % 10000 == 0)
-			fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, linecount);
+			fprintf(stdout, "\r%s: processing %-8ld line ...", __FUNCTION__, linecount);
 		fflush(stdout);
 		log_item item;
 		int result = parse_log_item(data, item);
@@ -800,7 +800,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		}
 		log_stats(m, item, logstats);
 	}
-	fprintf(stdout, "\r%s: processed %8ld line\n", __FUNCTION__, linecount);
+	fprintf(stdout, "\r%s: processed, total_line: %-8ld\n", __FUNCTION__, linecount);
 	if(!failed_lines.empty()){
 		fprintf(stdout, "%s: failed_lines:[", __FUNCTION__);
 		for(size_t i = 0; i != failed_lines.size(); ++i)
