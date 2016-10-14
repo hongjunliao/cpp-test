@@ -788,7 +788,8 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	std::vector<long> failed_lines;
 	while(fgets(data, sizeof(data), nginx_log_file)){
 		++linecount;
-		fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, linecount);
+		if(linecount % 10000 == 0)
+			fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, linecount);
 		fflush(stdout);
 		log_item item;
 		int result = parse_log_item(data, item);
@@ -799,7 +800,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		}
 		log_stats(m, item, logstats);
 	}
-	fprintf(stdout, "\n");
+	fprintf(stdout, "\r%s: processed %8ld line\n", __FUNCTION__, linecount);
 	if(!failed_lines.empty()){
 		fprintf(stdout, "%s: failed_lines:[", __FUNCTION__);
 		for(size_t i = 0; i != failed_lines.size(); ++i)
