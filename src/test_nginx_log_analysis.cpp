@@ -289,7 +289,7 @@ int do_parse_log_item(char const * szitem, int * count, char *** items)
 			else{
 				arg_start = false;
 				if(!(*(q + 1) == ' ' || *(q + 1) == '\0')){
-					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
+//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
 					goto error_return;
 				}
 				++q;
@@ -304,7 +304,7 @@ int do_parse_log_item(char const * szitem, int * count, char *** items)
 			continue;
 		}
 		if(arg_start && !*q){
-			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
+//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
 			goto error_return;
 		}
 		if(!arg_start && (*q == ' ' || !*q)){
@@ -784,7 +784,8 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	long linecount = 0;
 	time_mark m;
 	std::map<time_mark, log_stat> logstats;
-	char data[1024] = "";
+	char data[4096];
+	std::vector<long> failed_lines;
 	while(fgets(data, sizeof(data), nginx_log_file)){
 		++linecount;
 		fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, linecount);
@@ -792,12 +793,18 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		log_item item;
 		int result = parse_log_item(data, item);
 		if(result != 0){
-			fprintf(stderr, "parse failed for %s\n", data);
+			if(failed_lines.size() < 10)
+				failed_lines.push_back(linecount);
 			continue;
 		}
 		log_stats(m, item, logstats);
 	}
 	fprintf(stdout, "\n");
+	if(!failed_lines.empty()){
+		fprintf(stdout, "%s: failed_lines:[", __FUNCTION__);
+		for(size_t i = 0; i != failed_lines.size(); ++i)
+			{ fprintf(stdout, "%ld%s", failed_lines[i], (i + 1 != failed_lines.size()? ", " : "]\n")); }
+	}
 //	result = print_stats(stdout, logstats, -1);
 	print_flow_table(output_file, logstats, device_id, site_id, user_id);
 	return 0;
