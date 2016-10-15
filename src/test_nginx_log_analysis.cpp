@@ -2,18 +2,22 @@
 #include <time.h>	/*time_t, strptime*/
 #include <stdio.h>
 #include <string.h> /*strncpy*/
-#include <vector>
-#include <map>
-#include <algorithm> /*std::sort*/
-#include <unordered_map> /*unordered_map*/
-#include <numeric>	/*std::accumulate*/
+#include <pthread.h> /*pthread*/
 #include <math.h> /*pow*/
 #include <assert.h>
 #include <fnmatch.h>	/*fnmatch*/
-
+#include <sys/sysinfo.h>	/*get_nprocs*/
+#include <sys/stat.h>	/*fstat*/
+#include <sys/mman.h>	/*mmap*/
+#include <vector>
+#include <algorithm> /*std::sort*/
+#include <unordered_map> /*unordered_map*/
+#include <numeric>	/*std::accumulate*/
+#include <map>
 /*declares*/
 struct log_item;
 struct site_info;
+struct parallel_parse_thread_arg;
 struct url_count;
 class time_mark;
 class url_stat;
@@ -26,7 +30,7 @@ static int test_get_if_addrs_main(int argc, char ** argv);
 extern int test_alloc_mmap_main(int argc, char * argv[]);
 
 /*parse a nginx log*/
-static int parse_log_item(char const * logitem, log_item & item);
+static int parse_log_item(log_item & item, char const * logitem, char delim = '\0');
 static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, log_stat>& logstats);
 /*print ouput*/
 static int print_stats(FILE * stream, std::map<time_mark, log_stat> const& stats, int top = 10);
@@ -65,7 +69,14 @@ struct site_info{
 	int site_id;
 	int user_id;
 };
-
+//////////////////////////////////////////////////////////////////////////////////
+struct parallel_parse_thread_arg
+{
+	char const * buf;
+	size_t len;
+	std::map<time_mark, log_stat> logstats;
+	std::vector<long> failed_lines;
+};
 
 /*GLOBAL vars*/
 /*map<device_id, ip_addr>*/
@@ -272,7 +283,7 @@ long log_stat::access(int code) const
  * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
  * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
  */
-int do_parse_log_item(char const * szitem, int * count, char *** items)
+int do_parse_log_item(int * count, char *** items, char const * szitem, char delim = '\0')
 {
 //	fprintf(stdout, "item=%s\n", szitem);
 	static char * s_items[20] = {0};
@@ -288,7 +299,7 @@ int do_parse_log_item(char const * szitem, int * count, char *** items)
 			}
 			else{
 				arg_start = false;
-				if(!(*(q + 1) == ' ' || *(q + 1) == '\0')){
+				if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
 //					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
 					goto error_return;
 				}
@@ -297,22 +308,22 @@ int do_parse_log_item(char const * szitem, int * count, char *** items)
 				strncpy(arg, p, q - p - 1);
 				arg[q - p - 1] = '\0';
 				s_items[c++] = arg;
-				if(!*q)
+				if(*q == delim)
 					break;
 				p = q + 1;
 			}
 			continue;
 		}
-		if(arg_start && !*q){
+		if(arg_start && *q != delim){
 //			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
 			goto error_return;
 		}
-		if(!arg_start && (*q == ' ' || !*q)){
+		if(!arg_start && (*q == ' ' || *q != delim)){
 			char * arg = new char[q - p + 1];
 			strncpy(arg, p, q - p);
 			arg[q - p] = '\0';
 			s_items[c++] = arg;
-			if(!*q)
+			if(*q == delim)
 				break;
 			p = q + 1;
 		}
@@ -328,12 +339,12 @@ error_return:
 	return -1;
 }
 
-static int parse_log_item(char const * logitem, log_item & item)
+static int parse_log_item(log_item & item, char const * logitem, char delim /*= '\0'*/)
 {
 	memset(&item, 0, sizeof(log_item));
 	int count;
 	static char ** items;
-	int result = do_parse_log_item(logitem, &count, &items);
+	int result = do_parse_log_item(&count, &items, logitem, delim);
 	if(result != 0){
 		return 1;
 	}
@@ -669,6 +680,7 @@ static int get_device_id(std::unordered_map<int, char[16]> const & devicelist)
 	return 0;
 }
 
+
 static char const * find_domain(char const * nginx_log_file)
 {
 	static char domain[512] = "<error domain>";
@@ -726,6 +738,94 @@ static int do_test(int argc, char ** argv)
 //	char str1[] = "hello", str2[] = "HELLO";
 //	fprintf(stdout, "strlupr(): str=%s, strupr=%s\n, strlwr(): str=%s, strulwr=%s\n",
 //			"hello", strupr(str1), "HELLO", strlwr(str2));
+	int core_num = get_nprocs();
+	fprintf(stdout, "%s: core_num=%d\n", __FUNCTION__, core_num);
+	return 0;
+}
+
+int parse_log_item_buf(char const * buf, size_t len, std::map<time_mark, log_stat> & logstats, std::vector<long> & failed_lines)
+{
+	long linecount = 0;
+	time_mark m;
+	for(char const * p = buf, * q = p; ; ++q){
+		if(*q != '\n') continue;
+		++linecount;
+		if(linecount % 10000 == 0)
+			fprintf(stdout, "\r%s: processing %-8ld line ...", __FUNCTION__, linecount);
+		fflush(stdout);
+		log_item item;
+		int result = parse_log_item(item, p, '\n');
+		p = q + 1;
+		if(result != 0){
+			if(failed_lines.size() < 10)
+				failed_lines.push_back(linecount);
+			continue;
+		}
+		log_stats(m, item, logstats);
+	}
+	return 0;
+}
+
+void * parallel_parse_thread_func(void * varg)
+{
+	parallel_parse_thread_arg * arg = (parallel_parse_thread_arg*)varg;
+	parse_log_item_buf(arg->buf, arg->len, arg->logstats, arg->failed_lines);
+	return arg;
+}
+
+int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<long> & failedlines)
+{
+	struct stat logfile_stat;
+	if(fstat(fileno(f), &logfile_stat) < 0){
+		fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "nginx_log_file");
+		return 1;
+	}
+	int para_count = get_nprocs();			/*mew parallel count, maybe 0*/
+	size_t min_bytes = 1024 * 1024 * 128; 	/*min 64MB*/
+	for(size_t c = logfile_stat.st_size / min_bytes; c < (size_t)para_count; --para_count)
+	{ /*empty*/ }
+
+	std::vector<pthread_t> threads;
+
+	off_t offset_p = 0;
+	for(int i = 0; i < para_count; ++i){
+		static size_t len = logfile_stat.st_size / para_count;
+		void * start_p = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(f), offset_p);
+		if(!start_p || start_p == MAP_FAILED){
+			fprintf(stderr, "%s: mmap() failed for %s, parallel index=%d\n", __FUNCTION__, "nginx_log_file", i);
+			return 1;
+		}
+		offset_p += len;
+
+		pthread_t tid;
+		auto * arg = new parallel_parse_thread_arg;
+		arg->buf = (char const *)start_p;
+		arg->len = len;
+		int result = pthread_create(&tid, NULL, parallel_parse_thread_func, arg);
+		if(result != 0){
+			fprintf(stderr, "%s: pthread_create() failed, parallel index=%d\n", __FUNCTION__, i);
+			return 1;
+		}
+		threads.push_back(tid);
+	}
+
+	size_t left_len = logfile_stat.st_size - offset_p;
+	void * start_p = mmap(NULL, left_len, PROT_READ, MAP_SHARED, fileno(f), offset_p);
+	if(!start_p || start_p == MAP_FAILED){
+		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
+		return 1;
+	}
+
+	parallel_parse_thread_arg arg;
+	arg.buf = (char const *)start_p;
+	arg.len = left_len;
+	parse_log_item_buf(arg.buf, arg.len, arg.logstats, arg.failed_lines);
+
+	void * tret;
+	for(auto & item : threads){
+		pthread_join(item, &tret);
+		fprintf(stderr, "%s: thread=%ld exited\n", __FUNCTION__, item);
+	}
 	return 0;
 }
 
@@ -781,24 +881,13 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 //			device_id, site_id, user_id);
 
 	long linecount = 0;
-	time_mark m;
+
 	std::map<time_mark, log_stat> logstats;
 	char data[4096];
 	std::vector<long> failed_lines;
-	while(fgets(data, sizeof(data), nginx_log_file)){
-		++linecount;
-		if(linecount % 10000 == 0)
-			fprintf(stdout, "\r%s: processing %-8ld line ...", __FUNCTION__, linecount);
-		fflush(stdout);
-		log_item item;
-		int result = parse_log_item(data, item);
-		if(result != 0){
-			if(failed_lines.size() < 10)
-				failed_lines.push_back(linecount);
-			continue;
-		}
-		log_stats(m, item, logstats);
-	}
+
+	parallel_parse(nginx_log_file, logstats, failed_lines);
+
 	fprintf(stdout, "\r%s: processed, total_line: %-8ld\n", __FUNCTION__, linecount);
 	if(!failed_lines.empty()){
 		fprintf(stdout, "%s: failed_lines:[", __FUNCTION__);
