@@ -82,7 +82,9 @@ struct parallel_parse_thread_arg
 /*map<device_id, ip_addr>*/
 static std::unordered_map<int, char[16]> g_devicelist;
 static std::unordered_map<std::string, site_info> g_sitelist;
-
+static double g_line_count = 0;
+static pthread_mutex_t g_io_mutex;
+static pthread_mutex_t g_line_count_mutex;
 //////////////////////////////////////////////////////////////////////////////////
 class time_mark{
 public:
@@ -747,22 +749,35 @@ int parse_log_item_buf(char const * buf, size_t len, std::map<time_mark, log_sta
 {
 	long linecount = 0;
 	time_mark m;
-	for(char const * p = buf, * q = p; ; ++q){
+	for(char const * p = buf, * q = p; q != buf + len; ++q){
 		if(*q != '\n') continue;
 		++linecount;
-		if(linecount % 10000 == 0)
-			fprintf(stdout, "\r%s: processing %-8ld line ...", __FUNCTION__, linecount);
-		fflush(stdout);
-		log_item item;
-		int result = parse_log_item(item, p, '\n');
-		p = q + 1;
-		if(result != 0){
-			if(failed_lines.size() < 10)
-				failed_lines.push_back(linecount);
-			continue;
+		if(linecount % 10000 == 0){
+			long total = 0;
+			pthread_mutex_lock(&g_line_count_mutex);
+			g_line_count += linecount;
+			total = g_line_count;
+			pthread_mutex_unlock(&g_line_count_mutex);
+			linecount = 0;
+
+			pthread_mutex_lock(&g_io_mutex);
+			fprintf(stdout, "\r%s: processing %-8ld line ...", __FUNCTION__, total);
+			fflush(stdout);
+			pthread_mutex_unlock(&g_io_mutex);
 		}
-		log_stats(m, item, logstats);
+		log_item item;
+//		int result = parse_log_item(item, p, '\n');
+//		p = q + 1;
+//		if(result != 0){
+//			if(failed_lines.size() < 10)
+//				failed_lines.push_back(linecount);
+//			continue;
+//		}
+//		log_stats(m, item, logstats);
 	}
+	pthread_mutex_lock(&g_line_count_mutex);
+	g_line_count += linecount;
+	pthread_mutex_unlock(&g_line_count_mutex);
 	return 0;
 }
 
@@ -770,7 +785,7 @@ void * parallel_parse_thread_func(void * varg)
 {
 	parallel_parse_thread_arg * arg = (parallel_parse_thread_arg*)varg;
 	parse_log_item_buf(arg->buf, arg->len, arg->logstats, arg->failed_lines);
-	return arg;
+	return varg;
 }
 
 int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<long> & failedlines)
@@ -784,22 +799,22 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<
 	size_t min_bytes = 1024 * 1024 * 128; 	/*min 64MB*/
 	for(size_t c = logfile_stat.st_size / min_bytes; c < (size_t)para_count; --para_count)
 	{ /*empty*/ }
+	fprintf(stdout, "%s: para_count=%d\n", __FUNCTION__, para_count);
 
 	std::vector<pthread_t> threads;
 
 	off_t offset_p = 0;
+	void * start_p = mmap(NULL, logfile_stat.st_size, PROT_READ, MAP_SHARED, fileno(f), 0);
+	if(!start_p || start_p == MAP_FAILED){
+		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
+		return 1;
+	}
 	for(int i = 0; i < para_count; ++i){
 		static size_t len = logfile_stat.st_size / para_count;
-		void * start_p = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(f), offset_p);
-		if(!start_p || start_p == MAP_FAILED){
-			fprintf(stderr, "%s: mmap() failed for %s, parallel index=%d\n", __FUNCTION__, "nginx_log_file", i);
-			return 1;
-		}
-		offset_p += len;
 
 		pthread_t tid;
 		auto * arg = new parallel_parse_thread_arg;
-		arg->buf = (char const *)start_p;
+		arg->buf = (char const *)start_p + offset_p;
 		arg->len = len;
 		int result = pthread_create(&tid, NULL, parallel_parse_thread_func, arg);
 		if(result != 0){
@@ -807,24 +822,18 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<
 			return 1;
 		}
 		threads.push_back(tid);
+		offset_p += len;
 	}
-
 	size_t left_len = logfile_stat.st_size - offset_p;
-	void * start_p = mmap(NULL, left_len, PROT_READ, MAP_SHARED, fileno(f), offset_p);
-	if(!start_p || start_p == MAP_FAILED){
-		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
-		return 1;
-	}
-
 	parallel_parse_thread_arg arg;
-	arg.buf = (char const *)start_p;
+	arg.buf = (char const *)start_p + offset_p;
 	arg.len = left_len;
 	parse_log_item_buf(arg.buf, arg.len, arg.logstats, arg.failed_lines);
 
 	void * tret;
 	for(auto & item : threads){
 		pthread_join(item, &tret);
-		fprintf(stderr, "%s: thread=%ld exited\n", __FUNCTION__, item);
+//		fprintf(stdout, "%s: thread=%ld exited\n", __FUNCTION__, item);
 	}
 	return 0;
 }
@@ -879,16 +888,15 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	find_site_id(g_sitelist, find_domain(argv[1]), site_id, &user_id);
 //	fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
 //			device_id, site_id, user_id);
-
-	long linecount = 0;
+	pthread_mutex_init(&g_io_mutex, NULL);
+	pthread_mutex_init(&g_line_count_mutex, NULL);
 
 	std::map<time_mark, log_stat> logstats;
-	char data[4096];
 	std::vector<long> failed_lines;
 
 	parallel_parse(nginx_log_file, logstats, failed_lines);
 
-	fprintf(stdout, "\r%s: processed, total_line: %-8ld\n", __FUNCTION__, linecount);
+	fprintf(stdout, "\r%s: processed, total_line: %-8.0f\n", __FUNCTION__, g_line_count);
 	if(!failed_lines.empty()){
 		fprintf(stdout, "%s: failed_lines:[", __FUNCTION__);
 		for(size_t i = 0; i != failed_lines.size(); ++i)
