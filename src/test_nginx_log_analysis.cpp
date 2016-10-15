@@ -31,6 +31,13 @@ extern int test_alloc_mmap_main(int argc, char * argv[]);
 
 /*parse a nginx log*/
 static int parse_log_item(log_item & item, char const * logitem, char delim = '\0');
+/*
+ * parse ' ' splitted logitem, nginx log:
+ * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
+ * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
+ * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
+ */
+static int do_parse_log_item(int * count, char *** items, char const * szitem, char delim = '\0');
 static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, log_stat>& logstats);
 /*print ouput*/
 static int print_stats(FILE * stream, std::map<time_mark, log_stat> const& stats, int top = 10);
@@ -279,16 +286,11 @@ long log_stat::access(int code) const
 	return ret;
 }
 
-/*
- * parse ' ' splitted logitem, nginx log:
- * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
- * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
- * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
- */
-int do_parse_log_item(int * count, char *** items, char const * szitem, char delim = '\0')
+int do_parse_log_item(int * count, char *** items, char const * szitem, char delim /*=  '\0'*/)
 {
+//	return 1;
 //	fprintf(stdout, "item=%s\n", szitem);
-	static char * s_items[20] = {0};
+	static char * s_items[26] = {0};
 	*items= s_items;
 
 	bool arg_start = false;
@@ -316,11 +318,11 @@ int do_parse_log_item(int * count, char *** items, char const * szitem, char del
 			}
 			continue;
 		}
-		if(arg_start && *q != delim){
+		if(arg_start && *q == delim){
 //			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
 			goto error_return;
 		}
-		if(!arg_start && (*q == ' ' || *q != delim)){
+		if(!arg_start && (*q == ' ' || *q == delim)){
 			char * arg = new char[q - p + 1];
 			strncpy(arg, p, q - p);
 			arg[q - p] = '\0';
@@ -344,7 +346,7 @@ error_return:
 static int parse_log_item(log_item & item, char const * logitem, char delim /*= '\0'*/)
 {
 	memset(&item, 0, sizeof(log_item));
-	int count;
+	static int count;
 	static char ** items;
 	int result = do_parse_log_item(&count, &items, logitem, delim);
 	if(result != 0){
@@ -764,16 +766,18 @@ int parse_log_item_buf(char const * buf, size_t len, std::map<time_mark, log_sta
 			fprintf(stdout, "\r%s: processing %-8ld line ...", __FUNCTION__, total);
 			fflush(stdout);
 			pthread_mutex_unlock(&g_io_mutex);
+
+
 		}
 		log_item item;
-//		int result = parse_log_item(item, p, '\n');
-//		p = q + 1;
-//		if(result != 0){
-//			if(failed_lines.size() < 10)
-//				failed_lines.push_back(linecount);
-//			continue;
-//		}
-//		log_stats(m, item, logstats);
+		int result = parse_log_item(item, p, '\n');
+		p = q + 1;
+		if(result != 0){
+			if(failed_lines.size() < 10)
+				failed_lines.push_back(linecount);
+			continue;
+		}
+		log_stats(m, item, logstats);
 	}
 	pthread_mutex_lock(&g_line_count_mutex);
 	g_line_count += linecount;
