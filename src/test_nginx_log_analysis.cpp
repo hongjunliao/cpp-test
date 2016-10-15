@@ -38,7 +38,7 @@ static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& 
 static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist);
 
 /*find site_id by site_name/domain*/
-static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int * user_id = NULL);
+static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int & siteid, int * user_id = NULL);
 /*get device_id by ip*/
 static int get_device_id(std::unordered_map<int, char[16]> const& devicelist);
 
@@ -604,7 +604,7 @@ static int load_sitelist(char const* file, std::unordered_map<std::string, site_
 
 }
 
-static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int * user_id)
+static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int & siteid, int * user_id)
 {
 	if(!site || site[0] == '\0')
 		return -1;
@@ -624,11 +624,10 @@ static int find_site_id(std::unordered_map<std::string, site_info> const& siteli
 			}
 		}
 	}
-	if(!si)
-		return -1;
+	siteid = si? si->site_id : 0;
 	if(user_id)
-		*user_id = si->user_id;
-	return si->site_id;
+		*user_id = si? si->user_id : 0;
+	return 0;
 }
 
 int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist)
@@ -777,7 +776,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 
 	int device_id = 0, site_id = 0, user_id  = 0;
 	device_id = get_device_id(g_devicelist);
-	site_id = find_site_id(g_sitelist, find_domain(argv[1]), &user_id);
+	find_site_id(g_sitelist, find_domain(argv[1]), site_id, &user_id);
 	fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
 			device_id, site_id, user_id);
 
