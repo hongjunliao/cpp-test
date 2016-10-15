@@ -745,8 +745,8 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		fprintf(stderr, "%s: argc=%d, argc >= 6 required\n",__FUNCTION__, argc);
 		return 1;
 	}
-	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s, sitelist=%s, outputfile=%s\n",
-			__FUNCTION__, argv[1], argv[2], argv[3], argv[4], argv[5]);
+//	fprintf(stdout, "%s: nginx_file=%s, interval=%s, devicelist=%s, sitelist=%s, outputfile=%s\n",
+//			__FUNCTION__, argv[1], argv[2], argv[3], argv[4], argv[5]);
 
 	int result = load_devicelist(argv[3], g_devicelist);
 	if(result != 0){
@@ -777,8 +777,8 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	int device_id = 0, site_id = 0, user_id  = 0;
 	device_id = get_device_id(g_devicelist);
 	find_site_id(g_sitelist, find_domain(argv[1]), site_id, &user_id);
-	fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
-			device_id, site_id, user_id);
+//	fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
+//			device_id, site_id, user_id);
 
 	long linecount = 0;
 	time_mark m;
