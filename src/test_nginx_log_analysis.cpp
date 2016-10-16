@@ -1,14 +1,16 @@
 #include "bd_test.h"
-#include <time.h>	/*time_t, strptime*/
-#include <stdio.h>
-#include <string.h> /*strncpy*/
-#include <pthread.h> /*pthread*/
-#include <math.h> /*pow*/
-#include <assert.h>
 #include <fnmatch.h>	/*fnmatch*/
 #include <sys/sysinfo.h>	/*get_nprocs*/
 #include <sys/stat.h>	/*fstat*/
 #include <sys/mman.h>	/*mmap*/
+#include <time.h>	/*time_t, strptime*/
+#include <stdio.h>
+#include <string.h> /*strncpy*/
+#include <math.h> /*pow*/
+//#include <locale.h> /*setlocale*/
+#include <assert.h>
+#include <pthread.h> /*pthread*/
+
 #include <vector>
 #include <algorithm> /*std::sort*/
 #include <unordered_map> /*unordered_map*/
@@ -709,6 +711,13 @@ static char const * str_find(char const *str, int len)
 	if(!str || str[0] == '\0')
 		return NULL;
 	static std::unordered_map<std::string, char *> urls;
+	if(len == -2){
+		fprintf(stderr, "%s: freeing urls \n", __FUNCTION__);
+		for(auto & item : urls){
+			delete[] item.second;
+		}
+		return 0;
+	}
 	len = (len != -1? len : strlen(str));
 	char const * md5str = md5sum(str, len);
 	char *& s = urls[md5str];
@@ -813,11 +822,13 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<
 		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
 		return 1;
 	}
+
+	static parallel_parse_thread_arg g_ppt_args[64];
 	for(int i = 0; i < para_count; ++i){
 		static size_t len = logfile_stat.st_size / para_count;
 
 		pthread_t tid;
-		auto * arg = new parallel_parse_thread_arg;
+		auto * arg = &g_ppt_args[i];
 		arg->buf = (char const *)start_p + offset_p;
 		arg->len = len;
 		int result = pthread_create(&tid, NULL, parallel_parse_thread_func, arg);
@@ -839,12 +850,14 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<
 		pthread_join(item, &tret);
 //		fprintf(stdout, "%s: thread=%ld exited\n", __FUNCTION__, item);
 	}
+	munmap(start_p, logfile_stat.st_size);
 	return 0;
 }
 
 int test_nginx_log_stats_main(int argc, char ** argv)
 {
 	do_test(argc, argv);
+//	setlocale(LC_NUMERIC, "");
 	if(argc == 3 && strcmp(argv[1], "--device-id") == 0){	//query device_id and return
 		int result = load_devicelist(argv[2], g_devicelist);
 		if(result != 0){
@@ -908,6 +921,8 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	}
 //	result = print_stats(stdout, logstats, -1);
 	print_flow_table(output_file, logstats, device_id, site_id, user_id);
+	//
+	str_find(" ", -2);
 	return 0;
 }
 
