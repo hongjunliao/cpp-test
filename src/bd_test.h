@@ -74,7 +74,7 @@ int mykeys_main(int argc, char ** argv);
 int test_nginx_log_split_main(int argc, char ** argv);
 int test_nginx_log_stats_main(int argc, char ** argv);
 /**
- * 工具函数
+ * xlib util
  */
 int xlib_draw_rectangle(int x, int y, int w, int h);
 
@@ -92,6 +92,8 @@ char *strlwr(char *s);
 char *strupr(char *s);
 #endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/
 /*mykeys.cpp*/
+
+
 /*!
  * @param sep, seperator: "\r\n"
  */

@@ -59,7 +59,7 @@ int mykeys_main(int argc, char ** argv)
 	if(is_debug){
 		fprintf(stdout, "--debug set, input password:");
 		fflush(stdout);
-		set_disp_mode(STDIN_FILENO, 0);
+		termio_set_disp_mode(STDIN_FILENO, 0);
 		static char szpwd[64] = "\n";
 		while(szpwd[0] == '\n'){
 			if(!fgets(szpwd, COUNT_OF(szpwd), stdin)){
@@ -72,7 +72,7 @@ int mykeys_main(int argc, char ** argv)
 		if(pchr) *pchr = '\0';
 
 		password = szpwd;
-		set_disp_mode(STDIN_FILENO, 1);
+		termio_set_disp_mode(STDIN_FILENO, 1);
 	}
 	if(!(strlen(key_file) > 0 && strlen(keyword) > 0 && strlen(password) > 0)){
 		show_usage(argv[0]);

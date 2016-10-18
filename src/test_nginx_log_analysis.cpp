@@ -1,4 +1,3 @@
-#include "bd_test.h"
 #include <fnmatch.h>	/*fnmatch*/
 #include <sys/sysinfo.h>	/*get_nprocs*/
 #include <sys/stat.h>	/*fstat*/
@@ -16,6 +15,10 @@
 #include <unordered_map> /*unordered_map*/
 #include <numeric>	/*std::accumulate*/
 #include <map>
+
+#include "bd_test.h"
+#include "termio_util.h"	/*termio_**/
+
 /*declares*/
 struct log_item;
 struct site_info;
@@ -65,6 +68,7 @@ static char const * str_find(char const *str, int len = -1);
 extern char const * md5sum(char const * str, int len);
 /*net_util.cpp*/
 extern int get_if_addrs(char *ips, int & count, int sz);
+
 //////////////////////////////////////////////////////////////////////////////////
 struct log_item{
 	time_t time_local;
@@ -290,7 +294,7 @@ long log_stat::access(int code) const
 
 int do_parse_log_item(int * count, char *** items, char const * szitem, char delim /*=  '\0'*/)
 {
-//	return 1;
+	return 1;
 //	fprintf(stdout, "item=%s\n", szitem);
 	static char * s_items[26] = {0};
 	*items= s_items;
@@ -712,7 +716,7 @@ static char const * str_find(char const *str, int len)
 		return NULL;
 	static std::unordered_map<std::string, char *> urls;
 	if(len == -2){
-		fprintf(stderr, "%s: freeing urls \n", __FUNCTION__);
+//		fprintf(stderr, "%s: freeing urls \n", __FUNCTION__);
 		for(auto & item : urls){
 			delete[] item.second;
 		}
@@ -751,8 +755,11 @@ static int do_test(int argc, char ** argv)
 //	char str1[] = "hello", str2[] = "HELLO";
 //	fprintf(stdout, "strlupr(): str=%s, strupr=%s\n, strlwr(): str=%s, strulwr=%s\n",
 //			"hello", strupr(str1), "HELLO", strlwr(str2));
-	int core_num = get_nprocs();
-	fprintf(stdout, "%s: core_num=%d\n", __FUNCTION__, core_num);
+//	int core_num = get_nprocs();
+//	fprintf(stdout, "%s: core_num=%d\n", __FUNCTION__, core_num);
+//	int term_cols = 0, term_rows = 0;
+//	termio_get_col_row(&term_cols, &term_rows);
+//	fprintf(stdout, "term_cols = %d, term_rows = %d\n", term_cols, term_rows);
 	return 0;
 }
 
@@ -812,23 +819,22 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<
 	size_t min_bytes = 1024 * 1024 * 128; 	/*min 64MB*/
 	for(size_t c = logfile_stat.st_size / min_bytes; c < (size_t)para_count; --para_count)
 	{ /*empty*/ }
-	fprintf(stdout, "%s: para_count=%d\n", __FUNCTION__, para_count);
+//	fprintf(stdout, "%s: para_count=%d\n", __FUNCTION__, para_count);
 
-	std::vector<pthread_t> threads;
+	pthread_t threads[para_count];
 
 	off_t offset_p = 0;
-	void * start_p = mmap(NULL, logfile_stat.st_size, PROT_READ, MAP_SHARED, fileno(f), 0);
+	void * start_p = mmap(NULL, logfile_stat.st_size, PROT_READ, MAP_PRIVATE, fileno(f), 0);
 	if(!start_p || start_p == MAP_FAILED){
 		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
 		return 1;
 	}
-
-	static parallel_parse_thread_arg g_ppt_args[64];
+	parallel_parse_thread_arg ppt_args[para_count];
 	for(int i = 0; i < para_count; ++i){
 		static size_t len = logfile_stat.st_size / para_count;
 
 		pthread_t tid;
-		auto * arg = &g_ppt_args[i];
+		auto * arg = &ppt_args[i];
 		arg->buf = (char const *)start_p + offset_p;
 		arg->len = len;
 		int result = pthread_create(&tid, NULL, parallel_parse_thread_func, arg);
@@ -836,7 +842,7 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<
 			fprintf(stderr, "%s: pthread_create() failed, parallel index=%d\n", __FUNCTION__, i);
 			return 1;
 		}
-		threads.push_back(tid);
+		threads[i] = tid;
 		offset_p += len;
 	}
 	size_t left_len = logfile_stat.st_size - offset_p;
