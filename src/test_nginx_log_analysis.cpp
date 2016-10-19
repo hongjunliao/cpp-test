@@ -15,14 +15,14 @@
 #include <unordered_map> /*unordered_map*/
 #include <numeric>	/*std::accumulate*/
 #include <map>
-
+#include <bitset>
 #include "bd_test.h"
 #include "termio_util.h"	/*termio_**/
 
 /*declares*/
 struct log_item;
 struct site_info;
-struct parallel_parse_thread_arg;
+struct parse_context;
 struct url_count;
 class time_mark;
 class url_stat;
@@ -42,9 +42,19 @@ static int parse_log_item(log_item & item, char const * logitem, char delim = '\
  * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
  * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
  */
-static int do_parse_log_item(int * count, char *** items, char const * szitem, char delim = '\0');
+static int do_parse_log_item(int * count, char *** items, char * szitem, char delim = '\0');
+/* parse only indexes in @param fields
+ * @NOTE:current nginx_log format:
+ * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method $request_uri $server_protocol" $status $bytes_sent \
+ * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" $scheme $request_length $upstream_response_time'
+ * total fields == 18
+ * */
+static int do_parse_log_item(char ** items, char * szitem, char delim = '\0');
+static int do_parse_log_item(int * count, char *** items, std::bitset<18> const& fields, char const * szitem, char delim = '\0');
+
 static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, log_stat>& logstats);
 /*print ouput*/
+static int parallel_fprintf(FILE * stream, char const * fmt, ...);
 static int print_stats(FILE * stream, std::map<time_mark, log_stat> const& stats, int top = 10);
 static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
@@ -66,6 +76,7 @@ static char const * str_find(char const *str, int len = -1);
 
 /*string_util.cpp*/
 extern char const * md5sum(char const * str, int len);
+extern char const * byte_to_mb_kb_str(size_t bytes, char const * fmt);
 /*net_util.cpp*/
 extern int get_if_addrs(char *ips, int & count, int sz);
 
@@ -83,12 +94,16 @@ struct site_info{
 	int user_id;
 };
 //////////////////////////////////////////////////////////////////////////////////
-struct parallel_parse_thread_arg
+/*log buffer and parse result*/
+struct parse_context
 {
-	char const * buf;
+/*input*/
+	char * buf;
 	size_t len;
+
+/*output*/
 	std::map<time_mark, log_stat> logstats;
-	std::vector<long> failed_lines;
+	size_t total_lines;
 };
 
 /*GLOBAL vars*/
@@ -248,6 +263,7 @@ public:
 	double bytes(int code1, int code2 = -1) const;
 	long access_total() const;
 	long access(int code) const;
+	log_stat& operator+=(log_stat const& another);
 };
 
 log_stat::log_stat()
@@ -292,77 +308,139 @@ long log_stat::access(int code) const
 	return ret;
 }
 
-int do_parse_log_item(int * count, char *** items, char const * szitem, char delim /*=  '\0'*/)
+log_stat& log_stat::operator+=(log_stat const& another)
 {
-	return 1;
-//	fprintf(stdout, "item=%s\n", szitem);
-	static char * s_items[26] = {0};
-	*items= s_items;
+	for(auto const& item : another._url_stats){
+		_url_stats[item.first] += item.second;
+	}
+	_access_m += another._access_m;
+	_bytes_m += another._bytes_m;
+	return *this;
+}
 
-	bool arg_start = false;
-	int c = 0;
-	for(char const * p = szitem, *q = p; ; ++q){
-		if(*q == '"'){
-			if(!arg_start) {
-				arg_start = true;
-				p = q + 1;
-			}
-			else{
-				arg_start = false;
-				if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
-//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
-					goto error_return;
+///////////////////////////////////////////////////////////////////////////////////////////////
+int do_parse_log_item(int * count, char *** items, char * szitem, char delim /*=  '\0'*/)
+{
+	//	fprintf(stdout, "item=%s\n", szitem);
+		static char * s_items[18] = {0};
+		*items= s_items;
+
+		bool arg_start = false;
+		int c = 0;
+		for(char const * p = szitem, *q = p; ; ++q){
+			if(*q == '"'){
+				if(!arg_start) {
+					arg_start = true;
+					p = q + 1;
 				}
-				++q;
-				char * arg = new char[q - p];
-				strncpy(arg, p, q - p - 1);
-				arg[q - p - 1] = '\0';
+				else{
+					arg_start = false;
+					if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
+	//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
+						goto error_return;
+					}
+					++q;
+					char * arg = new char[q - p];
+					strncpy(arg, p, q - p - 1);
+					arg[q - p - 1] = '\0';
+					s_items[c++] = arg;
+					if(*q == delim)
+						break;
+					p = q + 1;
+				}
+				continue;
+			}
+			if(arg_start && *q == delim){
+	//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
+				goto error_return;
+			}
+			if(!arg_start && (*q == ' ' || *q == delim)){
+				char * arg = new char[q - p + 1];
+				strncpy(arg, p, q - p);
+				arg[q - p] = '\0';
 				s_items[c++] = arg;
 				if(*q == delim)
 					break;
 				p = q + 1;
 			}
-			continue;
 		}
-		if(arg_start && *q == delim){
-//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
-			goto error_return;
-		}
-		if(!arg_start && (*q == ' ' || *q == delim)){
-			char * arg = new char[q - p + 1];
-			strncpy(arg, p, q - p);
-			arg[q - p] = '\0';
-			s_items[c++] = arg;
-			if(*q == delim)
-				break;
-			p = q + 1;
-		}
-	}
-	*count = c;
-//	for(int i  = 0; i < *count; ++i){
-//		fprintf(stdout, "argv[%d]: %s\n", i, s_items[i]);
-//	}
-	return 0;
-error_return:
-	*count = 0;
-	s_items[0] = '\0';
-	return -1;
+		*count = c;
+//		for(int i  = 0; i < *count; ++i){
+//			fprintf(stdout, "argv[%d]: %s\n", i, s_items[i]);
+//		}
+		return 0;
+	error_return:
+		*count = 0;
+		s_items[0] = '\0';
+		return -1;
 }
 
-static int parse_log_item(log_item & item, char const * logitem, char delim /*= '\0'*/)
+static int do_parse_log_item(int * count, char *** items, std::bitset<18> const& fields, char const * szitem, char delim/* = '\0'*/)
+{
+	//	fprintf(stdout, "item=%s\n", szitem);
+		static char * s_items[18] = {0};
+		*items= s_items;
+
+		bool arg_start = false;
+		int c = 0;
+		for(char const * p = szitem, *q = p; ; ++q){
+			if(*q == '"'){
+				if(!arg_start) {
+					arg_start = true;
+					p = q + 1;
+				}
+				else{
+					arg_start = false;
+					if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
+	//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
+						goto error_return;
+					}
+					++q;
+					char * arg = new char[q - p];
+					strncpy(arg, p, q - p - 1);
+					arg[q - p - 1] = '\0';
+					s_items[c++] = arg;
+					if(*q == delim)
+						break;
+					p = q + 1;
+				}
+				continue;
+			}
+			if(arg_start && *q == delim){
+	//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
+				goto error_return;
+			}
+			if(!arg_start && (*q == ' ' || *q == delim)){
+				char * arg = new char[q - p + 1];
+				strncpy(arg, p, q - p);
+				arg[q - p] = '\0';
+				s_items[c++] = arg;
+				if(*q == delim)
+					break;
+				p = q + 1;
+			}
+		}
+		*count = c;
+	//	for(int i  = 0; i < *count; ++i){
+	//		fprintf(stdout, "argv[%d]: %s\n", i, s_items[i]);
+	//	}
+		return 0;
+	error_return:
+		*count = 0;
+		s_items[0] = '\0';
+		return -1;
+}
+static int parse_log_item(log_item & item, char * logitem, char delim /*= '\0'*/)
 {
 	memset(&item, 0, sizeof(log_item));
-	static int count;
-	static char ** items;
-	int result = do_parse_log_item(&count, &items, logitem, delim);
+	char *items[18];
+	int result = do_parse_log_item(items, logitem, delim);
 	if(result != 0){
 		return 1;
 	}
 	/*format: [17/Sep/2016:00:26:08 +0800]*/
-	char time_local[21];
-	strncpy(time_local, items[4] + 1, 20);
 	tm my_tm;
-	if(!strptime(time_local, "%d/%b/%Y:%H:%M:%S" , &my_tm))
+	if(!strptime(items[4] + 1, "%d/%b/%Y:%H:%M:%S" , &my_tm))
 		return -1;
 	my_tm.tm_isdst = 0;
 	item.time_local = mktime(&my_tm);
@@ -710,25 +788,95 @@ static char const * find_domain(char const * nginx_log_file)
 	return domain;
 }
 
+int do_parse_log_item(char** items, char* szitem, char delim/* = '\0'*/)
+{
+//	for(char * ch = szitem; ; ++ch) { fprintf(stdout, "%c", *ch); if(*ch == delim) break; }
+	bool arg_start = false;
+	int field_count = 0;
+	for(char * p = szitem, * q = p; ; ++q){
+		if(*q == '"'){
+			if(!arg_start) {
+				arg_start = true;
+				p = q + 1;
+			}
+			else{
+				arg_start = false;
+				if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
+//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
+					goto error_return;
+				}
+				*q = '\0';
+				items[field_count++] = p;
+				++q;
+				if(*q == delim)
+					break;
+				p = q + 1;
+			}
+			continue;
+		}
+		if(arg_start && *q == delim){
+//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
+			goto error_return;
+		}
+		if(!arg_start && (*q == ' ' || *q == delim)){
+			items[field_count++] = p;
+			char c = *q;
+			*q = '\0';
+			if(c == delim){
+				break;
+			}
+			p = q + 1;
+		}
+	}
+//	for(int i  = 0; i < field_count; ++i){
+//		fprintf(stdout, "%s: argv[%d]: %s\n", __FUNCTION__, i, items[i]);
+//	}
+	return 0;
+error_return:
+	items[0] = '\0';
+	return -1;
+}
+
+/*for str_find()*/
+static int str_find_realloc(char *& p, size_t & total, size_t step_len)
+{
+	for(int i = 1; i < step_len; i *= 2){
+		size_t new_sz = step_len / i;
+		void * p2  = realloc(p, total + new_sz);
+		if(p2) {
+			p = (char * )p2;
+			total += new_sz;
+//			fprintf(stdout, "%s: str_find, total=%s\n", __FUNCTION__, byte_to_mb_kb_str(total, "%-.0f %cB"));
+			return 0;
+		}
+	}
+	return -1;
+}
+
 static char const * str_find(char const *str, int len)
 {
 	if(!str || str[0] == '\0')
 		return NULL;
 	static std::unordered_map<std::string, char *> urls;
+	static size_t step = 5 * 1024, total = step * 4;	/*KB*/
+	static char * start_p = (char *)malloc(total);
+	static size_t offset_len = 0;
 	if(len == -2){
-//		fprintf(stderr, "%s: freeing urls \n", __FUNCTION__);
-		for(auto & item : urls){
-			delete[] item.second;
-		}
+		free(start_p);
 		return 0;
 	}
 	len = (len != -1? len : strlen(str));
 	char const * md5str = md5sum(str, len);
 	char *& s = urls[md5str];
 	if(!s){
-		s = new char[len + 1];
+		if(offset_len + len + 1> total){
+			if(str_find_realloc(start_p, total, step) != 0)
+				return NULL;
+		}
+		s = start_p + offset_len;
 		strncpy(s, str, len);
 		s[len] = '\0';
+		offset_len += (len + 1);
 	}
 	return s;
 }
@@ -745,12 +893,12 @@ static int do_test(int argc, char ** argv)
 	//	fprintf(stdout, "done, press anykey to exit.");
 	//	getc(stdin);
 
-	//	char str1[] = "hello", str2[] = "jack", str3[] =  "hello";
-	//	fprintf(stdout, "%s: test str_find()\n"
-	//			"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n"
-	//			"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n", __FUNCTION__,
-	//			str1, str1, str_find(str1), str2, str2, str_find(str2),
-	//			str3, str3, str_find(str3), str2, str2, str_find(str2));
+//		char str1[] = "hello", str2[] = "jack", str3[] =  "hello";
+//		fprintf(stdout, "%s: test str_find()\n"
+//				"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n"
+//				"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n", __FUNCTION__,
+//				str1, str1, str_find(str1), str2, str2, str_find(str2),
+//				str3, str3, str_find(str3), str2, str2, str_find(str2));
 
 //	char str1[] = "hello", str2[] = "HELLO";
 //	fprintf(stdout, "strlupr(): str=%s, strupr=%s\n, strlwr(): str=%s, strulwr=%s\n",
@@ -763,98 +911,106 @@ static int do_test(int argc, char ** argv)
 	return 0;
 }
 
-int parse_log_item_buf(char const * buf, size_t len, std::map<time_mark, log_stat> & logstats, std::vector<long> & failed_lines)
+int parse_log_item_buf(parse_context& ct)
 {
-	long linecount = 0;
+	auto & buf = ct.buf;
+	auto & len = ct.len;
+	auto & logstats = ct.logstats;
+	auto & total_lines = ct.total_lines = 0;
+
 	time_mark m;
-	for(char const * p = buf, * q = p; q != buf + len; ++q){
+	for(char * p = buf, * q = p; q != buf + len; ++q){
 		if(*q != '\n') continue;
-		++linecount;
-		if(linecount % 10000 == 0){
-			long total = 0;
-			pthread_mutex_lock(&g_line_count_mutex);
-			g_line_count += linecount;
-			total = g_line_count;
-			pthread_mutex_unlock(&g_line_count_mutex);
-			linecount = 0;
+		++total_lines;
 
-			pthread_mutex_lock(&g_io_mutex);
-			fprintf(stdout, "\r%s: processing %-8ld line ...", __FUNCTION__, total);
-			fflush(stdout);
-			pthread_mutex_unlock(&g_io_mutex);
-
-
-		}
 		log_item item;
 		int result = parse_log_item(item, p, '\n');
 		p = q + 1;
 		if(result != 0){
-			if(failed_lines.size() < 10)
-				failed_lines.push_back(linecount);
 			continue;
 		}
 		log_stats(m, item, logstats);
 	}
-	pthread_mutex_lock(&g_line_count_mutex);
-	g_line_count += linecount;
-	pthread_mutex_unlock(&g_line_count_mutex);
 	return 0;
 }
 
 void * parallel_parse_thread_func(void * varg)
 {
-	parallel_parse_thread_arg * arg = (parallel_parse_thread_arg*)varg;
-	parse_log_item_buf(arg->buf, arg->len, arg->logstats, arg->failed_lines);
+	if(!varg) return varg;
+	auto & arg = *(parse_context*)varg;
+	/*arg->buf, arg->len, arg->logstats, arg->total_lines, arg->failed_lines*/
+	parse_log_item_buf(arg);
+
 	return varg;
 }
 
-int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats, std::vector<long> & failedlines)
+static int log_stats_append(std::map<time_mark, log_stat> & a, std::map<time_mark, log_stat> const& b)
+{
+	for(auto const& item : b){
+		a[item.first] += item.second;
+	}
+	return 0;
+}
+
+int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats)
 {
 	struct stat logfile_stat;
 	if(fstat(fileno(f), &logfile_stat) < 0){
 		fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "nginx_log_file");
 		return 1;
 	}
-	int para_count = get_nprocs();			/*mew parallel count, maybe 0*/
-	size_t min_bytes = 1024 * 1024 * 128; 	/*min 64MB*/
-	for(size_t c = logfile_stat.st_size / min_bytes; c < (size_t)para_count; --para_count)
-	{ /*empty*/ }
-//	fprintf(stdout, "%s: para_count=%d\n", __FUNCTION__, para_count);
+	int para_count = get_nprocs() - 1;			/*mew parallel count, maybe 0*/
+	size_t min_bytes = 1024 * 1024 * 128; 	/*min 128MB*/
+	for(size_t c = logfile_stat.st_size / min_bytes; c < (size_t)para_count; --para_count){ /*empty*/ }
+//	fprintf(stdout, "%s: logfile_size = %ld/%s, para_count=%d\n", __FUNCTION__
+//			, logfile_stat.st_size, byte_to_mb_kb_str(logfile_stat.st_size, "%-.2f %cB"), para_count);
 
-	pthread_t threads[para_count];
-
-	off_t offset_p = 0;
-	void * start_p = mmap(NULL, logfile_stat.st_size, PROT_READ, MAP_PRIVATE, fileno(f), 0);
+	char  * start_p = (char *)mmap(NULL, logfile_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(f), 0);
 	if(!start_p || start_p == MAP_FAILED){
 		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
 		return 1;
 	}
-	parallel_parse_thread_arg ppt_args[para_count];
+	pthread_t threads[para_count];
+	parse_context parse_args[para_count + 1];
+	off_t offset_p = 0;
 	for(int i = 0; i < para_count; ++i){
-		static size_t len = logfile_stat.st_size / para_count;
+		static size_t len = logfile_stat.st_size / (para_count + 1);
+		size_t nlen = (strchr(start_p  + offset_p + len - 1024 * 8, '\n') + 1 - start_p) - offset_p;
 
+		auto& arg = parse_args[i];
+		arg.buf = (char *)start_p + offset_p;
+		arg.len = nlen;
+		arg.total_lines = 0;
 		pthread_t tid;
-		auto * arg = &ppt_args[i];
-		arg->buf = (char const *)start_p + offset_p;
-		arg->len = len;
-		int result = pthread_create(&tid, NULL, parallel_parse_thread_func, arg);
+		int result = pthread_create(&tid, NULL, parallel_parse_thread_func, &arg);
 		if(result != 0){
 			fprintf(stderr, "%s: pthread_create() failed, parallel index=%d\n", __FUNCTION__, i);
 			return 1;
 		}
 		threads[i] = tid;
-		offset_p += len;
+		offset_p += nlen;
 	}
 	size_t left_len = logfile_stat.st_size - offset_p;
-	parallel_parse_thread_arg arg;
-	arg.buf = (char const *)start_p + offset_p;
+	auto & arg = parse_args[para_count];
+	arg.buf = start_p + offset_p;
 	arg.len = left_len;
-	parse_log_item_buf(arg.buf, arg.len, arg.logstats, arg.failed_lines);
+	arg.total_lines = 0;
+	parse_log_item_buf(arg);
 
-	void * tret;
 	for(auto & item : threads){
+		void * tret;
 		pthread_join(item, &tret);
 //		fprintf(stdout, "%s: thread=%ld exited\n", __FUNCTION__, item);
+	}
+	if(para_count == 0){
+		stats.swap(parse_args[0].logstats);
+		g_line_count = parse_args[0].total_lines;
+	}
+	else{
+		for(auto const& item : parse_args){
+			log_stats_append(stats, item.logstats);
+			g_line_count += item.total_lines;
+		}
 	}
 	munmap(start_p, logfile_stat.st_size);
 	return 0;
@@ -915,20 +1071,13 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	pthread_mutex_init(&g_line_count_mutex, NULL);
 
 	std::map<time_mark, log_stat> logstats;
-	std::vector<long> failed_lines;
 
-	parallel_parse(nginx_log_file, logstats, failed_lines);
+	parallel_parse(nginx_log_file, logstats);
 
 	fprintf(stdout, "\r%s: processed, total_line: %-8.0f\n", __FUNCTION__, g_line_count);
-	if(!failed_lines.empty()){
-		fprintf(stdout, "%s: failed_lines:[", __FUNCTION__);
-		for(size_t i = 0; i != failed_lines.size(); ++i)
-			{ fprintf(stdout, "%ld%s", failed_lines[i], (i + 1 != failed_lines.size()? ", " : "]\n")); }
-	}
 //	result = print_stats(stdout, logstats, -1);
 	print_flow_table(output_file, logstats, device_id, site_id, user_id);
 	//
 	str_find(" ", -2);
 	return 0;
 }
-
