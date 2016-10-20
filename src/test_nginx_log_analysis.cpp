@@ -1,3 +1,7 @@
+/*!
+ * this module parse nginx logs and print results
+ * @note: 1.As of current design, the input nginx log file MUST have ONLY one domain, @see test_nginx_log_split_main
+ */
 #include <fnmatch.h>	/*fnmatch*/
 #include <sys/sysinfo.h>	/*get_nprocs*/
 #include <sys/stat.h>	/*fstat*/
@@ -24,39 +28,40 @@ struct log_item;
 struct site_info;
 struct parse_context;
 struct url_count;
-class time_mark;
+class time_interval;
 class url_stat;
 class log_stat;
 
+/*tests, @see do_test*/
 static int test_strptime_main(int argc, char ** argv);
 static int test_time_mark_main(int argc, char ** argv);
 static int test_get_if_addrs_main(int argc, char ** argv);
+int test_nginx_log_split_main(int argc, char ** argv);
 /*test_mem.cpp*/
 extern int test_alloc_mmap_main(int argc, char * argv[]);
 
-/*parse a nginx log*/
-static int parse_log_item(log_item & item, char const * logitem, char delim = '\0');
-/*
- * parse ' ' splitted logitem, nginx log:
+/*!
+ * parse ' ' splitted nginx log
+ * nginx_log sample:
  * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
  * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
  * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
- */
-static int do_parse_log_item(int * count, char *** items, char * szitem, char delim = '\0');
-/* parse only indexes in @param fields
+
  * @NOTE:current nginx_log format:
  * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method $request_uri $server_protocol" $status $bytes_sent \
  * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" $scheme $request_length $upstream_response_time'
  * total fields == 18
  * */
-static int do_parse_log_item(char ** items, char * szitem, char delim = '\0');
-static int do_parse_log_item(int * count, char *** items, std::bitset<18> const& fields, char const * szitem, char delim = '\0');
+static int do_parse_log_item(char ** fields, char *& szitem, char delim = '\0');
 
-static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, log_stat>& logstats);
+/*parse nginx_log buffer @apram ct, and output results*/
+static int parse_log_item_buf(parse_context& ct);
+
+static int log_stats(time_interval & m, log_item const& item, std::map<time_interval, log_stat>& logstats);
 /*print ouput*/
 static int parallel_fprintf(FILE * stream, char const * fmt, ...);
-static int print_stats(FILE * stream, std::map<time_mark, log_stat> const& stats, int top = 10);
-static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const& stats,
+static int print_stats(FILE * stream, std::map<time_interval, log_stat> const& stats, int top = 10);
+static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*load devicelist, @param devicelist map<device_id, ip>*/
 static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
@@ -93,6 +98,13 @@ struct site_info{
 	int site_id;
 	int user_id;
 };
+
+//////////////////////////////////////////////////////////////////////////////////
+struct url_count
+{
+	char const * url;
+	long count;
+};
 //////////////////////////////////////////////////////////////////////////////////
 /*log buffer and parse result*/
 struct parse_context
@@ -102,7 +114,7 @@ struct parse_context
 	size_t len;
 
 /*output*/
-	std::map<time_mark, log_stat> logstats;
+	std::map<time_interval, log_stat> logstats;
 	size_t total_lines;
 };
 
@@ -114,38 +126,39 @@ static double g_line_count = 0;
 static pthread_mutex_t g_io_mutex;
 static pthread_mutex_t g_line_count_mutex;
 //////////////////////////////////////////////////////////////////////////////////
-class time_mark{
+class time_interval
+{
 public:
-	static int _interval_sec;	/*in seconds*/
+	static int _sec;	/*in seconds*/
 private:
 	time_t _t;
 public:
-	explicit time_mark(char const * strtime = NULL);
+	explicit time_interval(char const * strtime = NULL);
 public:
 	operator bool() const;
-	time_mark next_mark() const;
-	time_mark& mark(char const * strtime);
-	time_mark& mark(time_t const& t);
+	time_interval next_mark() const;
+	time_interval& mark(char const * strtime);
+	time_interval& mark(time_t const& t);
 	char const * c_str(char const * fmt = "%Y-%m-%d %H:%M:%S") const;
 private:
-	friend bool operator ==(const time_mark& one, const time_mark& another);
-	friend bool operator <(const time_mark& one, const time_mark& another);
+	friend bool operator ==(const time_interval& one, const time_interval& another);
+	friend bool operator <(const time_interval& one, const time_interval& another);
 };
 
-int time_mark::_interval_sec = 300;
-time_mark::time_mark(char const * strtime)
+int time_interval::_sec = 300;
+time_interval::time_interval(char const * strtime)
 : _t(0)
 {
 	if(strtime)
 		mark(strtime);
 }
 
-time_mark::operator bool() const
+time_interval::operator bool() const
 {
 	return 1;
 }
 
-const char* time_mark::c_str(char const * fmt) const
+const char* time_interval::c_str(char const * fmt) const
 {
 //	return ctime(&_t);
 	static char buff[20] = "";
@@ -155,7 +168,7 @@ const char* time_mark::c_str(char const * fmt) const
 	return buff;
 }
 
-time_mark& time_mark::mark(const char* strtime)
+time_interval& time_interval::mark(const char* strtime)
 {
 	if(!strtime) return *this;
 	tm my_tm;
@@ -168,32 +181,34 @@ time_mark& time_mark::mark(const char* strtime)
 	return mark(t);
 }
 
-time_mark& time_mark::mark(time_t const& t)
+time_interval& time_interval::mark(time_t const& t)
 {
-	long n = difftime(t, _t) / _interval_sec;
-	_t += n * _interval_sec;
+	long n = difftime(t, _t) / _sec;
+	_t += n * _sec;
 	return *this;
 }
-bool operator <(const time_mark& one, const time_mark& another)
+
+bool operator <(const time_interval& one, const time_interval& another)
 {
 	return one._t < another._t;
 }
 
-bool operator ==(const time_mark& one, const time_mark& another)
+bool operator ==(const time_interval& one, const time_interval& another)
 {
 	return one._t == another._t;
 }
 
-time_mark time_mark::next_mark() const
+time_interval time_interval::next_mark() const
 {
-	time_mark ret(*this);
-	ret._t += _interval_sec;
+	time_interval ret(*this);
+	ret._t += _sec;
 	return ret;
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////
-class url_stat{
+/*url statistics*/
+class url_stat
+{
 public:
 	std::unordered_map<int, long> _status;		/*http_status_code: count*/
 	std::unordered_map<int, double> _bytes;	/*http_status_code: bytes*/
@@ -220,7 +235,7 @@ long url_stat::access(int code) const
 	return (_status.count(code) != 0? _status.at(code) : 0);
 }
 
-inline double url_stat::bytes(int code1, int code2/* = -1*/) const
+double url_stat::bytes(int code1, int code2/* = -1*/) const
 {
 	double ret  = 0;
 	for(auto it = _bytes.begin(); it !=_bytes.end(); ++it){
@@ -251,11 +266,13 @@ url_stat& url_stat::operator+=(url_stat const& another)
 	return *this;
 }
 //////////////////////////////////////////////////////////////////////////////////
-class log_stat{
+/*url statistics in time interval*/
+class log_stat
+{
 public:
 	std::unordered_map<char const *, url_stat> _url_stats;	/*url:url_stat*/
-	double _bytes_m;
-	long _access_m;
+	double _bytes_m;	/*bytes for "CDN back to source"*/
+	long _access_m;		/*access_count for "CDN back to source"*/
 public:
 	log_stat();
 public:
@@ -299,6 +316,7 @@ inline double log_stat::bytes_total() const
 	}
 	return ret;
 }
+
 long log_stat::access(int code) const
 {
 	long ret = 0;
@@ -319,118 +337,8 @@ log_stat& log_stat::operator+=(log_stat const& another)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-int do_parse_log_item(int * count, char *** items, char * szitem, char delim /*=  '\0'*/)
-{
-	//	fprintf(stdout, "item=%s\n", szitem);
-		static char * s_items[18] = {0};
-		*items= s_items;
 
-		bool arg_start = false;
-		int c = 0;
-		for(char const * p = szitem, *q = p; ; ++q){
-			if(*q == '"'){
-				if(!arg_start) {
-					arg_start = true;
-					p = q + 1;
-				}
-				else{
-					arg_start = false;
-					if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
-	//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
-						goto error_return;
-					}
-					++q;
-					char * arg = new char[q - p];
-					strncpy(arg, p, q - p - 1);
-					arg[q - p - 1] = '\0';
-					s_items[c++] = arg;
-					if(*q == delim)
-						break;
-					p = q + 1;
-				}
-				continue;
-			}
-			if(arg_start && *q == delim){
-	//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
-				goto error_return;
-			}
-			if(!arg_start && (*q == ' ' || *q == delim)){
-				char * arg = new char[q - p + 1];
-				strncpy(arg, p, q - p);
-				arg[q - p] = '\0';
-				s_items[c++] = arg;
-				if(*q == delim)
-					break;
-				p = q + 1;
-			}
-		}
-		*count = c;
-//		for(int i  = 0; i < *count; ++i){
-//			fprintf(stdout, "argv[%d]: %s\n", i, s_items[i]);
-//		}
-		return 0;
-	error_return:
-		*count = 0;
-		s_items[0] = '\0';
-		return -1;
-}
-
-static int do_parse_log_item(int * count, char *** items, std::bitset<18> const& fields, char const * szitem, char delim/* = '\0'*/)
-{
-	//	fprintf(stdout, "item=%s\n", szitem);
-		static char * s_items[18] = {0};
-		*items= s_items;
-
-		bool arg_start = false;
-		int c = 0;
-		for(char const * p = szitem, *q = p; ; ++q){
-			if(*q == '"'){
-				if(!arg_start) {
-					arg_start = true;
-					p = q + 1;
-				}
-				else{
-					arg_start = false;
-					if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
-	//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
-						goto error_return;
-					}
-					++q;
-					char * arg = new char[q - p];
-					strncpy(arg, p, q - p - 1);
-					arg[q - p - 1] = '\0';
-					s_items[c++] = arg;
-					if(*q == delim)
-						break;
-					p = q + 1;
-				}
-				continue;
-			}
-			if(arg_start && *q == delim){
-	//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
-				goto error_return;
-			}
-			if(!arg_start && (*q == ' ' || *q == delim)){
-				char * arg = new char[q - p + 1];
-				strncpy(arg, p, q - p);
-				arg[q - p] = '\0';
-				s_items[c++] = arg;
-				if(*q == delim)
-					break;
-				p = q + 1;
-			}
-		}
-		*count = c;
-	//	for(int i  = 0; i < *count; ++i){
-	//		fprintf(stdout, "argv[%d]: %s\n", i, s_items[i]);
-	//	}
-		return 0;
-	error_return:
-		*count = 0;
-		s_items[0] = '\0';
-		return -1;
-}
-static int parse_log_item(log_item & item, char * logitem, char delim /*= '\0'*/)
+static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/)
 {
 	memset(&item, 0, sizeof(log_item));
 	char *items[18];
@@ -457,17 +365,11 @@ static int parse_log_item(log_item & item, char * logitem, char delim /*= '\0'*/
 	return 0;
 }
 
-struct url_count
-{
-	char const * url;
-	long count;
-};
-
 bool compare_by_access_count(url_count const& a, url_count const& b)
 {
 	return a.count > b.count;
 }
-static void url_top_n(std::map<time_mark, log_stat> const& stats, std::vector<url_count>& urlcount)
+static void url_top_n(std::map<time_interval, log_stat> const& stats, std::vector<url_count>& urlcount)
 {
 	std::unordered_map<char const *, url_stat> urlstats;
 	for(auto it = stats.begin(); it != stats.end(); ++it){
@@ -483,7 +385,7 @@ static void url_top_n(std::map<time_mark, log_stat> const& stats, std::vector<ur
 	std::sort(urlcount.begin(), urlcount.end(), compare_by_access_count);
 }
 
-static int print_stats(FILE* stream, const std::map<time_mark, log_stat>& stats, int top)
+static int print_stats(FILE* stream, const std::map<time_interval, log_stat>& stats, int top)
 {
 	fprintf(stream, "%-20s%-120s%-10s%-20s\n", "Time", "Url", "Count", "Bytes");
 	double bytes_total = 0, bytes_200 = 0, bytes_206 = 0, other_bytes = 0;
@@ -524,7 +426,7 @@ static int print_stats(FILE* stream, const std::map<time_mark, log_stat>& stats,
 	return 0;
 }
 
-static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const& stats,
+static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	std::string buff;
@@ -558,9 +460,9 @@ static void print_flow_table(FILE * stream, std::map<time_mark, log_stat> const&
 }
 
 inline int log_stats(const std::vector<log_item>& logvec,
-		std::map<time_mark, log_stat>& logstats)
+		std::map<time_interval, log_stat>& logstats)
 {
-	time_mark m;
+	time_interval m;
 	for(log_item const& item : logvec){
 		m.mark(item.time_local);
 		log_stat& logsstat = logstats[m];
@@ -573,7 +475,7 @@ inline int log_stats(const std::vector<log_item>& logvec,
 	return 0;
 }
 
-static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, log_stat>& logstats)
+static int log_stats(time_interval & m, log_item const& item, std::map<time_interval, log_stat>& logstats)
 {
 	m.mark(item.time_local);
 	log_stat& logsstat = logstats[m];
@@ -586,93 +488,6 @@ static int log_stats(time_mark & m, log_item const& item, std::map<time_mark, lo
 		logsstat._bytes_m += item.bytes_sent;
 		++logsstat._access_m;
 	}
-	return 0;
-}
-
-static int test_time_mark_main(int argc, char ** argv)
-{
-	char const * stime = "17/Sep/2016:01:19:43";
-	time_t time1 = time(NULL);
-	tm time2 = *localtime(&time1);
-	time2.tm_hour -= 1;
-	assert((time1 - 3600) == mktime(&time2));
-	fprintf(stdout, "time=%ld, difftime(0, time)=%ld\n", time1, (long)difftime((time_t)0, time1));
-
-	time_mark timem1(stime), timem2(stime);
-	assert(timem1);
-	assert(timem1 == timem2);
-	assert(timem1 == time_mark("17/Sep/2016:01:19:00"));
-	fprintf(stdout, "time=17/Sep/2016:01:19:23,mark=%s\n", time_mark().mark("17/Sep/2016:01:19:23").c_str());
-	fprintf(stdout, "time=%s, start=%s\n", stime, timem1.c_str());
-	for(int i= 0; i < 5; ++i){
-		fprintf(stdout, "next=%s\n", timem1.next_mark().c_str());
-		timem1 = timem1.next_mark();
-	}
-	time_mark startm("17/Sep/2016:01:19:43"), timem3(startm);
-	assert(startm == timem3.mark("17/Sep/2016:01:15:43"));
-	return 0;
-}
-static int test_strptime_main(int argc, char ** argv)
-{
-	fprintf(stdout, "%s:\n", __FUNCTION__);
-	struct tm my_tm;
-	char const * stime = "17/Sep/2016:08:19:43";
-	char const * result = strptime(stime, "%d/%b/%Y:%H:%M:%S" , &my_tm);
-	my_tm.tm_isdst = 0;
-	mktime(&my_tm);
-	fprintf(stdout, "time=%s, NOT paused=[%s], asctime:sec=%d,all=%s\n",
-			stime, result? result : "<null>", my_tm.tm_sec, asctime(&my_tm));
-	return 0;
-}
-
-int test_nginx_log_split_main(int argc, char ** argv)
-{
-	if(argc < 3){
-		fprintf(stderr, "split nginx log file into multiple files, by domain field.\n"
-				"usage: %s <nginx_log_file> <output_folder>\n"
-				"  <nginx_log_file>     nginx log file\n"
-				"  <output_folder>      folder name where splitted files will save to\n"
-				, __FUNCTION__);
-		return 1;
-	}
-	FILE * f = fopen(argv[1], "r");
-	if(!f) {
-		fprintf(stderr, "fopen file %s failed\n", argv[1]);
-		return 1;
-	}
-	char out_folder[32] = "logs";
-	strcpy(out_folder, argv[2]);
-	if(out_folder[strlen(out_folder) -1 ] != '/')
-		strcat(out_folder, "/");
-
-	std::unordered_map<std::string, FILE *> dmap;/*domain : log_file*/
-	long linecount = 0;
-	char data[8192] = "";
-	char const * result = 0;
-	while((result = fgets(data, sizeof(data), f)) != NULL){
-		++linecount;
-		fprintf(stdout, "\rprocessing %8ld line ...", linecount);
-		int len = strlen(result);
-		if(result[len - 1] != '\n'){
-			fprintf(stderr, "\n%s: WARNING, length > %d bytes, skip:\n%s\n", __FUNCTION__, sizeof(data), data);
-			continue;
-		}
-		char domain[128] = "", out_file[512] = "";
-		strncpy(domain, data, strchr(data, ' ') - data);
-		strlwr(domain);
-
-		FILE * & file = dmap[domain];
-		sprintf(out_file, "%s%s", out_folder, domain);
-		if(!file && (file = fopen(out_file, "w")) == NULL){
-			fprintf(stderr, "\n%s: WARNING, create file %s failed, skip\n", __FUNCTION__, domain);
-			continue;
-		}
-		int result = fwrite(data, sizeof(char), len, file);
-		if(result < len || ferror(file)){
-			fprintf(stderr, "\n%s: WARNING, write domain file %s NOT complete:\n%s\n", __FUNCTION__, domain, data);
-		}
-	}
-	fprintf(stdout, "\n");
 	return 0;
 }
 
@@ -788,12 +603,14 @@ static char const * find_domain(char const * nginx_log_file)
 	return domain;
 }
 
-int do_parse_log_item(char** items, char* szitem, char delim/* = '\0'*/)
+int do_parse_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
 {
 //	for(char * ch = szitem; ; ++ch) { fprintf(stdout, "%c", *ch); if(*ch == delim) break; }
 	bool arg_start = false;
 	int field_count = 0;
-	for(char * p = szitem, * q = p; ; ++q){
+
+	char * q = szitem;
+	for(char * p = szitem; ; ++q){
 		if(*q == '"'){
 			if(!arg_start) {
 				arg_start = true;
@@ -806,7 +623,7 @@ int do_parse_log_item(char** items, char* szitem, char delim/* = '\0'*/)
 					goto error_return;
 				}
 				*q = '\0';
-				items[field_count++] = p;
+				fields[field_count++] = p;
 				++q;
 				if(*q == delim)
 					break;
@@ -819,7 +636,7 @@ int do_parse_log_item(char** items, char* szitem, char delim/* = '\0'*/)
 			goto error_return;
 		}
 		if(!arg_start && (*q == ' ' || *q == delim)){
-			items[field_count++] = p;
+			fields[field_count++] = p;
 			char c = *q;
 			*q = '\0';
 			if(c == delim){
@@ -828,12 +645,13 @@ int do_parse_log_item(char** items, char* szitem, char delim/* = '\0'*/)
 			p = q + 1;
 		}
 	}
+	szitem = q;
 //	for(int i  = 0; i < field_count; ++i){
 //		fprintf(stdout, "%s: argv[%d]: %s\n", __FUNCTION__, i, items[i]);
 //	}
 	return 0;
 error_return:
-	items[0] = '\0';
+	fields[0] = '\0';
 	return -1;
 }
 
@@ -880,36 +698,6 @@ static char const * str_find(char const *str, int len)
 	}
 	return s;
 }
-static int do_test(int argc, char ** argv)
-{
-	//	test_strptime_main(argc, argv);
-	//	test_time_mark_main(argc, argv);
-
-		/*siteuidlist.txt www.haipin.com*/
-	//	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));
-
-	//	test_get_if_addrs_main(argc, argv);
-	//	test_alloc_mmap_main(argc, argv);
-	//	fprintf(stdout, "done, press anykey to exit.");
-	//	getc(stdin);
-
-//		char str1[] = "hello", str2[] = "jack", str3[] =  "hello";
-//		fprintf(stdout, "%s: test str_find()\n"
-//				"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n"
-//				"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n", __FUNCTION__,
-//				str1, str1, str_find(str1), str2, str2, str_find(str2),
-//				str3, str3, str_find(str3), str2, str2, str_find(str2));
-
-//	char str1[] = "hello", str2[] = "HELLO";
-//	fprintf(stdout, "strlupr(): str=%s, strupr=%s\n, strlwr(): str=%s, strulwr=%s\n",
-//			"hello", strupr(str1), "HELLO", strlwr(str2));
-//	int core_num = get_nprocs();
-//	fprintf(stdout, "%s: core_num=%d\n", __FUNCTION__, core_num);
-//	int term_cols = 0, term_rows = 0;
-//	termio_get_col_row(&term_cols, &term_rows);
-//	fprintf(stdout, "term_cols = %d, term_rows = %d\n", term_cols, term_rows);
-	return 0;
-}
 
 int parse_log_item_buf(parse_context& ct)
 {
@@ -918,18 +706,18 @@ int parse_log_item_buf(parse_context& ct)
 	auto & logstats = ct.logstats;
 	auto & total_lines = ct.total_lines = 0;
 
-	time_mark m;
-	for(char * p = buf, * q = p; q != buf + len; ++q){
-		if(*q != '\n') continue;
-		++total_lines;
-
+	time_interval m;
+	for(char * p = buf; p != buf + len; ++p){
 		log_item item;
 		int result = parse_log_item(item, p, '\n');
-		p = q + 1;
-		if(result != 0){
-			continue;
+		if(result == 0){
+			log_stats(m, item, logstats);
 		}
-		log_stats(m, item, logstats);
+		else {
+			//current line failed, move to next line
+			while(p != buf + len && !(*p == '\0' || *p == '\n')) { ++p; }
+		}
+		++total_lines;
 	}
 	return 0;
 }
@@ -944,7 +732,7 @@ void * parallel_parse_thread_func(void * varg)
 	return varg;
 }
 
-static int log_stats_append(std::map<time_mark, log_stat> & a, std::map<time_mark, log_stat> const& b)
+static int log_stats_append(std::map<time_interval, log_stat> & a, std::map<time_interval, log_stat> const& b)
 {
 	for(auto const& item : b){
 		a[item.first] += item.second;
@@ -952,7 +740,7 @@ static int log_stats_append(std::map<time_mark, log_stat> & a, std::map<time_mar
 	return 0;
 }
 
-int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats)
+int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 {
 	struct stat logfile_stat;
 	if(fstat(fileno(f), &logfile_stat) < 0){
@@ -991,6 +779,7 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats)
 		offset_p += nlen;
 	}
 	size_t left_len = logfile_stat.st_size - offset_p;
+//	printf("%s: main_thread proccess size percent=%.1f\n", __FUNCTION__, (double)left_len / logfile_stat.st_size);
 	auto & arg = parse_args[para_count];
 	arg.buf = start_p + offset_p;
 	arg.len = left_len;
@@ -1013,6 +802,126 @@ int parallel_parse(FILE * f, std::map<time_mark, log_stat> & stats)
 		}
 	}
 	munmap(start_p, logfile_stat.st_size);
+	return 0;
+}
+
+
+static int test_time_mark_main(int argc, char ** argv)
+{
+	char const * stime = "17/Sep/2016:01:19:43";
+	time_t time1 = time(NULL);
+	tm time2 = *localtime(&time1);
+	time2.tm_hour -= 1;
+	assert((time1 - 3600) == mktime(&time2));
+	fprintf(stdout, "time=%ld, difftime(0, time)=%ld\n", time1, (long)difftime((time_t)0, time1));
+
+	time_interval timem1(stime), timem2(stime);
+	assert(timem1);
+	assert(timem1 == timem2);
+	assert(timem1 == time_interval("17/Sep/2016:01:19:00"));
+	fprintf(stdout, "time=17/Sep/2016:01:19:23,mark=%s\n", time_interval().mark("17/Sep/2016:01:19:23").c_str());
+	fprintf(stdout, "time=%s, start=%s\n", stime, timem1.c_str());
+	for(int i= 0; i < 5; ++i){
+		fprintf(stdout, "next=%s\n", timem1.next_mark().c_str());
+		timem1 = timem1.next_mark();
+	}
+	time_interval startm("17/Sep/2016:01:19:43"), timem3(startm);
+	assert(startm == timem3.mark("17/Sep/2016:01:15:43"));
+	return 0;
+}
+static int test_strptime_main(int argc, char ** argv)
+{
+	fprintf(stdout, "%s:\n", __FUNCTION__);
+	struct tm my_tm;
+	char const * stime = "17/Sep/2016:08:19:43";
+	char const * result = strptime(stime, "%d/%b/%Y:%H:%M:%S" , &my_tm);
+	my_tm.tm_isdst = 0;
+	mktime(&my_tm);
+	fprintf(stdout, "time=%s, NOT paused=[%s], asctime:sec=%d,all=%s\n",
+			stime, result? result : "<null>", my_tm.tm_sec, asctime(&my_tm));
+	return 0;
+}
+
+int test_nginx_log_split_main(int argc, char ** argv)
+{
+	if(argc < 3){
+		fprintf(stderr, "split nginx log file into multiple files, by domain field.\n"
+				"usage: %s <nginx_log_file> <output_folder>\n"
+				"  <nginx_log_file>     nginx log file\n"
+				"  <output_folder>      folder name where splitted files will save to\n"
+				, __FUNCTION__);
+		return 1;
+	}
+	FILE * f = fopen(argv[1], "r");
+	if(!f) {
+		fprintf(stderr, "fopen file %s failed\n", argv[1]);
+		return 1;
+	}
+	char out_folder[32] = "logs";
+	strcpy(out_folder, argv[2]);
+	if(out_folder[strlen(out_folder) -1 ] != '/')
+		strcat(out_folder, "/");
+
+	std::unordered_map<std::string, FILE *> dmap;/*domain : log_file*/
+	long linecount = 0;
+	char data[8192] = "";
+	char const * result = 0;
+	while((result = fgets(data, sizeof(data), f)) != NULL){
+		++linecount;
+		fprintf(stdout, "\rprocessing %8ld line ...", linecount);
+		int len = strlen(result);
+		if(result[len - 1] != '\n'){
+			fprintf(stderr, "\n%s: WARNING, length > %d bytes, skip:\n%s\n", __FUNCTION__, sizeof(data), data);
+			continue;
+		}
+		char domain[128] = "", out_file[512] = "";
+		strncpy(domain, data, strchr(data, ' ') - data);
+		strlwr(domain);
+
+		FILE * & file = dmap[domain];
+		sprintf(out_file, "%s%s", out_folder, domain);
+		if(!file && (file = fopen(out_file, "w")) == NULL){
+			fprintf(stderr, "\n%s: WARNING, create file %s failed, skip\n", __FUNCTION__, domain);
+			continue;
+		}
+		int result = fwrite(data, sizeof(char), len, file);
+		if(result < len || ferror(file)){
+			fprintf(stderr, "\n%s: WARNING, write domain file %s NOT complete:\n%s\n", __FUNCTION__, domain, data);
+		}
+	}
+	fprintf(stdout, "\n");
+	return 0;
+}
+
+
+static int do_test(int argc, char ** argv)
+{
+	//	test_strptime_main(argc, argv);
+	//	test_time_mark_main(argc, argv);
+
+		/*siteuidlist.txt www.haipin.com*/
+	//	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));
+
+	//	test_get_if_addrs_main(argc, argv);
+	//	test_alloc_mmap_main(argc, argv);
+	//	fprintf(stdout, "done, press anykey to exit.");
+	//	getc(stdin);
+
+//		char str1[] = "hello", str2[] = "jack", str3[] =  "hello";
+//		fprintf(stdout, "%s: test str_find()\n"
+//				"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n"
+//				"\tstr=%s, addr=%p, find=%p\n\tstr=%s, addr=%p, find=%p\n", __FUNCTION__,
+//				str1, str1, str_find(str1), str2, str2, str_find(str2),
+//				str3, str3, str_find(str3), str2, str2, str_find(str2));
+
+//	char str1[] = "hello", str2[] = "HELLO";
+//	fprintf(stdout, "strlupr(): str=%s, strupr=%s\n, strlwr(): str=%s, strulwr=%s\n",
+//			"hello", strupr(str1), "HELLO", strlwr(str2));
+//	int core_num = get_nprocs();
+//	fprintf(stdout, "%s: core_num=%d\n", __FUNCTION__, core_num);
+//	int term_cols = 0, term_rows = 0;
+//	termio_get_col_row(&term_cols, &term_rows);
+//	fprintf(stdout, "term_cols = %d, term_rows = %d\n", term_cols, term_rows);
 	return 0;
 }
 
@@ -1060,7 +969,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	if(interval < 300 || interval > 3600){
 		fprintf(stdout, "%s: WARNING, interval(%d) too %s\n", __FUNCTION__, interval, interval < 300? "small" : "large");
 	}
-	time_mark::_interval_sec = interval;
+	time_interval::_sec = interval;
 
 	int device_id = 0, site_id = 0, user_id  = 0;
 	device_id = get_device_id(g_devicelist);
@@ -1070,7 +979,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	pthread_mutex_init(&g_io_mutex, NULL);
 	pthread_mutex_init(&g_line_count_mutex, NULL);
 
-	std::map<time_mark, log_stat> logstats;
+	std::map<time_interval, log_stat> logstats;
 
 	parallel_parse(nginx_log_file, logstats);
 
