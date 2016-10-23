@@ -691,7 +691,7 @@ static char const * str_find(char const *str, int len)
 	if(!str || str[0] == '\0')
 		return NULL;
 	/*FIXME: dangerous in multi-threaded!!! */
-	static std::map<std::string, char *> urls;
+	static std::unordered_map<std::string, char *> urls;
 	static size_t step = 10 * 1024, total = 1024 * 64;	/*KB*/
 	static char * start_p = (char *)malloc(total);
 	static size_t offset_len = 0;
