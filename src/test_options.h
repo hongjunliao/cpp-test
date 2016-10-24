@@ -15,6 +15,7 @@ struct nla_options
 	char const * devicelist_file;
 	char const * siteuidlist_file;
 	char const * output_file;
+	int device_id;	/*if not provided, find it in devicelist_file by local machine ip*/
 	int show_device_id;
 	int show_help;
 	int show_version;

@@ -4,8 +4,8 @@
 
 static bool nla_options_is_ok(nla_options const& opt);
 
-nla_options nla_opt = { 0 };
-static poptContext pc;
+nla_options nla_opt = {0};
+static poptContext pc = 0;
 static struct poptOption nla_popt[] = {
   /* longName, shortName, argInfo, argPtr, value, descrip, argDesc */
 	{"log-file",             'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file e.g. access.log", 0 },
@@ -13,6 +13,7 @@ static struct poptOption nla_popt[] = {
 	{"device-list-file",     'd',  POPT_ARG_STRING,   0, 'd', "devicelist_file e.g. devicelist.txt", 0 },
 	{"siteuid-list-file",    's',  POPT_ARG_STRING,   0, 's', "siteuidlist_file e.g. siteuidlist.txt", 0 },
 	{"output-file",          'o',  POPT_ARG_STRING,   0, 'o', "output_file e.g. /tmp/nginx.out", 0 },
+	{"device-id",            'e',  POPT_ARG_INT,     0,  'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",      'c',  POPT_ARG_NONE,   0, 'c', "print device_id and exit", 0 },
 	{"help",                 0,  POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",              0,  POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
@@ -28,6 +29,7 @@ int nginx_log_stats_parse_options(int argc, char ** argv)
 		switch(opt){
 		case 'l': nla_opt.log_file = poptGetOptArg(pc); break;
 		case 'i': nla_opt.interval = atoi(poptGetOptArg(pc)); break;
+		case 'e': nla_opt.device_id = atoi(poptGetOptArg(pc)); break;
 		case 'd': nla_opt.devicelist_file = poptGetOptArg(pc); break;
 		case 's': nla_opt.siteuidlist_file = poptGetOptArg(pc); break;
 		case 'o': nla_opt.output_file = poptGetOptArg(pc); break;
@@ -64,7 +66,9 @@ static bool nla_options_is_ok(nla_options const& opt)
 	if(opt.show_device_id) return true;
 	bool result = (opt.log_file && opt.interval > 0
 			&& opt.devicelist_file  && opt.siteuidlist_file
-			&& opt.output_file);
+			&& opt.output_file
+			&& (opt.device_id >=  0)
+			);
 	return result;
 }
 
@@ -73,12 +77,13 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 	if(!popt) return;
 	auto& opt = *popt;
 	fprintf(stream, "%-30s%-20s\n%-30s%-20d\n%-30s%-20s\n%-30s%-20s\n"
-			"%-30s%-20s\n%-30s%-20d\n%-30s%-20d\n%-30s%-20d\n%-30s%-20d\n"
+			"%-30s%-20s\n%-30s%-20d\n%-30s%-20d\n%-30s%-20d\n%-30s%-20d\n%-30s%-20d\n"
 		, "log_file", opt.log_file
 		, "interval", opt.interval
 		, "devicelist_file", opt.devicelist_file
 		, "siteuidlist_file", opt.siteuidlist_file
 		, "output_file", opt.output_file
+		, "device_id", opt.device_id
 		, "show_device_id", opt.show_device_id
 		, "show_help", opt.show_help
 		, "show_version", opt.show_version
