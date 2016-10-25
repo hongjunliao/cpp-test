@@ -42,7 +42,17 @@ int get_if_addrs(char *ips, int & count, int sz)
     return 0;
 }
 
-static int test_get_if_addrs_main(int argc, char ** argv)
+uint32_t netutil_get_ip(char const * ipstr)
+{
+	struct in_addr inaddr;
+	if(inet_pton(AF_INET, ipstr, (void *)&inaddr) != 1)
+		return 0;
+	/*FIXME: byte order!!!*/
+	return inaddr.s_addr;
+}
+
+
+int test_net_util_main(int argc, char ** argv)
 {
 	char ips[64][16];
 	int count = 64;
@@ -50,7 +60,9 @@ static int test_get_if_addrs_main(int argc, char ** argv)
 	if(result != 0)
 		return -1;
 	for(int i = 0; i < count; ++i){
-		fprintf(stdout, "%s\n", ips[i]);
+		fprintf(stdout, "%s: i=%d, ip=%s\n", __FUNCTION__, i, ips[i]);
 	}
+	char const * sip = "192.168.212.69";
+	fprintf(stdout, "%s: sip=%s, ip=%u\n", __FUNCTION__, sip, netutil_get_ip(sip));
     return 0;
 }

@@ -32,6 +32,7 @@ struct parse_context;
 struct url_count;
 class time_interval;
 class url_stat;
+struct ip_stat;
 class log_stat;
 
 /*tests, @see do_test*/
@@ -41,7 +42,8 @@ static int test_get_if_addrs_main(int argc, char ** argv);
 int test_nginx_log_split_main(int argc, char ** argv);
 /*test_mem.cpp*/
 extern int test_alloc_mmap_main(int argc, char * argv[]);
-
+/*net_util.cpp*/
+extern int test_net_util_main(int argc, char ** argv);
 /*!
  * parse ' ' splitted nginx log
  * nginx_log sample:
@@ -79,10 +81,11 @@ static char const * str_find(char const *str, int len = -1);
 
 /*string_util.cpp*/
 extern char const * md5sum(char const * str, int len);
+extern char const * sha1sum(char const * str, int len);
 extern char const * byte_to_mb_kb_str(size_t bytes, char const * fmt);
 /*net_util.cpp*/
 extern int get_if_addrs(char *ips, int & count, int sz);
-
+extern uint32_t netutil_get_ip(char const * ipstr);
 /*!
  * ouput results
  */
@@ -96,14 +99,19 @@ static void print_url_popular_table(FILE * stream, std::map<time_interval, log_s
 static void print_ip_popular_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*httpstatus_statistics*/
-static void print_httpstatus_stats_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_http_stats_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
-
-static int print_stats(FILE * stream, std::map<time_interval, log_stat> const& stats, int top = 10);
+/*ip_slowfast*/
+static void print_ip_slowfast_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+		int device_id, int site_id, int user_id);
+static int print_stats(std::map<time_interval, log_stat>const& stats,
+		int device_id, int site_id, int user_id);
 //////////////////////////////////////////////////////////////////////////////////
 struct log_item{
 	time_t time_local;
 	char const *request_url;
+	size_t request_time;
+	uint32_t client_ip;
 	size_t bytes_sent;
 	int status;
 	bool is_hit;
@@ -235,8 +243,8 @@ time_interval time_interval::next_mark() const
 class url_stat
 {
 public:
-	std::unordered_map<int, size_t> _status;		/*http_status_code: access_count*/
-	std::unordered_map<int, size_t> _bytes;	/*http_status_code: bytes*/
+	std::unordered_map<int, size_t> _status;	/*http_status_code: access_count*/
+	std::unordered_map<int, size_t> _bytes;		/*http_status_code: bytes*/
 public:
 	size_t access_total() const;
 	size_t bytes(int code1, int code2 = -1) const;
@@ -292,14 +300,23 @@ url_stat& url_stat::operator+=(url_stat const& another)
 	}
 	return *this;
 }
+
 //////////////////////////////////////////////////////////////////////////////////
-/*url statistics in time interval*/
+/*client ip statistics*/
+struct ip_stat
+{
+	size_t bytes; 	/*bytes total*/
+	size_t sec;		/*time total, in seconds*/
+};
+//////////////////////////////////////////////////////////////////////////////////
+/*interval log statistics*/
 class log_stat
 {
 public:
 	std::unordered_map<char const *, url_stat> _url_stats;	/*url:url_stat*/
-	size_t _bytes_m;	/*bytes for "CDN back to source"*/
-	size_t _access_m;		/*access_count for "CDN back to source"*/
+	std::unordered_map<uint32_t, ip_stat> _ip_stats;	/*ip:ip_stat*/
+	size_t _bytes_m;	/*bytes for nginx 'MISS' */
+	size_t _access_m;		/*access_count for nginx 'MISS'*/
 public:
 	log_stat();
 public:
@@ -309,6 +326,7 @@ public:
 	size_t access(int code1, int code2 = -1) const;
 	log_stat& operator+=(log_stat const& another);
 };
+
 
 log_stat::log_stat()
 : _bytes_m(0)
@@ -373,6 +391,10 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	if(result != 0){
 		return 1;
 	}
+	item.client_ip = netutil_get_ip(items[1]);
+	if(item.client_ip == 0)
+		return 1;
+	item.request_time = atoi(items[2]);
 	/*format: [17/Sep/2016:00:26:08 +0800]*/
 	tm my_tm;
 	if(!strptime(items[4] + 1, "%d/%b/%Y:%H:%M:%S" , &my_tm))
@@ -412,45 +434,86 @@ static void url_top_n(std::map<time_interval, log_stat> const& stats, std::vecto
 	std::sort(urlcount.begin(), urlcount.end(), compare_by_access_count);
 }
 
-static int print_stats(FILE* stream, const std::map<time_interval, log_stat>& stats, int top)
+static int print_stats(std::map<time_interval, log_stat>const& logstats,
+		int device_id, int site_id, int user_id)
 {
-	fprintf(stream, "%-20s%-120s%-10s%-20s\n", "Time", "Url", "Count", "Bytes");
-	size_t bytes_total = 0, bytes_200 = 0, bytes_206 = 0, other_bytes = 0;
-	size_t access_total = 0, access_200 = 0, access_206 = 0;
-	for(auto it = stats.begin(); it != stats.end(); ++it){
-		log_stat const& stat = it->second;
-		auto total = stat.bytes_total(), b200 = stat.bytes(200), b206 = stat.bytes(206);
-		bytes_total += total;
-		bytes_200 += b200;
-		bytes_206 += b206;
-		other_bytes += (total - b200 - b206);
-		access_total += stat.access_total();
-		access_200 += stat.access(200);
-		access_206 += stat.access(206);
-
-//		fprintf(stream, "%-20s%-120s%-10s%-20.0f\n", it->first.c_str(), " ", " ", stat.bytes_total());
-//		if(top > 0 && --top <= 0)
-//			break;
-//
-//		for(auto it2 = stat._url_stats.begin(); it2 != stat._url_stats.end(); ++it2){
-//			fprintf(stream, "%-20s%-120s%-10ld%-20s\n", " ", it2->first, it2->second.access_total(), " ");
-//		}
+	FILE * stream = stdout;
+	char const * f = nla_opt.output_file_flow;
+	if(nla_opt.flow){
+		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
+			print_flow_table(stream, logstats, device_id, site_id, user_id);
+		else
+			fprintf(stderr, "%s: fopen output_file_flow '%s' for append failed\n", __FUNCTION__, f);
 	}
-	fprintf(stream, "%-15s%-15s%-20s%-20s%-20s%-20s%-20s%-40s\n", "access_total", "access_200", "access_206",
-			"bytes_200", "bytes_206", "200+206", "other", "Total Byte/GB");
-	fprintf(stream, "%-15ld%-15ld%-20ld%-20zu%-20zu%-20zu%-20zu%-20zu/%-20.6f\n",
-			access_total, access_200, access_206, bytes_200,
-			bytes_206, bytes_200 + bytes_206, other_bytes, bytes_total, bytes_total / pow(1024.0, 3));
-
-	std::vector<url_count> urlcount;
-	url_top_n(stats, urlcount);
-	fprintf(stream, "%-100s%-70s\n", "url", "count");
-	int left = 10;
-	for(auto it = urlcount.begin(); it != urlcount.end() && left > 0; ++it){
-		fprintf(stream, "%-100s%-70ld\n", it->url, it->count);
-		--left;
+	f = nla_opt.output_file_url_popular;
+	if(nla_opt.url_popular){
+		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
+			print_url_popular_table(stream, logstats, device_id, site_id, user_id);
+		else
+			fprintf(stderr, "%s: fopen output_file_url_popular '%s' for append failed\n", __FUNCTION__, f);
 	}
+	f = nla_opt.output_file_ip_popular;
+	if(nla_opt.ip_popular){
+		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
+			print_ip_popular_table(stream, logstats, device_id, site_id, user_id);
+		else
+			fprintf(stderr, "%s: fopen output_file_ip_popular '%s' for append failed\n", __FUNCTION__, f);
+	}
+	f = nla_opt.output_file_http_stats;
+	if(nla_opt.http_stats){
+		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
+			print_http_stats_table(stream, logstats, device_id, site_id, user_id);
+		else
+			fprintf(stderr, "%s: fopen output_file_http_stats '%s' for append failed\n", __FUNCTION__, f);
+	}
+	f = nla_opt.output_file_ip_slowfast;
+	if(f){
+		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
+			print_ip_slowfast_table(stream, logstats, device_id, site_id, user_id);
+		else
+			fprintf(stderr, "%s: fopen output_file_ip_slowfast '%s' for append failed\n", __FUNCTION__, f);
+	}
+
 	return 0;
+	//	result = print_stats(stdout, logstats, -1);
+//
+//	fprintf(stream, "%-20s%-120s%-10s%-20s\n", "Time", "Url", "Count", "Bytes");
+//	size_t bytes_total = 0, bytes_200 = 0, bytes_206 = 0, other_bytes = 0;
+//	size_t access_total = 0, access_200 = 0, access_206 = 0;
+//	for(auto it = stats.begin(); it != stats.end(); ++it){
+//		log_stat const& stat = it->second;
+//		auto total = stat.bytes_total(), b200 = stat.bytes(200), b206 = stat.bytes(206);
+//		bytes_total += total;
+//		bytes_200 += b200;
+//		bytes_206 += b206;
+//		other_bytes += (total - b200 - b206);
+//		access_total += stat.access_total();
+//		access_200 += stat.access(200);
+//		access_206 += stat.access(206);
+//
+////		fprintf(stream, "%-20s%-120s%-10s%-20.0f\n", it->first.c_str(), " ", " ", stat.bytes_total());
+////		if(top > 0 && --top <= 0)
+////			break;
+////
+////		for(auto it2 = stat._url_stats.begin(); it2 != stat._url_stats.end(); ++it2){
+////			fprintf(stream, "%-20s%-120s%-10ld%-20s\n", " ", it2->first, it2->second.access_total(), " ");
+////		}
+//	}
+//	fprintf(stream, "%-15s%-15s%-20s%-20s%-20s%-20s%-20s%-40s\n", "access_total", "access_200", "access_206",
+//			"bytes_200", "bytes_206", "200+206", "other", "Total Byte/GB");
+//	fprintf(stream, "%-15ld%-15ld%-20ld%-20zu%-20zu%-20zu%-20zu%-20zu/%-20.6f\n",
+//			access_total, access_200, access_206, bytes_200,
+//			bytes_206, bytes_200 + bytes_206, other_bytes, bytes_total, bytes_total / pow(1024.0, 3));
+//
+//	std::vector<url_count> urlcount;
+//	url_top_n(stats, urlcount);
+//	fprintf(stream, "%-100s%-70s\n", "url", "count");
+//	int left = 10;
+//	for(auto it = urlcount.begin(); it != urlcount.end() && left > 0; ++it){
+//		fprintf(stream, "%-100s%-70ld\n", it->url, it->count);
+//		--left;
+//	}
+//	return 0;
 }
 
 static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
@@ -462,6 +525,7 @@ static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> co
 		log_stat const& stat = item.second;
 		char line[512];
 		/*format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m */
+		/*FIXME: use fprintf?*/
 		int sz = snprintf(line, 512, "%d %s %d %ld %zu %d %ld %zu\n",
 				site_id, item.first.c_str("%Y%m%d%H%M"), device_id, stat.access_total()
 				, stat.bytes_total(), user_id, stat._access_m, stat._bytes_m);
@@ -508,9 +572,8 @@ inline void print_url_popular_table(FILE * stream, std::map<time_interval, log_s
 			/*format:
 			 *datetime, url_key, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
 			 *, num_403, num_404, num_416, num_499, num_500, num_502, num_other*/
-			/*FIXME: md5sum(url)?*/
 			int sz = snprintf(line, 512, "%s %s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
-						item.first.c_str("%Y%m%d%H%M"), url
+						item.first.c_str("%Y%m%d%H%M"), sha1sum(url, strlen(url))
 						, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
 						, num_403, num_404, num_416, num_499, num_500, num_502
 						, num_other
@@ -542,7 +605,7 @@ inline void print_ip_popular_table(FILE * stream, std::map<time_interval, log_st
 
 }
 
-inline void print_httpstatus_stats_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+inline void print_http_stats_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	std::string buff;
@@ -582,6 +645,43 @@ inline void print_httpstatus_stats_table(FILE * stream, std::map<time_interval, 
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
+inline void print_ip_slowfast_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+		int device_id, int site_id, int user_id)
+{
+	std::string buff;
+	int i = 0;
+	for(auto const& item : stats){
+		char line[512];
+		for(auto const& ip_item : item.second._ip_stats){
+			auto const & ipstat = ip_item.second;
+			double speed = (double)ipstat.bytes / ipstat.sec;
+			/*format: device_id, ip, datetime, speed, type(miss,hit)*/
+			/*FIXME: type?*/
+			int sz = snprintf(line, 512, "%d %u %s %.0f %d\n",
+					device_id, ip_item.first, item.first.c_str("%Y%m%d%H%M"), speed, 0);
+			if(sz <= 0){
+				++i;
+				continue;
+			}
+			buff += line;
+			if(buff.size() > 1024 * 1024 * 16){
+				size_t r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
+				if(r != buff.size())
+					fprintf(stderr, "%s: WARNING, total=%ld, written=%ld\n",
+							__FUNCTION__, buff.size(), r);
+				buff.clear();
+			}
+		}
+	}
+	size_t r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
+	if(r != buff.size())
+		fprintf(stderr, "%s: WARNING, total=%ld, written=%ld\n",
+				__FUNCTION__, buff.size(), r);
+
+	if(i != 0)
+		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
+}
+
 static int log_stats(time_interval & m, log_item const& item, std::map<time_interval, log_stat>& logstats)
 {
 	m.mark(item.time_local);
@@ -590,6 +690,10 @@ static int log_stats(time_interval & m, log_item const& item, std::map<time_inte
 	url_stat& urlstat = logsstat._url_stats[item.request_url];
 	++urlstat._status[item.status];
 	urlstat._bytes[item.status] += item.bytes_sent;
+
+	ip_stat& ipstat =logsstat._ip_stats[item.client_ip];
+	ipstat.bytes += item.bytes_sent;
+	ipstat.sec += item.request_time;
 
 	if(!item.is_hit){
 		logsstat._bytes_m += item.bytes_sent;
@@ -1041,6 +1145,7 @@ static int do_test(int argc, char ** argv)
 //	int term_cols = 0, term_rows = 0;
 //	termio_get_col_row(&term_cols, &term_rows);
 //	fprintf(stdout, "term_cols = %d, term_rows = %d\n", term_cols, term_rows);
+//	test_net_util_main(argc, argv);
 	return 0;
 }
 
@@ -1079,11 +1184,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		fprintf(stderr, "fopen file %s failed\n", nla_opt.log_file);
 		return 1;
 	}
-	FILE * output_file = fopen(nla_opt.output_file, "a");
-	if(!output_file) {
-		fprintf(stderr, "fopen file %s for append failed\n", nla_opt.output_file);
-		return 1;
-	}
+
 	int interval = nla_opt.interval;
 	if(interval < 300 || interval > 3600){
 		fprintf(stdout, "%s: WARNING, interval(%d) too %s\n", __FUNCTION__, interval, interval < 300? "small" : "large");
@@ -1103,12 +1204,9 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	parallel_parse(nginx_log_file, logstats);
 	if(nla_opt.verbose)
 		fprintf(stdout, "\r%s: processed, total_line: %-8ld\n", __FUNCTION__, g_line_count);
-//	result = print_stats(stdout, logstats, -1);
-	print_flow_table(output_file, logstats, device_id, site_id, user_id);
+	print_stats(logstats, device_id, site_id, user_id);
 
-//	print_url_popular_table(stdout, logstats, device_id, site_id, user_id);
-//	print_ip_popular_table(stdout, logstats, device_id, site_id, user_id);
-//	print_httpstatus_stats_table(stdout, logstats, device_id, site_id, user_id);
+	/*free*/
 	str_find(" ", -2);
 	return 0;
 }
