@@ -1,4 +1,9 @@
-/*for get local ip*/
+/*!
+ * This file is Part of cpp-test
+ * @author: hongjun.liao<docici@126.com>
+ * for get local ip
+ */
+#include "net_util.h"	/**/
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -42,7 +47,7 @@ int get_if_addrs(char *ips, int & count, int sz)
     return 0;
 }
 
-uint32_t netutil_get_ip(char const * ipstr)
+uint32_t netutil_get_ip_from_str(char const * ipstr)
 {
 	struct in_addr inaddr;
 	if(inet_pton(AF_INET, ipstr, (void *)&inaddr) != 1)
@@ -51,6 +56,12 @@ uint32_t netutil_get_ip(char const * ipstr)
 	return inaddr.s_addr;
 }
 
+char const * netutil_get_ip_str(uint32_t ip, char * buff, size_t len)
+{
+	struct in_addr inaddr;
+	inaddr.s_addr = ip;
+	return inet_ntop(AF_INET, (void *)&inaddr, buff, len);
+}
 
 int test_net_util_main(int argc, char ** argv)
 {
@@ -63,6 +74,6 @@ int test_net_util_main(int argc, char ** argv)
 		fprintf(stdout, "%s: i=%d, ip=%s\n", __FUNCTION__, i, ips[i]);
 	}
 	char const * sip = "192.168.212.69";
-	fprintf(stdout, "%s: sip=%s, ip=%u\n", __FUNCTION__, sip, netutil_get_ip(sip));
+	fprintf(stdout, "%s: sip=%s, ip=%u\n", __FUNCTION__, sip, netutil_get_ip_from_str(sip));
     return 0;
 }

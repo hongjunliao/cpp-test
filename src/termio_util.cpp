@@ -1,3 +1,7 @@
+/*!
+ * This file is Part of cpp-test
+ * @author: hongjun.liao<docici@126.com>
+ */
 #include "termio_util.h"
 #include <stdio.h>
 #include <time.h>	/*tmespec*/

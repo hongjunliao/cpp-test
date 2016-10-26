@@ -14,15 +14,22 @@ struct nla_options
 	int  interval;
 	char const * devicelist_file;
 	char const * siteuidlist_file;
+	char const * ipmap_file;
+
 	char const * output_file_flow;	/*'1' for stdout*/
 	char const * output_file_url_popular;
 	char const * output_file_ip_popular;
 	char const * output_file_http_stats;
 	char const * output_file_ip_slowfast;
+	char const * output_file_cutip_slowfast;
+	char const * output_file_ip_source;
+
 	int flow; 			/*print flow table?*/
 	int url_popular; 	/*print url_popular table?*/
 	int ip_popular; 	/*print ip_popular table?*/
-	int http_stats; 	/*print ip_popular table?*/
+	int http_stats; 	/*print http_stats table?*/
+	int cutip_slowfast; 	/*print cutip_slowfast table?*/
+	int ip_source; 		/*print ip_source table?*/
 
 	int device_id;		/*if not provided, find it in devicelist_file by local machine ip*/
 	int show_device_id;

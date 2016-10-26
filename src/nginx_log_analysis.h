@@ -2,6 +2,8 @@
  * This file is PART of nginx_log_analysis
  * data structs
  */
+#ifndef _NGINX_LOG_ANALYSIS_H_
+#define _NGINX_LOG_ANALYSIS_H_
 #include <time.h>	/*time_t, strptime*/
 #include <unordered_map> /*unordered_map*/
 #include <map>
@@ -28,19 +30,21 @@ struct log_item{
 	bool is_hit;
 };
 //////////////////////////////////////////////////////////////////////////////////
+/*@see load_sitelist*/
 struct site_info{
 	int site_id;
 	int user_id;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
+/*@see top_url_n*/
 struct url_count
 {
 	char const * url;
 	size_t count;
 };
 //////////////////////////////////////////////////////////////////////////////////
-/*log buffer and parse result, for pthread*/
+/*log buffer and parse result, @see parse_log_item_buf*/
 struct parse_context
 {
 /*input*/
@@ -90,20 +94,25 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-/*client ip statistics*/
+/*client ip statistics, @see log_stat*/
 struct ip_stat
 {
 	size_t bytes; 	/*bytes total*/
 	size_t sec;		/*time total, in seconds*/
+	size_t access;	/*access count*/
 };
 //////////////////////////////////////////////////////////////////////////////////
-/*log statistics*/
+/*!
+ * log statistics
+ * FIXME: bytes_total1 = sum(_ip_stats), bytes_total2 = sum(_url_stats)
+ * make sure bytes_total1 == bytes_total2
+ * */
 class log_stat
 {
 public:
 	std::unordered_map<char const *, url_stat> _url_stats;	/*url:url_stat*/
-	std::unordered_map<uint32_t, ip_stat> _ip_stats;	/*ip:ip_stat*/
-	size_t _bytes_m;	/*bytes for nginx 'MISS' */
+	std::unordered_map<uint32_t, ip_stat> _ip_stats;		/*ip:ip_stat*/
+	size_t _bytes_m;		/*bytes for nginx 'MISS' */
 	size_t _access_m;		/*access_count for nginx 'MISS'*/
 public:
 	log_stat();
@@ -115,4 +124,5 @@ public:
 	log_stat& operator+=(log_stat const& another);
 };
 
+#endif /*_NGINX_LOG_ANALYSIS_H_*/
 
