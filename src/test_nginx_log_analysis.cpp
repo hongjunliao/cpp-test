@@ -462,6 +462,11 @@ int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 			fprintf(stderr, "%s: pthread_create() failed, parallel index=%d\n", __FUNCTION__, i);
 			return 1;
 		}
+		if(nla_opt.verbose){
+			printf("%s: worker_thread=%zu, process size=%zu/%s, percent=%.1f%%\n", __FUNCTION__,
+					tid, nlen, byte_to_mb_kb_str(nlen, "%-.2f %cB"), (double)nlen * 100/ logfile_stat.st_size);
+		}
+
 		threads[i] = tid;
 		offset_p += nlen;
 	}
