@@ -78,19 +78,6 @@ int test_nginx_log_stats_main(int argc, char ** argv);
  */
 int xlib_draw_rectangle(int x, int y, int w, int h);
 
-#if (defined __GNUC__) && !(defined __CYGWIN__)
-char *strlwr(char *s);
-char *strupr(char *s);
-#endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/
-/*
- * string util
- */
-#if (defined __GNUC__) && !(defined __CYGWIN__)
-/*to lower string*/
-char *strlwr(char *s);
-/*to upper string*/
-char *strupr(char *s);
-#endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/
 /*mykeys.cpp*/
 
 
