@@ -45,14 +45,14 @@ static struct poptOption nla_popt[] = {
 	{"output-file-ip-popular",  'p',  POPT_ARG_STRING,   0, 'p', "output_file, ip_popular table, 1 for to stdout", 0 },
 	{"output-file-http-stats",  't',  POPT_ARG_STRING,   0, 't', "output_file, http_stats table, 1 for to stdout", 0 },
 	{"output-file-ip-slowfast", 'w',  POPT_ARG_STRING,   0, 'w', "output_file, ip_slowfast table, 1 for to stdout", 0 },
-	{"output-file-cutip-slowfast"
-			                  , 'f',  POPT_ARG_STRING,   0, 'f', "output_file, cutip_slowfast table, 1 for to stdout", 0 },
+	{"output-file-cutip-slowfast"  , 'f',  POPT_ARG_STRING,   0, 'f', "output_file, cutip_slowfast table, 1 for to stdout", 0 },
 	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output_file, ip_source table, 1 for to stdout", 0 },
 	{"device-id",               'e',  POPT_ARG_INT,     0,  'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,   0, 'c', "print device_id and exit", 0 },
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",                 0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
 	{"verbose",                 'v',  POPT_ARG_NONE,   0, 'v', "verbose, print more details", 0 },
+	NULL	/*required!!!*/
 };
 
 int nginx_log_stats_parse_options(int argc, char ** argv)

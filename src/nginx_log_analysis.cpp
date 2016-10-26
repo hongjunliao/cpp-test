@@ -20,14 +20,18 @@ time_interval::operator bool() const
 const char* time_interval::c_str(char const * fmt) const
 {
 //	return ctime(&_t);
-	/*FIXME: thread-safe*/
 	static char buff[20] = "";
-	if(!fmt)
-		return "<null time_mark>";
+	if(!fmt) return NULL;
 	strftime(buff, 20, fmt, localtime(&_t));
 	return buff;
 }
 
+char * time_interval::c_str_r(char * buff, size_t len, char const * fmt /*= "%Y-%m-%d %H:%M:%S"*/) const
+{
+	if(!fmt || !buff) return NULL;
+	strftime(buff, len, fmt, localtime(&_t));
+	return buff;
+}
 time_interval& time_interval::mark(const char* strtime)
 {
 	if(!strtime) return *this;
@@ -163,4 +167,21 @@ log_stat& log_stat::operator+=(log_stat const& another)
 	_access_m += another._access_m;
 	_bytes_m += another._bytes_m;
 	return *this;
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+pthread_id::pthread_id(pthread_t const& tid/* = pthread_t()*/): _tid(tid)
+{
+	//empty
+}
+
+std::size_t std::hash<pthread_id>::operator()(pthread_id const& tid) const
+{
+	/*FIXME: make portable!!! ONLY on linux(unsiged long?)*/
+	std::size_t const h1 ( std::hash<pthread_t>{}(tid._tid) );
+	return h1; // or use boost::hash_combine
+}
+bool operator ==(const pthread_id& one, const pthread_id& another)
+{
+	return pthread_equal(one._tid, another._tid);
 }

@@ -17,7 +17,7 @@ class time_interval;
 class url_stat;
 struct ip_stat;
 class log_stat;
-
+class pthread_id;
 //////////////////////////////////////////////////////////////////////////////////
 /*a line of nginx log*/
 struct log_item{
@@ -71,7 +71,10 @@ public:
 	time_interval next_mark() const;
 	time_interval& mark(char const * strtime);
 	time_interval& mark(time_t const& t);
+	/*use lcoal static buffer, NOT thread-safe*/
 	char const * c_str(char const * fmt = "%Y-%m-%d %H:%M:%S") const;
+	/*thread-safe version*/
+	char * c_str_r(char * buff, size_t len, char const * fmt = "%Y-%m-%d %H:%M:%S") const;
 private:
 	friend bool operator ==(const time_interval& one, const time_interval& another);
 	friend bool operator <(const time_interval& one, const time_interval& another);
@@ -123,6 +126,25 @@ public:
 	size_t access(int code1, int code2 = -1) const;
 	log_stat& operator+=(log_stat const& another);
 };
-
+//////////////////////////////////////////////////////////////////////////////////
+class pthread_id
+{
+	pthread_t _tid;
+public:
+	pthread_id(pthread_t const& tid = pthread_t());
+	friend bool operator ==(const pthread_id& one, const pthread_id& another);
+	friend struct std::hash<pthread_id>;
+};
+bool operator ==(const pthread_id& one, const pthread_id& another);
+// custom specialization of std::hash can be injected in namespace std
+namespace std
+{
+template<> struct hash<pthread_id>
+{
+	typedef pthread_id argument_type;
+	typedef std::size_t result_type;
+	result_type operator()(argument_type const& s) const;
+};
+}
 #endif /*_NGINX_LOG_ANALYSIS_H_*/
 

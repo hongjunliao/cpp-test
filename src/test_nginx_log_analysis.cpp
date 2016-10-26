@@ -306,21 +306,41 @@ static int str_find_realloc(char *& p, size_t & total, size_t step_len)
 			p = (char * )p2;
 			total += new_sz;
 			if(nla_opt.verbose)
-				PARALLEL_FPRINTF(stdout, "%s: total=%s\n", __FUNCTION__, byte_to_mb_kb_str(total, "%-.0f %cB"));
+				; //PARALLEL_FPRINTF(stdout, "%s: total=%s\n", __FUNCTION__, byte_to_mb_kb_str(total, "%-.0f %cB"));
 			return 0;
 		}
 	}
 	return -1;
 }
 
-static char const * str_find(char const *str, int len)
+//////////////////////////////////////////////////////////////////////////////
+class str_find_context
+{
+public:
+	std::unordered_map<std::string, char *> _url;
+	size_t _step, _total;
+	char * _start_p;
+public:
+	/*KB*/
+	str_find_context(size_t s = 10 * 1024, size_t t = 1024 * 1024 * 64);
+public:
+	char const * str_find(char const *str, int len);
+};
+
+str_find_context::str_find_context(size_t s, size_t t)
+: _step(s), _total(t)
+{
+	_start_p = (char *)malloc(_total);
+}
+
+char const * str_find_context::str_find(char const *str, int len)
 {
 	if(!str || str[0] == '\0')
 		return NULL;
-	/*FIXME: dangerous in multi-threaded!!! */
-	static std::unordered_map<std::string, char *> urls;
-	static size_t step = 10 * 1024, total = 1024 * 64;	/*KB*/
-	static char * start_p = (char *)malloc(total);
+	auto& urls = _url;
+	auto & step = _step, & total = _total;
+	auto & start_p = _start_p;
+
 	static size_t offset_len = 0;
 	if(len == -2){
 		free(start_p);
@@ -340,6 +360,23 @@ static char const * str_find(char const *str, int len)
 		offset_len += (len + 1);
 	}
 	return s;
+}
+//////////////////////////////////////////////////////////////////////////////
+static char const * str_find(char const *str, int len)
+{
+	if(!str || str[0] == '\0')
+		return NULL;
+	static str_find_context strfct;
+
+	return strfct.str_find(str, len);
+
+	/*FIXME: different thread has different thread_id, reference different str_find_context*/
+	static std::unordered_map<pthread_id, str_find_context > turls;
+
+	pthread_mutex_lock(&g_line_count_mutex);
+	auto & turl = turls[pthread_self()];
+	pthread_mutex_unlock(&g_line_count_mutex);
+	return turl.str_find(str, len);
 }
 
 int parse_log_item_buf(parse_context& ct)
@@ -430,7 +467,8 @@ int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 	}
 	size_t left_len = logfile_stat.st_size - offset_p;
 	if(nla_opt.verbose){
-		printf("%s: main_thread process size=%zu, percent=%.1f%%\n", __FUNCTION__, left_len, (double)left_len * 100/ logfile_stat.st_size);
+		printf("%s: main_thread process size=%zu/%s, percent=%.1f%%\n", __FUNCTION__,
+				left_len, byte_to_mb_kb_str(left_len, "%-.2f %cB"), (double)left_len * 100/ logfile_stat.st_size);
 	}
 	auto & arg = parse_args[parallel_count];
 	arg.buf = start_p + offset_p;
