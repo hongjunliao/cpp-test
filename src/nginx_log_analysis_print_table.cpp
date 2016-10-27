@@ -17,31 +17,31 @@ extern struct nla_options nla_opt;
 
 
 /*flow table*/
-static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_flow_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*hot url*/
-static void print_url_popular_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_url_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*hot ip*/
-static void print_ip_popular_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*httpstatus_statistics*/
-static void print_http_stats_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_http_stats_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*ip_slowfast*/
-static void print_ip_slowfast_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_ip_slowfast_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*cutip_slowfast*/
-static void print_cutip_slowfast_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_cutip_slowfast_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*url_key*/
-static void print_url_key_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_url_key_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 /*ip_source*/
-static void print_ip_source_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_ip_source_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
 
-static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+static void print_flow_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	std::string buff;
@@ -76,7 +76,7 @@ static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> co
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
-inline void print_url_popular_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+inline void print_url_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	std::string buff;
@@ -124,7 +124,7 @@ inline void print_url_popular_table(FILE * stream, std::map<time_interval, log_s
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
-inline void print_ip_popular_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+inline void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	int i = 0;
@@ -144,7 +144,7 @@ inline void print_ip_popular_table(FILE * stream, std::map<time_interval, log_st
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
-inline void print_http_stats_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+inline void print_http_stats_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	std::string buff;
@@ -184,7 +184,7 @@ inline void print_http_stats_table(FILE * stream, std::map<time_interval, log_st
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
-inline void print_ip_slowfast_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+inline void print_ip_slowfast_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	std::string buff;
@@ -221,13 +221,14 @@ inline void print_ip_slowfast_table(FILE * stream, std::map<time_interval, log_s
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
-inline void print_cutip_slowfast_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+inline void print_cutip_slowfast_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 
 }
 
-static void print_ip_source_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
+
+static void print_ip_source_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	static bool is_ipmap_loaded = false;
@@ -244,22 +245,16 @@ static void print_ip_source_table(FILE * stream, std::map<time_interval, log_sta
 		for(auto const& ip_item : item.second._ip_stats){
 			auto const & ipstat = ip_item.second;
 			in_addr_t ip = ip_item.first;
-			char sispbuff[32] = "- -";
-			char ispbuff[32] = "- -";
+			char sispbuff[32] = "";
+			char ispbuff[32] = "";
 		    auto isp = ipmap_nlookup(&g_ipmap_ctx, ip);
-		    if (isp) {
-		        auto str_sip = ipmap_tostr2(isp, ispbuff);
-		        bool f = strcmp(str_sip, "CN") && strcmp(str_sip, "CA") && strcmp(str_sip, "US");
-		        char const * fmt = f? "%s -" : "%s", *  param = f? str_sip : ispbuff;
-				snprintf(sispbuff, 32, fmt, param);
-		        fprintf(stdout, "%s: str_sip=%s, ispbuff=%s, sispbuff=%s\n", __FUNCTION__, str_sip, ispbuff, sispbuff);
-		    }
+
 		}
 	}
 
 }
 
-int print_stats(std::map<time_interval, log_stat>const& logstats,
+int print_stats(std::map<time_group, log_stat>const& logstats,
 		int device_id, int site_id, int user_id)
 {
 	FILE * stream = stdout;
@@ -313,6 +308,4 @@ int print_stats(std::map<time_interval, log_stat>const& logstats,
 			fprintf(stderr, "%s: fopen output_file_ip_source '%s' for append failed\n", __FUNCTION__, f);
 	}
 	return 0;
-	//	result = print_stats(stdout, logstats, -1);
-
 }

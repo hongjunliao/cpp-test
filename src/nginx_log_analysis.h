@@ -13,11 +13,12 @@ struct log_item;
 struct site_info;
 struct parse_context;
 struct url_count;
-class time_interval;
+class time_group;
 class url_stat;
 struct ip_stat;
 class log_stat;
-class pthread_id;
+struct locisp_stat;
+class locisp_group;
 //////////////////////////////////////////////////////////////////////////////////
 /*a line of nginx log*/
 struct log_item{
@@ -52,32 +53,32 @@ struct parse_context
 	size_t len;
 
 /*output*/
-	std::map<time_interval, log_stat> logstats;
+	std::map<time_group, log_stat> logstats;
 	size_t total_lines;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-/*time interval for group nginx logs*/
-class time_interval
+/*use time interval for group nginx logs*/
+class time_group
 {
 public:
 	static int _sec;	/*in seconds*/
 private:
 	time_t _t;
 public:
-	explicit time_interval(char const * strtime = NULL);
+	explicit time_group(char const * strtime = NULL);
 public:
 	operator bool() const;
-	time_interval next_mark() const;
-	time_interval& mark(char const * strtime);
-	time_interval& mark(time_t const& t);
+	time_group next() const;
+	time_group& group(char const * strtime);
+	time_group& group(time_t const& t);
 	/*use lcoal static buffer, NOT thread-safe*/
 	char const * c_str(char const * fmt = "%Y-%m-%d %H:%M:%S") const;
 	/*thread-safe version*/
 	char * c_str_r(char * buff, size_t len, char const * fmt = "%Y-%m-%d %H:%M:%S") const;
 private:
-	friend bool operator ==(const time_interval& one, const time_interval& another);
-	friend bool operator <(const time_interval& one, const time_interval& another);
+	friend bool operator ==(const time_group& one, const time_group& another);
+	friend bool operator <(const time_group& one, const time_group& another);
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -104,6 +105,39 @@ struct ip_stat
 	size_t sec;		/*time total, in seconds*/
 	size_t access;	/*access count*/
 };
+
+//////////////////////////////////////////////////////////////////////////////////
+struct locisp_stat
+{
+	size_t bytes; 	/*bytes total*/
+	size_t access;	/*access count*/
+	size_t bytes_m;			/*bytes total for nginx 'MISS' */
+	size_t access_m;		/*access_count for nginx 'MISS'*/
+};
+
+//////////////////////////////////////////////////////////////////////////////////
+/*group by local_id and isp: locisp*/
+class locisp_group
+{
+	char _locisp[8 + 1];
+	friend bool operator ==(const locisp_group& one, const locisp_group& another);
+	friend struct std::hash<locisp_group>;
+public:
+	locisp_group(char const * data= "");
+};
+bool operator ==(const locisp_group& one, const locisp_group& another);
+
+//////////////////////////////////////////////////////////////////////////////////
+//@reference: http://www.cppreference.com/ ?
+namespace std{
+template<> struct hash<locisp_group>
+{
+	typedef locisp_group argument_type;
+	typedef std::size_t result_type;
+	result_type operator()(argument_type const& s) const;
+};
+}	//namespace std
+
 //////////////////////////////////////////////////////////////////////////////////
 /*!
  * log statistics
@@ -119,6 +153,7 @@ public:
 	 */
 	std::unordered_map<std::string/*char const **/, url_stat> _url_stats;	/*url:url_stat*/
 	std::unordered_map<uint32_t, ip_stat> _ip_stats;						/*ip:ip_stat*/
+//	std::unordered_map<locisp_group, locisp_stat> _lid_isp_stats;			/*ip:ip_stat*/
 	size_t _bytes_m;		/*bytes for nginx 'MISS' */
 	size_t _access_m;		/*access_count for nginx 'MISS'*/
 public:

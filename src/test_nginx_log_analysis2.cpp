@@ -36,7 +36,7 @@ bool compare_by_access_count(url_count const& a, url_count const& b)
 {
 	return a.count > b.count;
 }
-static void url_top_n(std::map<time_interval, log_stat> const& stats, std::vector<url_count>& urlcount)
+static void url_top_n(std::map<time_group, log_stat> const& stats, std::vector<url_count>& urlcount)
 {
 	std::unordered_map<std::string/*char const **/, url_stat> urlstats;
 	for(auto it = stats.begin(); it != stats.end(); ++it){
@@ -62,18 +62,18 @@ static int test_time_mark_main(int argc, char ** argv)
 	assert((time1 - 3600) == mktime(&time2));
 	fprintf(stdout, "time=%ld, difftime(0, time)=%ld\n", time1, (long)difftime((time_t)0, time1));
 
-	time_interval timem1(stime), timem2(stime);
+	time_group timem1(stime), timem2(stime);
 	assert(timem1);
 	assert(timem1 == timem2);
-	assert(timem1 == time_interval("17/Sep/2016:01:19:00"));
-	fprintf(stdout, "time=17/Sep/2016:01:19:23,mark=%s\n", time_interval().mark("17/Sep/2016:01:19:23").c_str());
+	assert(timem1 == time_group("17/Sep/2016:01:19:00"));
+	fprintf(stdout, "time=17/Sep/2016:01:19:23,mark=%s\n", time_group().group("17/Sep/2016:01:19:23").c_str());
 	fprintf(stdout, "time=%s, start=%s\n", stime, timem1.c_str());
 	for(int i= 0; i < 5; ++i){
-		fprintf(stdout, "next=%s\n", timem1.next_mark().c_str());
-		timem1 = timem1.next_mark();
+		fprintf(stdout, "next=%s\n", timem1.next().c_str());
+		timem1 = timem1.next();
 	}
-	time_interval startm("17/Sep/2016:01:19:43"), timem3(startm);
-	assert(startm == timem3.mark("17/Sep/2016:01:15:43"));
+	time_group startm("17/Sep/2016:01:19:43"), timem3(startm);
+	assert(startm == timem3.group("17/Sep/2016:01:15:43"));
 	return 0;
 }
 static int test_strptime_main(int argc, char ** argv)

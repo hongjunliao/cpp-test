@@ -38,10 +38,10 @@ static int do_parse_log_item(char ** fields, char *& szitem, char delim = '\0');
 /*parse nginx_log buffer @apram ct, and output results*/
 static int parse_log_item_buf(parse_context& ct);
 /*split file @param f into parts, use pthread to parallel parse */
-static int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats);
+static int parallel_parse(FILE * f, std::map<time_group, log_stat> & stats);
 
 /*log statistics with time interval*/
-static int log_stats(time_interval & m, log_item const& item, std::map<time_interval, log_stat>& logstats);
+static int log_stats(time_group & m, log_item const& item, std::map<time_group, log_stat>& logstats);
 
 /*load devicelist, @param devicelist map<device_id, ip>*/
 static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
@@ -62,7 +62,7 @@ static char const * find_domain(char const * nginx_log_file);
 static char const * str_find(char const *str, int len = -1);
 
 /*nginx_log_analysis_print_table.cpp*/
-extern int print_stats(std::map<time_interval, log_stat>const& logstats,
+extern int print_stats(std::map<time_group, log_stat>const& logstats,
 		int device_id, int site_id, int user_id);
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -112,9 +112,9 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	return 0;
 }
 
-static int log_stats(time_interval & m, log_item const& item, std::map<time_interval, log_stat>& logstats)
+static int log_stats(time_group & m, log_item const& item, std::map<time_group, log_stat>& logstats)
 {
-	m.mark(item.time_local);
+	m.group(item.time_local);
 	log_stat& logsstat = logstats[m];
 
 	url_stat& urlstat = logsstat._url_stats[item.request_url];
@@ -351,7 +351,7 @@ int parse_log_item_buf(parse_context& ct)
 	auto & logstats = ct.logstats;
 	auto & total_lines = ct.total_lines = 0;
 
-	time_interval m;
+	time_group m;
 	log_item item;
 	for(char * p = buf; p != buf + len; ++p){
 		int result = parse_log_item(item, p, '\n');
@@ -377,7 +377,7 @@ void * parallel_parse_thread_func(void * varg)
 	return varg;
 }
 
-static int log_stats_append(std::map<time_interval, log_stat> & a, std::map<time_interval, log_stat> const& b)
+static int log_stats_append(std::map<time_group, log_stat> & a, std::map<time_group, log_stat> const& b)
 {
 	for(auto const& item : b){
 		a[item.first] += item.second;
@@ -385,7 +385,7 @@ static int log_stats_append(std::map<time_interval, log_stat> & a, std::map<time
 	return 0;
 }
 
-static int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
+static int parallel_parse(FILE * f, std::map<time_group, log_stat> & stats)
 {
 	struct stat logfile_stat;
 	if(fstat(fileno(f), &logfile_stat) < 0){
@@ -510,7 +510,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	if(interval < 300 || interval > 3600){
 		fprintf(stdout, "%s: WARNING, interval(%d) too %s\n", __FUNCTION__, interval, interval < 300? "small" : "large");
 	}
-	time_interval::_sec = interval;
+	time_group::_sec = interval;
 
 	int device_id = 0, site_id = 0, user_id  = 0;
 	device_id = nla_opt.device_id > 0? nla_opt.device_id : get_device_id(g_devicelist);
@@ -519,7 +519,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
 			device_id, site_id, user_id);
 
-	std::map<time_interval, log_stat> logstats;
+	std::map<time_group, log_stat> logstats;
 	parallel_parse(nginx_log_file, logstats);
 	if(nla_opt.verbose)
 		fprintf(stdout, "\r%s: processed, total_line: %-8ld\n", __FUNCTION__, g_line_count);

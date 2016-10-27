@@ -3,21 +3,21 @@
  */
 #include "nginx_log_analysis.h"
 #include <stdio.h>
-
-int time_interval::_sec = 300;
-time_interval::time_interval(char const * strtime)
+#include <string.h> /*strncpy*/
+int time_group::_sec = 300;
+time_group::time_group(char const * strtime)
 : _t(0)
 {
 	if(strtime)
-		mark(strtime);
+		group(strtime);
 }
 
-time_interval::operator bool() const
+time_group::operator bool() const
 {
 	return 1;
 }
 
-const char* time_interval::c_str(char const * fmt) const
+const char* time_group::c_str(char const * fmt) const
 {
 //	return ctime(&_t);
 	static char buff[20] = "";
@@ -26,13 +26,13 @@ const char* time_interval::c_str(char const * fmt) const
 	return buff;
 }
 
-char * time_interval::c_str_r(char * buff, size_t len, char const * fmt /*= "%Y-%m-%d %H:%M:%S"*/) const
+char * time_group::c_str_r(char * buff, size_t len, char const * fmt /*= "%Y-%m-%d %H:%M:%S"*/) const
 {
 	if(!fmt || !buff) return NULL;
 	strftime(buff, len, fmt, localtime(&_t));
 	return buff;
 }
-time_interval& time_interval::mark(const char* strtime)
+time_group& time_group::group(const char* strtime)
 {
 	if(!strtime) return *this;
 	tm my_tm;
@@ -42,29 +42,29 @@ time_interval& time_interval::mark(const char* strtime)
 	my_tm.tm_isdst = 0;
 	time_t t = mktime(&my_tm);
 //	fprintf(stdout, "%s: %s, t=%ld,_t=%ld\n", __FUNCTION__, ctime(&t), t, _t);
-	return mark(t);
+	return group(t);
 }
 
-time_interval& time_interval::mark(time_t const& t)
+time_group& time_group::group(time_t const& t)
 {
 	long n = difftime(t, _t) / _sec;
 	_t += n * _sec;
 	return *this;
 }
 
-bool operator <(const time_interval& one, const time_interval& another)
+bool operator <(const time_group& one, const time_group& another)
 {
 	return one._t < another._t;
 }
 
-bool operator ==(const time_interval& one, const time_interval& another)
+bool operator ==(const time_group& one, const time_group& another)
 {
 	return one._t == another._t;
 }
 
-time_interval time_interval::next_mark() const
+time_group time_group::next() const
 {
-	time_interval ret(*this);
+	time_group ret(*this);
 	ret._t += _sec;
 	return ret;
 }
@@ -114,6 +114,16 @@ url_stat& url_stat::operator+=(url_stat const& another)
 		_bytes[item.first] += item.second;
 	}
 	return *this;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+locisp_group::locisp_group(char const * data)
+{
+	strncpy(_locisp, data, sizeof(_locisp));
+	_locisp[8] = '\0';
+}
+bool operator ==(const locisp_group& one, const locisp_group& another)
+{
+	return strcmp(one._locisp, another._locisp) == 0;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 log_stat::log_stat()
