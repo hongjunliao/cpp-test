@@ -14,8 +14,8 @@
 
 /*all options: test_options.cpp*/
 extern struct nla_options nla_opt;
-struct ipmap_ctx g_ipmap_ctx;
-static bool is_ipmap_loaded = false;
+
+
 /*flow table*/
 static void print_flow_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
@@ -98,7 +98,7 @@ inline void print_url_popular_table(FILE * stream, std::map<time_interval, log_s
 			 *datetime, url_key, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
 			 *, num_403, num_404, num_416, num_499, num_500, num_502, num_other*/
 			int sz = snprintf(line, 512, "%s %s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
-						item.first.c_str("%Y%m%d%H%M"), sha1sum(url, strlen(url))
+						item.first.c_str("%Y%m%d%H%M"), sha1sum(url/*, strlen(url)*/)
 						, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
 						, num_403, num_404, num_416, num_499, num_500, num_502
 						, num_other
@@ -230,6 +230,8 @@ inline void print_cutip_slowfast_table(FILE * stream, std::map<time_interval, lo
 static void print_ip_source_table(FILE * stream, std::map<time_interval, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
+	static bool is_ipmap_loaded = false;
+	static struct ipmap_ctx g_ipmap_ctx;
 	if(!is_ipmap_loaded){
 		if (0 != ipmap_load(nla_opt.ipmap_file, &g_ipmap_ctx, 1))  {
 			fprintf(stderr, "%s: ipmap(%s) failed\n", __FUNCTION__, nla_opt.ipmap_file);

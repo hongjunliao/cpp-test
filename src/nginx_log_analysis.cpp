@@ -168,20 +168,3 @@ log_stat& log_stat::operator+=(log_stat const& another)
 	_bytes_m += another._bytes_m;
 	return *this;
 }
-
-//////////////////////////////////////////////////////////////////////////////////
-pthread_id::pthread_id(pthread_t const& tid/* = pthread_t()*/): _tid(tid)
-{
-	//empty
-}
-
-std::size_t std::hash<pthread_id>::operator()(pthread_id const& tid) const
-{
-	/*FIXME: make portable!!! ONLY on linux(unsiged long?)*/
-	std::size_t const h1 ( std::hash<pthread_t>{}(tid._tid) );
-	return h1; // or use boost::hash_combine
-}
-bool operator ==(const pthread_id& one, const pthread_id& another)
-{
-	return pthread_equal(one._tid, another._tid);
-}

@@ -5,35 +5,46 @@
 #include <openssl/md5.h> /*MD5()*/
 #include <openssl/sha.h> /*SHA1()*/
 
-char const * md5sum(char const * str, int len)
+char * md5sum_r(char const * str, int len, char * buff)
 {
 	unsigned char md[16];
-	static char ret[33];
 	MD5((unsigned char const *)str, len, md);
-	snprintf(ret, 33, "%02x%02x%02x%02x%02x%02x%02x%02x"
+	snprintf(buff, 33, "%02x%02x%02x%02x%02x%02x%02x%02x"
 			"%02x%02x%02x%02x%02x%02x%02x%02x",
 			md[0], md[1], md[2], md[3], md[4], md[5], md[6], md[7],
 			md[8], md[9], md[10], md[11], md[12], md[13], md[14], md[15]
 	);
-	ret[32] = '\0';
+	buff[32] = '\0';
 //	fprintf(stdout, "str=%-50s, len=%-10d, md5sum=%-35s\n", str, len, ret);
-	return ret;
+
+	return buff;
 }
 
-char const * sha1sum(char const * str, int len)
+//char const * md5sum(char const * str, int len)
+//{
+//	static char ret[33];
+//	return md5sum_r(str, len, ret);
+//}
+
+char const * sha1sum_r(char const * str, int len, char * buff)
 {
 	unsigned char md[16];
-	static char ret[33];
 	SHA1((unsigned char const *)str, len, md);
-	snprintf(ret, 33, "%02x%02x%02x%02x%02x%02x%02x%02x"
+	snprintf(buff, 33, "%02x%02x%02x%02x%02x%02x%02x%02x"
 			"%02x%02x%02x%02x%02x%02x%02x%02x",
 			md[0], md[1], md[2], md[3], md[4], md[5], md[6], md[7],
 			md[8], md[9], md[10], md[11], md[12], md[13], md[14], md[15]
 	);
-	ret[32] = '\0';
+	buff[32] = '\0';
 //	fprintf(stdout, "str=%-50s, len=%-10d, md5sum=%-35s\n", str, len, ret);
-	return ret;
+	return buff;
 }
+
+//char const * sha1sum(char const * str, int len)
+//{
+//	static char ret[33];
+//	return sha1sum_r(str, len, ret);
+//}
 
 #if (defined __GNUC__) && !(defined __CYGWIN__)
 
@@ -80,13 +91,27 @@ double byte_to_mb_kb(size_t bytes, char & unit)
 	}
 }
 
-/*@param fmt: "%-.2f %cB*/
-char const * byte_to_mb_kb_str(size_t bytes, char const * fmt)
+char * byte_to_mb_kb_str_r(size_t bytes, char const * fmt, char * buff)
 {
-	static char buff[64] = "";
 	if(!fmt) return buff;
 	char c;
 	double b = byte_to_mb_kb(bytes, c);
 	snprintf(buff, 64, fmt, b, c);
 	return buff;
+}
+/*@param fmt: "%-.2f %cB*/
+char const * byte_to_mb_kb_str(size_t bytes, char const * fmt)
+{
+	static char buff[64] = "";
+	return byte_to_mb_kb_str_r(bytes, fmt, buff);
+}
+
+char const * md5sum(std::string const& str)
+{
+	return md5sum(str.c_str());
+}
+
+char const * sha1sum(std::string const& str)
+{
+	return sha1sum(str.c_str());
 }

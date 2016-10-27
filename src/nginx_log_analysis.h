@@ -5,9 +5,9 @@
 #ifndef _NGINX_LOG_ANALYSIS_H_
 #define _NGINX_LOG_ANALYSIS_H_
 #include <time.h>	/*time_t, strptime*/
-#include <unordered_map> /*unordered_map*/
-#include <map>
-
+#include <unordered_map> /*std::unordered_map*/
+#include <map>	/*std::map*/
+#include <string> /*std::string*/
 /*declares*/
 struct log_item;
 struct site_info;
@@ -40,7 +40,7 @@ struct site_info{
 /*@see top_url_n*/
 struct url_count
 {
-	char const * url;
+	std::string/*char const **/ url;
 	size_t count;
 };
 //////////////////////////////////////////////////////////////////////////////////
@@ -113,8 +113,12 @@ struct ip_stat
 class log_stat
 {
 public:
-	std::unordered_map<char const *, url_stat> _url_stats;	/*url:url_stat*/
-	std::unordered_map<uint32_t, ip_stat> _ip_stats;		/*ip:ip_stat*/
+	/*!
+	 * FIXME: @see str_find NOT correct in multi-thread, and little speedup
+	 * becuase of this, change _url_stats<char *, url_stat> back to _url_stats<std::string, url_stat>, @date 2016/1027
+	 */
+	std::unordered_map<std::string/*char const **/, url_stat> _url_stats;	/*url:url_stat*/
+	std::unordered_map<uint32_t, ip_stat> _ip_stats;						/*ip:ip_stat*/
 	size_t _bytes_m;		/*bytes for nginx 'MISS' */
 	size_t _access_m;		/*access_count for nginx 'MISS'*/
 public:
@@ -126,25 +130,6 @@ public:
 	size_t access(int code1, int code2 = -1) const;
 	log_stat& operator+=(log_stat const& another);
 };
-//////////////////////////////////////////////////////////////////////////////////
-class pthread_id
-{
-	pthread_t _tid;
-public:
-	pthread_id(pthread_t const& tid = pthread_t());
-	friend bool operator ==(const pthread_id& one, const pthread_id& another);
-	friend struct std::hash<pthread_id>;
-};
-bool operator ==(const pthread_id& one, const pthread_id& another);
-// custom specialization of std::hash can be injected in namespace std
-namespace std
-{
-template<> struct hash<pthread_id>
-{
-	typedef pthread_id argument_type;
-	typedef std::size_t result_type;
-	result_type operator()(argument_type const& s) const;
-};
-}
+
 #endif /*_NGINX_LOG_ANALYSIS_H_*/
 

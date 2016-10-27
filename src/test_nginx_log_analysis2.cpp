@@ -2,6 +2,8 @@
  * TEST for nginx_log_analysis
  */
 #include <sys/sysinfo.h>	/*get_nprocs*/
+#include <sys/resource.h>	/*setpriority*/
+#include <unistd.h>	/*getpid*/
 #include <time.h>	/*time_t, strptime*/
 #include <stdio.h>
 #include <string.h> /*strncpy*/
@@ -16,6 +18,7 @@
 #include "bd_test.h"	/*test_nginx_log_split_main*/
 #include "nginx_log_analysis.h"	/*user-defined struts, log_stats, ...*/
 #include "string_util.h"	/*strlwr*/
+#include "test_options.h"	/*nla_options**/
 /*tests, @see do_test*/
 static int test_strptime_main(int argc, char ** argv);
 static int test_time_mark_main(int argc, char ** argv);
@@ -26,13 +29,16 @@ extern int test_alloc_mmap_main(int argc, char * argv[]);
 /*net_util.cpp*/
 extern int test_net_util_main(int argc, char ** argv);
 
+/*all options: test_options.cpp*/
+extern struct nla_options nla_opt;
+
 bool compare_by_access_count(url_count const& a, url_count const& b)
 {
 	return a.count > b.count;
 }
 static void url_top_n(std::map<time_interval, log_stat> const& stats, std::vector<url_count>& urlcount)
 {
-	std::unordered_map<char const *, url_stat> urlstats;
+	std::unordered_map<std::string/*char const **/, url_stat> urlstats;
 	for(auto it = stats.begin(); it != stats.end(); ++it){
 		auto const& urlstat = it->second._url_stats;
 		for(auto const& item : urlstat){
@@ -204,5 +210,9 @@ int test_nginx_log_analysis_main(int argc, char ** argv)
 	//	}
 	//	return 0;
 
+	int r = setpriority(PRIO_PROCESS, getpid(), -10);
+	if(r !=0 && nla_opt.verbose){
+		fprintf(stderr, "%s: setpriority failed\n", __FUNCTION__);
+	}
 	return 0;
 }

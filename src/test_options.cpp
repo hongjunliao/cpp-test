@@ -28,6 +28,7 @@ nla_options nla_opt = {
 
 		.device_id = 0,
 		.show_device_id = 0,
+		.enalbe_multi_thread = 0,
 		.show_help = 0,
 		.show_version = 0,
 		.verbose = 0,

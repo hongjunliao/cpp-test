@@ -37,6 +37,8 @@ extern int test_nginx_log_analysis_main(int argc, char ** argv);
 static int do_parse_log_item(char ** fields, char *& szitem, char delim = '\0');
 /*parse nginx_log buffer @apram ct, and output results*/
 static int parse_log_item_buf(parse_context& ct);
+/*split file @param f into parts, use pthread to parallel parse */
+static int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats);
 
 /*log statistics with time interval*/
 static int log_stats(time_interval & m, log_item const& item, std::map<time_interval, log_stat>& logstats);
@@ -54,7 +56,9 @@ static int get_device_id(std::unordered_map<int, char[16]> const& devicelist);
 /*read domain from log_file*/
 static char const * find_domain(char const * nginx_log_file);
 /* url manage:
- * if @param str NOT exist, then add as new, else return exist*/
+ * if @param str NOT exist, then add as new, else return exist
+ * this funtions currently NOT used because of poor speedup, @date: 2016/10/27
+ */
 static char const * str_find(char const *str, int len = -1);
 
 /*nginx_log_analysis_print_table.cpp*/
@@ -70,15 +74,7 @@ static std::unordered_map<int, char[16]> g_devicelist;
 /*map<domain, site_info>*/
 static std::unordered_map<std::string, site_info> g_sitelist;
 static size_t g_line_count = 0;
-static pthread_mutex_t g_io_mutex;
-static pthread_mutex_t g_line_count_mutex;
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-#define PARALLEL_FPRINTF(file, fmt, ...) \
-	{pthread_mutex_lock(&g_io_mutex); \
-	fprintf(file, fmt, __VA_ARGS__); \
-	pthread_mutex_unlock(&g_io_mutex); \
-	}
 ///////////////////////////////////////////////////////////////////////////////////////////////
 static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/)
 {
@@ -101,7 +97,12 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	char * url = strchr(items[6], '/'); /*"GET /abc?param1=abc"*/
 	int len = strchr(url, ' ') - url;
 	url[len] = '\0';
-	item.request_url = str_find(url, len);
+
+	/*!
+	 * FIXME: str_find NOT correct in multi-thread, and little speedup, disabled, @date 2016/10/27
+	 */
+	char buff[33];
+	item.request_url = md5sum_r(url, len, buff);
 
 	char const * p = items[8];
 	char * end;
@@ -306,49 +307,30 @@ static int str_find_realloc(char *& p, size_t & total, size_t step_len)
 			p = (char * )p2;
 			total += new_sz;
 			if(nla_opt.verbose)
-				; //PARALLEL_FPRINTF(stdout, "%s: total=%s\n", __FUNCTION__, byte_to_mb_kb_str(total, "%-.0f %cB"));
+				fprintf(stdout, "%s: total=%s\n", __FUNCTION__, byte_to_mb_kb_str(total, "%-.0f %cB"));
 			return 0;
 		}
 	}
 	return -1;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-class str_find_context
-{
-public:
-	std::unordered_map<std::string, char *> _url;
-	size_t _step, _total;
-	char * _start_p;
-public:
-	/*KB*/
-	str_find_context(size_t s = 10 * 1024, size_t t = 1024 * 1024 * 64);
-public:
-	char const * str_find(char const *str, int len);
-};
-
-str_find_context::str_find_context(size_t s, size_t t)
-: _step(s), _total(t)
-{
-	_start_p = (char *)malloc(_total);
-}
-
-char const * str_find_context::str_find(char const *str, int len)
+static char const * str_find(char const *str, int len)
 {
 	if(!str || str[0] == '\0')
 		return NULL;
-	auto& urls = _url;
-	auto & step = _step, & total = _total;
-	auto & start_p = _start_p;
-
+	/*FIXME: dangerous in multi-threaded!!! */
+	static std::unordered_map<std::string, char *> urls;
+	static size_t step = 10 * 1024, total = 1024 * 64;	/*KB*/
+	static char * start_p = (char *)malloc(total);
 	static size_t offset_len = 0;
 	if(len == -2){
 		free(start_p);
 		return 0;
 	}
 	len = (len != -1? len : strlen(str));
-	std::string md5str = md5sum(str, len);
-	auto &s = urls[md5str];
+	char md5buff[33];
+	md5sum_r(str, len, md5buff);
+	auto &s = urls[md5buff];
 	if(!s){
 		if(offset_len + len + 1> total){
 			if(str_find_realloc(start_p, total, step) != 0)
@@ -360,23 +342,6 @@ char const * str_find_context::str_find(char const *str, int len)
 		offset_len += (len + 1);
 	}
 	return s;
-}
-//////////////////////////////////////////////////////////////////////////////
-static char const * str_find(char const *str, int len)
-{
-	if(!str || str[0] == '\0')
-		return NULL;
-	static str_find_context strfct;
-
-	return strfct.str_find(str, len);
-
-	/*FIXME: different thread has different thread_id, reference different str_find_context*/
-	static std::unordered_map<pthread_id, str_find_context > turls;
-
-	pthread_mutex_lock(&g_line_count_mutex);
-	auto & turl = turls[pthread_self()];
-	pthread_mutex_unlock(&g_line_count_mutex);
-	return turl.str_find(str, len);
 }
 
 int parse_log_item_buf(parse_context& ct)
@@ -420,22 +385,23 @@ static int log_stats_append(std::map<time_interval, log_stat> & a, std::map<time
 	return 0;
 }
 
-int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
+static int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 {
 	struct stat logfile_stat;
 	if(fstat(fileno(f), &logfile_stat) < 0){
 		fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "nginx_log_file");
 		return 1;
 	}
-	int parallel_count = get_nprocs() - 1;			/*parallel count, maybe 0*/
-	size_t min_bytes = 1024 * 1024 * 128; 	/*min 128MB*/
+	int parallel_count = get_nprocs() - 1;			/*parallel count, exclude main_thread, maybe 0*/
+	size_t min_bytes = 1024 * 1024 * 64; 	/*min 64MB*/
 	for(size_t c = logfile_stat.st_size / min_bytes; c < (size_t)parallel_count; --parallel_count){ /*empty*/ }
 	/*!
 	 * FIXME:
-	 * 1. this function(parallel_parse) currently NOT thread-safe  because of static vars defined in other functions it called
-	 * set parallel count to 0 yet, @datetime: 2016/10/21
-	 * */
-	parallel_count = 0;
+	 * 1. be aware of local static vars when in multi-thread
+	 * 2. disabled by default, because of little speedup
+	 */
+	if(!nla_opt.enalbe_multi_thread)
+		parallel_count = 0;
 	if(nla_opt.verbose)
 		fprintf(stdout, "%s: logfile_size = %ld/%s, para_count=%d\n", __FUNCTION__
 				, logfile_stat.st_size, byte_to_mb_kb_str(logfile_stat.st_size, "%-.2f %cB"), parallel_count);
@@ -446,7 +412,7 @@ int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 		return 1;
 	}
 	pthread_t threads[parallel_count];
-	parse_context parse_args[parallel_count + 1];
+	parse_context parse_args[parallel_count + 1];	/*include main_thread*/
 	off_t offset_p = 0;
 	for(int i = 0; i < parallel_count; ++i){
 		static size_t len = logfile_stat.st_size / (parallel_count + 1);
@@ -463,8 +429,9 @@ int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 			return 1;
 		}
 		if(nla_opt.verbose){
+			char buff[64];
 			printf("%s: worker_thread=%zu, process size=%zu/%s, percent=%.1f%%\n", __FUNCTION__,
-					tid, nlen, byte_to_mb_kb_str(nlen, "%-.2f %cB"), (double)nlen * 100/ logfile_stat.st_size);
+					tid, nlen, byte_to_mb_kb_str_r(nlen, "%-.2f %cB", buff), (double)nlen * 100/ logfile_stat.st_size);
 		}
 
 		threads[i] = tid;
@@ -472,8 +439,9 @@ int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 	}
 	size_t left_len = logfile_stat.st_size - offset_p;
 	if(nla_opt.verbose){
+		char buff[64];
 		printf("%s: main_thread process size=%zu/%s, percent=%.1f%%\n", __FUNCTION__,
-				left_len, byte_to_mb_kb_str(left_len, "%-.2f %cB"), (double)left_len * 100/ logfile_stat.st_size);
+				left_len, byte_to_mb_kb_str_r(left_len, "%-.2f %cB", buff), (double)left_len * 100/ logfile_stat.st_size);
 	}
 	auto & arg = parse_args[parallel_count];
 	arg.buf = start_p + offset_p;
@@ -484,26 +452,27 @@ int parallel_parse(FILE * f, std::map<time_interval, log_stat> & stats)
 	for(auto & item : threads){
 		void * tret;
 		pthread_join(item, &tret);
-		fprintf(stdout, "%s: thread=%zu exited\n", __FUNCTION__, item);
+		if(nla_opt.verbose)
+			fprintf(stdout, "%s: thread=%zu exited\n", __FUNCTION__, item);
+		auto & ct = *(parse_context * )tret;
+		log_stats_append(stats, ct.logstats);
+		g_line_count += ct.total_lines;
 	}
 	if(parallel_count == 0){
-		/*FIXME: NOT needed?*/
-		stats.swap(parse_args[0].logstats);
-		g_line_count = parse_args[0].total_lines;
+		/*FIXME: NOT needed? just for speed*/
+		stats.swap(parse_args[parallel_count].logstats);
 	}
 	else{
-		for(auto const& item : parse_args){
-			log_stats_append(stats, item.logstats);
-			g_line_count += item.total_lines;
-		}
+		log_stats_append(stats, parse_args[parallel_count].logstats);
 	}
+	g_line_count += parse_args[parallel_count].total_lines;
 	munmap(start_p, logfile_stat.st_size);
 	return 0;
 }
 
 int test_nginx_log_stats_main(int argc, char ** argv)
 {
-//	test_nginx_log_analysis_main(argc, argv);
+	test_nginx_log_analysis_main(argc, argv);
 	int result = nginx_log_stats_parse_options(argc, argv);
 
 	if(result != 0 || nla_opt.show_help){
@@ -549,8 +518,6 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	if(nla_opt.verbose)
 		fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
 			device_id, site_id, user_id);
-	pthread_mutex_init(&g_io_mutex, NULL);
-	pthread_mutex_init(&g_line_count_mutex, NULL);
 
 	std::map<time_interval, log_stat> logstats;
 	parallel_parse(nginx_log_file, logstats);
