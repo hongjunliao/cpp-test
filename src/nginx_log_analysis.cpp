@@ -4,17 +4,20 @@
 #include "nginx_log_analysis.h"
 #include <stdio.h>
 #include <string.h> /*strncpy*/
+#include "ipmap.h"		/*ipmap_nlookup*/
+#include "net_util.h"	/*netutil_get_ip_str*/
+
 int time_group::_sec = 300;
 time_group::time_group(char const * strtime)
 : _t(0)
 {
-	if(strtime)
-		group(strtime);
+	group(strtime);
 }
 
-time_group::operator bool() const
+time_group::time_group(time_t const& t)
+: _t(0)
 {
-	return 1;
+	group(t);
 }
 
 const char* time_group::c_str(char const * fmt) const
@@ -32,26 +35,25 @@ char * time_group::c_str_r(char * buff, size_t len, char const * fmt /*= "%Y-%m-
 	strftime(buff, len, fmt, localtime(&_t));
 	return buff;
 }
-time_group& time_group::group(const char* strtime)
+
+void time_group::group(const char* strtime)
 {
-	if(!strtime) return *this;
+	if(!strtime) return;
 	tm my_tm;
 	char const * result = strptime(strtime, "%d/%b/%Y:%H:%M:%S" , &my_tm);
-	if(!result) return *this;
+	if(!result) return;
 
 	my_tm.tm_isdst = 0;
-	time_t t = mktime(&my_tm);
+	auto t = mktime(&my_tm);
 //	fprintf(stdout, "%s: %s, t=%ld,_t=%ld\n", __FUNCTION__, ctime(&t), t, _t);
 	return group(t);
 }
 
-time_group& time_group::group(time_t const& t)
+void time_group::group(time_t const& t)
 {
-	long n = difftime(t, _t) / _sec;
+	size_t n = difftime(t, _t) / _sec;
 	_t += n * _sec;
-	return *this;
 }
-
 bool operator <(const time_group& one, const time_group& another)
 {
 	return one._t < another._t;
@@ -64,7 +66,7 @@ bool operator ==(const time_group& one, const time_group& another)
 
 time_group time_group::next() const
 {
-	time_group ret(*this);
+	auto ret(*this);
 	ret._t += _sec;
 	return ret;
 }
@@ -116,15 +118,66 @@ url_stat& url_stat::operator+=(url_stat const& another)
 	return *this;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-locisp_group::locisp_group(char const * data)
+extern struct ipmap_ctx g_ipmap_ctx;
+
+locisp_group::locisp_group(uint32_t ip/* = 0*/)
 {
+    auto isp = ipmap_nlookup(&g_ipmap_ctx, ip);
+    auto data = isp? isp->data : "";
 	strncpy(_locisp, data, sizeof(_locisp));
 	_locisp[8] = '\0';
 }
+
+void locisp_group::loc_isp_c_str(char * buff, int len) const
+{
+	struct locisp isp;
+	strncpy(isp.data, _locisp, sizeof(isp.data));
+
+//	char ispbuff[32] = "";
+	auto str_sip = ipmap_tostr2(&isp, buff);
+//    bool f = strcmp(str_sip, "CN") && strcmp(str_sip, "CA") && strcmp(str_sip, "US");
+//    char const * fmt = f? "%s -" : "%s", *  param = f? str_sip : ispbuff;
+//	snprintf(sispbuff, 32, fmt, param);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool operator ==(const locisp_group& one, const locisp_group& another)
 {
 	return strcmp(one._locisp, another._locisp) == 0;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+std::size_t std::hash<locisp_group>::operator()(locisp_group const& val) const
+{
+	std::size_t const h1 ( std::hash<std::string>{}(val._locisp) );	// or use boost::hash_combine
+	return h1;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+cutip_group::cutip_group(uint32_t ip)
+{
+	netutil_get_ip_str(ip, _cutip, sizeof(_cutip));
+	_cutip[11] = '\0';
+}
+
+char const * cutip_group::c_str() const
+{
+	return _cutip;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool operator ==(const cutip_group& one, const cutip_group& another)
+{
+	return strcmp(one._cutip, another._cutip) == 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+std::size_t std::hash<cutip_group>::operator()(cutip_group const& val) const
+{
+	std::size_t const h1 ( std::hash<std::string>{}(val._cutip) );	// or use boost::hash_combine
+	return h1;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 log_stat::log_stat()
 : _bytes_m(0)
@@ -178,3 +231,4 @@ log_stat& log_stat::operator+=(log_stat const& another)
 	_bytes_m += another._bytes_m;
 	return *this;
 }
+

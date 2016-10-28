@@ -16,17 +16,10 @@ char * md5sum_r(char const * str, int len, char * buff)
 	);
 	buff[32] = '\0';
 //	fprintf(stdout, "str=%-50s, len=%-10d, md5sum=%-35s\n", str, len, ret);
-
 	return buff;
 }
 
-//char const * md5sum(char const * str, int len)
-//{
-//	static char ret[33];
-//	return md5sum_r(str, len, ret);
-//}
-
-char const * sha1sum_r(char const * str, int len, char * buff)
+char * sha1sum_r(char const * str, int len, char * buff)
 {
 	unsigned char md[16];
 	SHA1((unsigned char const *)str, len, md);
@@ -39,12 +32,6 @@ char const * sha1sum_r(char const * str, int len, char * buff)
 //	fprintf(stdout, "str=%-50s, len=%-10d, md5sum=%-35s\n", str, len, ret);
 	return buff;
 }
-
-//char const * sha1sum(char const * str, int len)
-//{
-//	static char ret[33];
-//	return sha1sum_r(str, len, ret);
-//}
 
 #if (defined __GNUC__) && !(defined __CYGWIN__)
 
@@ -70,7 +57,7 @@ char *strupr(char *s)
 
 #endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/
 
-/*@param unit 1: KB, 2:MB, 3:GB, 0:B*/
+/*@param unit 'K': KB, 'M':MB, 'G':GB, ' ':B*/
 double byte_to_mb_kb(size_t bytes, char & unit)
 {
 	if(bytes >= 1024 * 1024 && bytes < 1024 * 1024 * 1024){
@@ -104,14 +91,4 @@ char const * byte_to_mb_kb_str(size_t bytes, char const * fmt)
 {
 	static char buff[64] = "";
 	return byte_to_mb_kb_str_r(bytes, fmt, buff);
-}
-
-char const * md5sum(std::string const& str)
-{
-	return md5sum(str.c_str());
-}
-
-char const * sha1sum(std::string const& str)
-{
-	return sha1sum(str.c_str());
 }

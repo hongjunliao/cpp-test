@@ -62,20 +62,22 @@ struct parse_context
 class time_group
 {
 public:
-	static int _sec;	/*in seconds*/
+	static int _sec;	/*interval in seconds*/
 private:
 	time_t _t;
 public:
-	explicit time_group(char const * strtime = NULL);
+	/*can be implicit construct*/
+	time_group(char const * strtime = NULL);
+	time_group(time_t const& t);
 public:
-	operator bool() const;
 	time_group next() const;
-	time_group& group(char const * strtime);
-	time_group& group(time_t const& t);
 	/*use lcoal static buffer, NOT thread-safe*/
 	char const * c_str(char const * fmt = "%Y-%m-%d %H:%M:%S") const;
 	/*thread-safe version*/
 	char * c_str_r(char * buff, size_t len, char const * fmt = "%Y-%m-%d %H:%M:%S") const;
+private:
+	void group(char const * strtime);
+	void group(time_t const& t);
 private:
 	friend bool operator ==(const time_group& one, const time_group& another);
 	friend bool operator <(const time_group& one, const time_group& another);
@@ -123,12 +125,29 @@ class locisp_group
 	friend bool operator ==(const locisp_group& one, const locisp_group& another);
 	friend struct std::hash<locisp_group>;
 public:
-	locisp_group(char const * data= "");
+	locisp_group(uint32_t ip = 0);
+	/*buff sample: 'CN3501 0B'*/
+	void loc_isp_c_str(char * buff, int len) const;
 };
-bool operator ==(const locisp_group& one, const locisp_group& another);
 
+bool operator ==(const locisp_group& one, const locisp_group& another);
 //////////////////////////////////////////////////////////////////////////////////
-//@reference: http://www.cppreference.com/ ?
+/*!
+ * group 'by 0.0.0.*', that is, group by first 3 fields,
+ * @see print_cutip_slowfast_table
+ * */
+class cutip_group
+{
+	char _cutip[15]; /*ip with first 3 fields, include NULL, e.g. 192.168.212*/
+	friend bool operator ==(const cutip_group& one, const cutip_group& another);
+	friend struct std::hash<cutip_group>;
+public:
+	cutip_group(uint32_t ip = 0);
+	/*@param buff[12] as lest, sample output: 192.168.212*/
+	char const * c_str() const;
+};
+//////////////////////////////////////////////////////////////////////////////////
+//required by std::unordered_map's key, @reference: http://www.cppreference.com/ ?
 namespace std{
 template<> struct hash<locisp_group>
 {
@@ -136,6 +155,14 @@ template<> struct hash<locisp_group>
 	typedef std::size_t result_type;
 	result_type operator()(argument_type const& s) const;
 };
+
+template<> struct hash<cutip_group>
+{
+	typedef cutip_group argument_type;
+	typedef std::size_t result_type;
+	result_type operator()(argument_type const& s) const;
+};
+
 }	//namespace std
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -152,8 +179,9 @@ public:
 	 * becuase of this, change _url_stats<char *, url_stat> back to _url_stats<std::string, url_stat>, @date 2016/1027
 	 */
 	std::unordered_map<std::string/*char const **/, url_stat> _url_stats;	/*url:url_stat*/
-	std::unordered_map<uint32_t, ip_stat> _ip_stats;						/*ip:ip_stat*/
-//	std::unordered_map<locisp_group, locisp_stat> _lid_isp_stats;			/*ip:ip_stat*/
+	std::unordered_map<uint32_t, ip_stat> _ip_stats;				/*ip:ip_stat*/
+	std::unordered_map<cutip_group, ip_stat> _cuitip_stats;			/*cutip: ip_stat*/
+	std::unordered_map<locisp_group, locisp_stat> _locisp_stats;	/*locisp:locisp_stat*/
 	size_t _bytes_m;		/*bytes for nginx 'MISS' */
 	size_t _access_m;		/*access_count for nginx 'MISS'*/
 public:
