@@ -122,22 +122,22 @@ extern struct ipmap_ctx g_ipmap_ctx;
 
 locisp_group::locisp_group(uint32_t ip/* = 0*/)
 {
+	strcpy(_locisp, "- -");
     auto isp = ipmap_nlookup(&g_ipmap_ctx, ip);
-    auto data = isp? isp->data : "";
-	strncpy(_locisp, data, sizeof(_locisp));
-	_locisp[8] = '\0';
+    if(isp){
+		char ispbuff[32] = "";
+		char const * str_isp, * fmt, *param;
+    	str_isp = ipmap_tostr2(isp, ispbuff);
+		bool f = strcmp(str_isp, "CN") && strcmp(str_isp, "CA") && strcmp(str_isp, "US");
+		fmt = f? "%s -" : "%s";
+		param = f? str_isp : ispbuff;
+		snprintf(_locisp, 32, fmt, param);
+    }
 }
 
 void locisp_group::loc_isp_c_str(char * buff, int len) const
 {
-	struct locisp isp;
-	strncpy(isp.data, _locisp, sizeof(isp.data));
-
-//	char ispbuff[32] = "";
-	auto str_sip = ipmap_tostr2(&isp, buff);
-//    bool f = strcmp(str_sip, "CN") && strcmp(str_sip, "CA") && strcmp(str_sip, "US");
-//    char const * fmt = f? "%s -" : "%s", *  param = f? str_sip : ispbuff;
-//	snprintf(sispbuff, 32, fmt, param);
+	strncpy(buff, _locisp, len);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,7 +157,9 @@ std::size_t std::hash<locisp_group>::operator()(locisp_group const& val) const
 cutip_group::cutip_group(uint32_t ip)
 {
 	netutil_get_ip_str(ip, _cutip, sizeof(_cutip));
-	_cutip[11] = '\0';
+//	printf("%s: %s\n", __FUNCTION__, _cutip);
+	char * c = strrchr(_cutip, '.');
+	if(c) *c = '\0';
 }
 
 char const * cutip_group::c_str() const

@@ -65,15 +65,18 @@ char const * netutil_get_ip_str(uint32_t ip, char * buff, size_t len)
 
 int test_net_util_main(int argc, char ** argv)
 {
-	char ips[64][16];
+	char ips[64][64];
 	int count = 64;
-	int result  = get_if_addrs(ips[0], count, 16);
+	int result  = get_if_addrs(ips[0], count, 64);
 	if(result != 0)
 		return -1;
 	for(int i = 0; i < count; ++i){
 		fprintf(stdout, "%s: i=%d, ip=%s\n", __FUNCTION__, i, ips[i]);
 	}
-	char const * sip = "192.168.212.69";
-	fprintf(stdout, "%s: sip=%s, ip=%u\n", __FUNCTION__, sip, netutil_get_ip_from_str(sip));
-    return 0;
+	char const * sip = "182.247.200.210";
+	uint32_t ip = netutil_get_ip_from_str(sip);
+	char ipbuff[16];
+	fprintf(stdout, "%s: sip=%s, netutil_get_ip_from_str=%u, netutil_get_ip_str=%s\n", __FUNCTION__,
+			sip, ip, netutil_get_ip_str(ip, ipbuff, 16));
+    exit(0);
 }

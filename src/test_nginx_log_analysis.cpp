@@ -1,7 +1,10 @@
 /*!
  * This file is PART of nginx_log_analysis
  * parse nginx logs and print results
- * @note: 1.As of current design, the input nginx log file MUST have ONLY one domain, @see test_nginx_log_split_main
+ * @note:
+ * 1.As of current design, the input nginx log file MUST have ONLY one domain, @see test_nginx_log_split_main
+ * 2.the core design is to grouping logs into std::map/std::unordered_map by different conditions such as time_interval, locisp, ip, just like
+ * "group by" syntax in SQL, @see class log_stat
  */
 #include <stdio.h>
 #include <string.h> 	/*strncpy*/
@@ -32,8 +35,9 @@ extern int test_nginx_log_analysis_main(int argc, char ** argv);
  * @NOTE:current nginx_log format:
  * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method $request_uri $server_protocol" $status $bytes_sent \
  * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" $scheme $request_length $upstream_response_time'
+ *
  * total fields == 18
- * TODO:make it be customized
+ * TODO:make it customizable
  * */
 static int do_parse_log_item(char ** fields, char *& szitem, char delim = '\0');
 /*parse nginx_log buffer @apram ct, and output results*/
@@ -89,7 +93,8 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	item.client_ip = netutil_get_ip_from_str(items[1]);
 	if(item.client_ip == 0)
 		return 1;
-	item.request_time = atoi(items[2]);
+	char * end;
+	item.request_time = strtoul(items[2], &end, 10);
 	/*format: [17/Sep/2016:00:26:08 +0800]*/
 	tm my_tm;
 	if(!strptime(items[4] + 1, "%d/%b/%Y:%H:%M:%S" , &my_tm))
@@ -107,7 +112,6 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	item.request_url = md5sum_r(url, len, buff);
 
 	char const * p = items[8];
-	char * end;
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
 	item.is_hit = (strcmp(strupr(items[3]),"HIT") == 0);
@@ -155,7 +159,7 @@ static int log_stats(log_item const& item, std::map<time_group, log_stat>& logst
 
 static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist)
 {
-	if(!file || file[0] == '\0') return -1;
+	if(!file || !file[0]) return -1;
 	FILE * f = fopen(file, "r");
 	if(!f){
 		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
@@ -181,7 +185,7 @@ static int load_sitelist(char const* file, std::unordered_map<std::string, site_
 
 static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int & siteid, int * user_id)
 {
-	if(!site || site[0] == '\0')
+	if(!site || !site[0])
 		return -1;
 
 	site_info  const * si = NULL;
@@ -306,11 +310,10 @@ int do_parse_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
 		}
 	}
 	szitem = q;
-//	pthread_mutex_lock(&g_io_mutex);
 //	for(int i  = 0; i < field_count; ++i){
 //		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
 //	}
-//	pthread_mutex_unlock(&g_io_mutex);
+
 	return 0;
 error_return:
 	fields[0] = '\0';
@@ -336,12 +339,12 @@ static int str_find_realloc(char *& p, size_t & total, size_t step_len)
 
 static char const * str_find(char const *str, int len)
 {
-	if(!str || str[0] == '\0')
+	if(!str || !str[0])
 		return NULL;
 	/*FIXME: dangerous in multi-threaded!!! */
 	static std::unordered_map<std::string, char *> urls;
 	static size_t step = 10 * 1024, total = 1024 * 64;	/*KB*/
-	static char * start_p = (char *)malloc(total);
+	auto start_p = (char *)malloc(total);
 	static size_t offset_len = 0;
 	if(len == -2){
 		free(start_p);
@@ -383,6 +386,8 @@ int parse_log_item_buf(parse_context& ct)
 		}
 		++total_lines;
 	}
+
+
 	return 0;
 }
 

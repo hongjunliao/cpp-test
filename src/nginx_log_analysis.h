@@ -19,6 +19,7 @@ struct ip_stat;
 class log_stat;
 struct locisp_stat;
 class locisp_group;
+class cutip_group;
 //////////////////////////////////////////////////////////////////////////////////
 /*a line of nginx log*/
 struct log_item{
@@ -121,7 +122,7 @@ struct locisp_stat
 /*group by local_id and isp: locisp*/
 class locisp_group
 {
-	char _locisp[8 + 1];
+	char _locisp[32];
 	friend bool operator ==(const locisp_group& one, const locisp_group& another);
 	friend struct std::hash<locisp_group>;
 public:
@@ -133,12 +134,12 @@ public:
 bool operator ==(const locisp_group& one, const locisp_group& another);
 //////////////////////////////////////////////////////////////////////////////////
 /*!
- * group 'by 0.0.0.*', that is, group by first 3 fields,
+ * group by first 3 fields of ip, e.g. "192.168.212.*",
  * @see print_cutip_slowfast_table
  * */
 class cutip_group
 {
-	char _cutip[15]; /*ip with first 3 fields, include NULL, e.g. 192.168.212*/
+	char _cutip[16]; /*ip with first 3 fields, include NULL, e.g. 192.168.212*/
 	friend bool operator ==(const cutip_group& one, const cutip_group& another);
 	friend struct std::hash<cutip_group>;
 public:
@@ -147,7 +148,7 @@ public:
 	char const * c_str() const;
 };
 //////////////////////////////////////////////////////////////////////////////////
-//required by std::unordered_map's key, @reference: http://www.cppreference.com/ ?
+//required by std::unordered_map's key, @see http://en.cppreference.com/w/cpp/utility/hash
 namespace std{
 template<> struct hash<locisp_group>
 {

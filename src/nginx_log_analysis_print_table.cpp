@@ -133,7 +133,6 @@ inline void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat>
 inline void print_http_stats_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
-	std::string buff;
 	int i = 0;
 	for(auto const& item : stats){
 		std::unordered_map<int, size_t> st;	/*http_status_code: access_count*/
@@ -142,30 +141,13 @@ inline void print_http_stats_table(FILE * stream, std::map<time_group, log_stat>
 				st[httpcode_item.first] += httpcode_item.second;
 			}
 		}
-		char line[512];
 		for(auto const& st_item : st){
 			/*format: site_id, device_id, httpstatus, datetime, num*/
-			auto sz = snprintf(line, 512, "%d %d %d %s %zu\n",
+			auto sz = fprintf(stream, "%d %d %d %s %zu\n",
 					site_id, device_id, st_item.first, item.first.c_str("%Y%m%d%H%M"), st_item.second);
-			if(sz <= 0){
-				++i;
-				continue;
-			}
-			buff += line;
-			if(buff.size() > 1024 * 1024 * 16){
-				size_t r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
-				if(r != buff.size())
-					fprintf(stderr, "%s: WARNING, total=%ld, written=%ld\n",
-							__FUNCTION__, buff.size(), r);
-				buff.clear();
-			}
+			if(sz <= 0) ++i;
 		}
 	}
-	auto r = fwrite(buff.c_str(), sizeof(char), buff.size(), stream);
-	if(r != buff.size())
-		fprintf(stderr, "%s: WARNING, total=%ld, written=%ld\n",
-				__FUNCTION__, buff.size(), r);
-
 	if(i != 0)
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
@@ -215,7 +197,7 @@ inline void print_cutip_slowfast_table(FILE * stream, std::map<time_group, log_s
 	for(auto const& item : stats){
 		for(auto const& cutip_item : item.second._cuitip_stats){
 			auto const & cutipstat = cutip_item.second;
-			double speed = (double)cutipstat.bytes / cutipstat.sec;
+			double speed = cutipstat.sec > 0? (double)cutipstat.bytes / cutipstat.sec : cutipstat.bytes * 1000000.0;
 			/*format: device_id, datetime, ip, speed*/
 			auto sz = fprintf(stream, "%d %s %s %.0f\n",
 					device_id, item.first.c_str("%Y%m%d%H%M"), cutip_item.first.c_str(), speed);

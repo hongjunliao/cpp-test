@@ -168,7 +168,6 @@ int test_nginx_log_analysis_main(int argc, char ** argv)
 //	termio_get_col_row(&term_cols, &term_rows);
 //	fprintf(stdout, "term_cols = %d, term_rows = %d\n", term_cols, term_rows);
 //	test_net_util_main(argc, argv);
-
 	//
 	//	fprintf(stream, "%-20s%-120s%-10s%-20s\n", "Time", "Url", "Count", "Bytes");
 	//	size_t bytes_total = 0, bytes_200 = 0, bytes_206 = 0, other_bytes = 0;
