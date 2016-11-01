@@ -28,7 +28,7 @@ nla_options nla_opt = {
 
 		.device_id = 0,
 		.show_device_id = 0,
-		.enalbe_multi_thread = 0,
+		.enable_multi_thread = 0,
 		.show_help = 0,
 		.show_version = 0,
 		.verbose = 0,
@@ -49,9 +49,10 @@ static struct poptOption nla_popt[] = {
 	{"output-file-cutip-slowfast"  , 'f',  POPT_ARG_STRING,   0, 'f', "output_file, cutip_slowfast table, 1 for to stdout", 0 },
 	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output_file, ip_source table, 1 for to stdout", 0 },
 	{"device-id",               'e',  POPT_ARG_INT,     0,  'e', "device_id integer(> 0)", 0 },
-	{"print-divice-id",         'c',  POPT_ARG_NONE,   0, 'c', "print device_id and exit", 0 },
+	{"print-divice-id",         'c',  POPT_ARG_NONE,   0,   'c', "print device_id and exit", 0 },
+	{"enable-multi-thread",       0,  POPT_ARG_NONE,   0,   'a', "enable_multi_thread", 0 },
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
-	{"version",                 0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
+	{"version",                   0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
 	{"verbose",                 'v',  POPT_ARG_NONE,   0, 'v', "verbose, print more details", 0 },
 	NULL	/*required!!!*/
 };
@@ -76,6 +77,7 @@ int nginx_log_stats_parse_options(int argc, char ** argv)
 		case 'w': { nla_opt.output_file_ip_slowfast = poptGetOptArg(pc); } break;
 		case 'f': { nla_opt.cutip_slowfast = 1; nla_opt.output_file_cutip_slowfast = poptGetOptArg(pc); } break;
 		case 'r': { nla_opt.ip_source = 1; nla_opt.output_file_ip_source = poptGetOptArg(pc); } break;
+		case 'a': nla_opt.enable_multi_thread = 1; break;
 		case 'h': nla_opt.show_help = 1; break;
 		case 'V': nla_opt.show_version = 1; break;
 		case 'v': nla_opt.verbose = 1; break;

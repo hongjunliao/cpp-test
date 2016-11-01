@@ -33,7 +33,7 @@ struct nla_options
 
 	int device_id;		/*if not provided, find it in devicelist_file by local machine ip*/
 	int show_device_id;
-	int enalbe_multi_thread;	/*enalbe_multi_thread?*/
+	int enable_multi_thread;	/*enalbe_multi_thread?*/
 	int show_help;
 	int show_version;
 	int verbose;

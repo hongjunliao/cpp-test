@@ -6,6 +6,8 @@
  * 2.the core design is to grouping logs into std::map/std::unordered_map by different conditions such as time_interval, locisp, ip, just like
  * "group by" syntax in SQL, @see class log_stat
  */
+#define ENABLE_IPMAP
+
 #include <stdio.h>
 #include <string.h> 	/*strncpy*/
 #include <fnmatch.h>	/*fnmatch*/
@@ -14,15 +16,16 @@
 #include <sys/mman.h>	/*mmap*/
 //#include <locale.h> 	/*setlocale*/
 #include <pthread.h> 	/*pthread_create*/
-#include <thread>
 #include <unordered_map> 	/*std::unordered_map*/
 #include <map>				/*std::map*/
+//#include <thread>		/*std::thread*/
+//#include <atomic>		/*std::atomic*/
 #include "bd_test.h"		/*test_nginx_log_stats_main*/
 #include "test_options.h"	/*nla_options**/
 #include "nginx_log_analysis.h"	/*log_stats, ...*/
 #include "string_util.h"	/*md5sum*/
 #include "net_util.h"	/*get_if_addrs, ...*/
-#include "ipmap.h"		/*ipmap_load, ipmap_ctx*/
+
 /*tests, @see nginx_log_analysis2.cpp*/
 extern int test_nginx_log_analysis_main(int argc, char ** argv);
 /*!
@@ -78,12 +81,13 @@ extern struct nla_options nla_opt;
 static std::unordered_map<int, char[16]> g_devicelist;
 /*map<domain, site_info>*/
 static std::unordered_map<std::string, site_info> g_sitelist;
+static size_t g_line_count = 0;
 
 #ifdef ENABLE_IPMAP
+#include "ipmap.h"		/*ipmap_load, ipmap_ctx*/
 struct ipmap_ctx g_ipmap_ctx;
 #endif //ENABLE_IPMAP
 
-static size_t g_line_count = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/)
@@ -274,11 +278,11 @@ static char const * find_domain(char const * nginx_log_file)
 int do_parse_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
 {
 //	for(char * ch = szitem; ; ++ch) { fprintf(stdout, "%c", *ch); if(*ch == delim) break; }
-	bool arg_start = false;
+	auto arg_start = false;
 	int field_count = 0;
 
-	char * q = szitem;
-	for(char * p = szitem; ; ++q){
+	auto q = szitem;
+	for(auto p = szitem; ; ++q){
 		if(*q == '"'){
 			if(!arg_start) {
 				arg_start = true;
@@ -305,7 +309,7 @@ int do_parse_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
 		}
 		if(!arg_start && (*q == ' ' || *q == delim)){
 			fields[field_count++] = p;
-			char c = *q;
+			auto c = *q;
 			*q = '\0';
 			if(c == delim){
 				break;
@@ -345,8 +349,8 @@ static char const * str_find(char const *str, int len)
 {
 	if(!str || !str[0])
 		return NULL;
-	/*FIXME: dangerous in multi-threaded!!! */
-	static std::unordered_map<std::string, char *> urls;
+	/*FIXME: dangerous in multi-threaded!!! use __thread/thread_local?*/
+	static /*thread_local*/ std::unordered_map<std::string, char *> urls;
 	static size_t step = 10 * 1024, total = 1024 * 64;	/*KB*/
 	auto start_p = (char *)malloc(total);
 	static size_t offset_len = 0;
@@ -428,7 +432,7 @@ static int parallel_parse(FILE * f, std::map<time_group, log_stat> & stats)
 	 * 1. be aware of local static vars when in multi-thread
 	 * 2. disabled by default, because of little speedup
 	 */
-	if(!nla_opt.enalbe_multi_thread)
+	if(!nla_opt.enable_multi_thread)
 		parallel_count = 0;
 	if(nla_opt.verbose)
 		fprintf(stdout, "%s: logfile_size = %ld/%s, para_count=%d\n", __FUNCTION__
@@ -488,7 +492,7 @@ static int parallel_parse(FILE * f, std::map<time_group, log_stat> & stats)
 	}
 	if(parallel_count == 0){
 		/*FIXME: NOT needed? just for speed*/
-		stats.swap(parse_args[parallel_count].logstats);
+		stats = parse_args[parallel_count].logstats;
 	}
 	else{
 		log_stats_append(stats, parse_args[parallel_count].logstats);
