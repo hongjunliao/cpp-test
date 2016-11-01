@@ -119,7 +119,8 @@ struct locisp_stat
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-/*group by local_id and isp: locisp*/
+/* group by local_id and isp: locisp
+ * @note: define ENABLE_IPMAP to enable ipmap*/
 class locisp_group
 {
 	char _locisp[32];

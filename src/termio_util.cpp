@@ -74,8 +74,10 @@ int termio_fprintf(FILE * stream, char const * fmt, ...)
 
 void termio_debug_log(FILE * stream, const char *fmt, ...)
 {
+#ifdef __CYGWIN_GCC__
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
+    gethrestime(&ts);
     char time_buf[100];
     size_t rc = strftime(time_buf, sizeof time_buf, "%D %T", gmtime(&ts.tv_sec));
     snprintf(time_buf + rc, sizeof time_buf - rc, ".%06ld UTC", ts.tv_nsec / 1000);
@@ -90,4 +92,5 @@ void termio_debug_log(FILE * stream, const char *fmt, ...)
     va_end(args2);
 
     fprintf(stream, "%s [debug]: %s\n", time_buf, buf);
+#endif /*__CYGWIN_GCC__*/
 }

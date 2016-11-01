@@ -4,7 +4,7 @@
 #include "nginx_log_analysis.h"
 #include <stdio.h>
 #include <string.h> /*strncpy*/
-#include "ipmap.h"		/*ipmap_nlookup*/
+#include <time.h> /*strptime*/
 #include "net_util.h"	/*netutil_get_ip_str*/
 
 int time_group::_sec = 300;
@@ -118,11 +118,15 @@ url_stat& url_stat::operator+=(url_stat const& another)
 	return *this;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef ENABLE_IPMAP
+#include "ipmap.h"		/*ipmap_nlookup*/
 extern struct ipmap_ctx g_ipmap_ctx;
+#endif //ENABLE_IPMAP
 
 locisp_group::locisp_group(uint32_t ip/* = 0*/)
 {
 	strcpy(_locisp, "- -");
+#ifdef ENABLE_IPMAP
     auto isp = ipmap_nlookup(&g_ipmap_ctx, ip);
     if(isp){
 		char ispbuff[32] = "";
@@ -133,6 +137,7 @@ locisp_group::locisp_group(uint32_t ip/* = 0*/)
 		param = f? str_isp : ispbuff;
 		snprintf(_locisp, 32, fmt, param);
     }
+#endif //ENABLE_IPMAP
 }
 
 void locisp_group::loc_isp_c_str(char * buff, int len) const

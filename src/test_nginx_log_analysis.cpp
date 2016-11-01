@@ -78,7 +78,11 @@ extern struct nla_options nla_opt;
 static std::unordered_map<int, char[16]> g_devicelist;
 /*map<domain, site_info>*/
 static std::unordered_map<std::string, site_info> g_sitelist;
+
+#ifdef ENABLE_IPMAP
 struct ipmap_ctx g_ipmap_ctx;
+#endif //ENABLE_IPMAP
+
 static size_t g_line_count = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -523,10 +527,15 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		fprintf(stderr, "%s: load_sitelist() failed\n", __FUNCTION__);
 		return 1;
 	}
+#ifdef ENABLE_IPMAP
 	if(nla_opt.output_file_ip_source && 0 != ipmap_load(nla_opt.ipmap_file, &g_ipmap_ctx, 1))  {
 		fprintf(stderr, "%s: ipmap_load(%s) failed\n", __FUNCTION__, nla_opt.ipmap_file);
 		return 1;
 	}
+#else
+	fprintf(stdout, "%s: ipmap DISABLED on this platform\n", __FUNCTION__);
+#endif //ENABLE_IPMAP
+
 	FILE * nginx_log_file = fopen(nla_opt.log_file, "r");
 	if(!nginx_log_file) {
 		fprintf(stderr, "fopen file %s failed\n", nla_opt.log_file);
