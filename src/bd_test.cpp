@@ -51,6 +51,8 @@ static std::map<std::string, test_main_fn> testmap = {
 #endif /*__CYGWIN_GCC__*/
 			{"nginx_log_split", test_nginx_log_split_main},
 			{"nginx_log_stats", test_nginx_log_stats_main},
+			{"cpp11", test_cpp11_main},
+
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 

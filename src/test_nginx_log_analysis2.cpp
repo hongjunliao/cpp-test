@@ -31,10 +31,6 @@ extern int test_net_util_main(int argc, char ** argv);
 /*all options: test_options.cpp*/
 extern struct nla_options nla_opt;
 
-bool compare_by_access_count(url_count const& a, url_count const& b)
-{
-	return a.count > b.count;
-}
 static void url_top_n(std::map<time_group, log_stat> const& stats, std::vector<url_count>& urlcount)
 {
 	std::unordered_map<std::string/*char const **/, url_stat> urlstats;
@@ -48,6 +44,7 @@ static void url_top_n(std::map<time_group, log_stat> const& stats, std::vector<u
 		url_count c = {item.first, item.second.access_total()};
 		urlcount.push_back(c);
 	}
+	auto compare_by_access_count = [](url_count const& a, url_count const& b){return a.count > b.count;};
 	std::sort(urlcount.begin(), urlcount.end(), compare_by_access_count);
 }
 

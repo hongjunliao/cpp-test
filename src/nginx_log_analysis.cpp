@@ -3,6 +3,7 @@
  */
 #include "nginx_log_analysis.h"
 #include <stdio.h>
+#include <time.h> /*strptime*/
 #include <string.h> /*strncpy*/
 #include <time.h> /*strptime*/
 #include "net_util.h"	/*netutil_get_ip_str*/

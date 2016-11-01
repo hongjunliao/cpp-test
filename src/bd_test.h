@@ -10,6 +10,8 @@ extern "C"{
 #endif
 /*test_cpp.cpp, c++ language*/
 int test_cpp_main(int argc, char **argv);
+/*test_cpp11.cpp, c++11*/
+int test_cpp11_main(int argc, char **argv);
 //test cario
 int test_cairo_main(int argc, char **argv);
 //test xlib

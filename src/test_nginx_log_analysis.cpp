@@ -14,7 +14,7 @@
 #include <sys/mman.h>	/*mmap*/
 //#include <locale.h> 	/*setlocale*/
 #include <pthread.h> 	/*pthread_create*/
-
+#include <thread>
 #include <unordered_map> 	/*std::unordered_map*/
 #include <map>				/*std::map*/
 #include "bd_test.h"		/*test_nginx_log_stats_main*/
