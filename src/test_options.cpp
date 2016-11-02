@@ -27,7 +27,8 @@ nla_options nla_opt = {
 		.ip_source = 0,
 
 		.device_id = 0,
-		.show_device_id = 0,
+		.print_device_id = 0,
+		.print_site_user_id = 0,
 		.enable_multi_thread = 0,
 		.show_help = 0,
 		.show_version = 0,
@@ -50,6 +51,7 @@ static struct poptOption nla_popt[] = {
 	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output_file, ip_source table, 1 for to stdout", 0 },
 	{"device-id",               'e',  POPT_ARG_INT,     0,  'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,   0,   'c', "print device_id and exit", 0 },
+	{"print-site-user-id",      'n',  POPT_ARG_NONE,   0,   'n', "print site_user_id and exit, output format:<site_id> <user_id>", 0 },
 	{"enable-multi-thread",       0,  POPT_ARG_NONE,   0,   'a', "enable_multi_thread", 0 },
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",                   0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
@@ -77,6 +79,8 @@ int nginx_log_stats_parse_options(int argc, char ** argv)
 		case 'w': { nla_opt.output_file_ip_slowfast = poptGetOptArg(pc); } break;
 		case 'f': { nla_opt.cutip_slowfast = 1; nla_opt.output_file_cutip_slowfast = poptGetOptArg(pc); } break;
 		case 'r': { nla_opt.ip_source = 1; nla_opt.output_file_ip_source = poptGetOptArg(pc); } break;
+		case 'c': nla_opt.print_device_id = 1; break;
+		case 'n': nla_opt.print_site_user_id = 1; break;
 		case 'a': nla_opt.enable_multi_thread = 1; break;
 		case 'h': nla_opt.show_help = 1; break;
 		case 'V': nla_opt.show_version = 1; break;
@@ -95,7 +99,7 @@ int test_nginx_log_analysis_options_main(int argc, char ** argv)
 
 void nginx_log_stats_show_help(FILE * stream)
 {
-	fprintf(stream, "analysis nginx log file and print results\n");
+	fprintf(stream, "analysis nginx log file and print results, build at %s %s\n", __DATE__, __TIME__);
 	poptPrintHelp(pc, stream, 0);
 }
 
@@ -109,7 +113,7 @@ static bool nla_options_is_ok(nla_options const& opt)
 	/*FIXME: update this function*/
 	if(opt.show_help) return true;
 	if(opt.show_version) return true;
-	if(opt.show_device_id) return true;
+	if(opt.print_device_id) return true;
 	bool result = (opt.log_file && opt.interval > 0
 			&& opt.devicelist_file  && opt.siteuidlist_file
 			&& (opt.device_id >=  0)
@@ -125,7 +129,7 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 			"%-30s%-20s" "\n%-30s%-20d" "\n%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n"
 			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
 			"%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n"
-			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
+			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
 			"%-30s%-20d\n"
 		, "log_file", opt.log_file
 		, "interval", opt.interval
@@ -147,7 +151,8 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 		, "output_file_ip_source", opt.output_file_ip_source
 
 		, "device_id", opt.device_id
-		, "show_device_id", opt.show_device_id
+		, "print_device_id", opt.print_device_id
+		, "print_site_user_id", opt.print_site_user_id
 		, "show_help", opt.show_help
 		, "show_version", opt.show_version
 

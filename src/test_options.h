@@ -32,7 +32,8 @@ struct nla_options
 	int ip_source; 		/*print ip_source table?*/
 
 	int device_id;		/*if not provided, find it in devicelist_file by local machine ip*/
-	int show_device_id;
+	int print_device_id;
+	int print_site_user_id;
 	int enable_multi_thread;	/*enalbe_multi_thread?*/
 	int show_help;
 	int show_version;

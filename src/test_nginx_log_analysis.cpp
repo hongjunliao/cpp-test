@@ -514,10 +514,18 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	}
 	if(nla_opt.verbose)
 		nla_options_fprint(stdout, &nla_opt);
-	if(nla_opt.show_device_id){	//query device_id and return
+	if(nla_opt.print_device_id){	//query device_id and return
 		int result = load_devicelist(nla_opt.devicelist_file, g_devicelist);
 		int id = result == 0? get_device_id(g_devicelist) : 0;
 		fprintf(stdout, "%d\n", id);
+		return result == 0? 0 : 1;
+	}
+	if(nla_opt.print_site_user_id){	//query site_id and return
+		int result = load_sitelist(nla_opt.siteuidlist_file, g_sitelist);
+		int site_id = 0, user_id  = 0;
+		if(result == 0)
+			find_site_id(g_sitelist, find_domain(nla_opt.log_file), site_id, &user_id);
+		fprintf(stdout, "%d %d\n", site_id, user_id);
 		return result == 0? 0 : 1;
 	}
 
