@@ -1,13 +1,20 @@
 /*!
  * This file is PART of nginx_log_analysis
  * parse nginx logs and print results
+ * @author hongjun.liao <docici@126.com>
+ * @date 2016/9
  * @note:
  * 1.As of current design, the input nginx log file MUST have ONLY one domain, @see test_nginx_log_split_main
- * 2.the core design is to grouping logs into std::map/std::unordered_map by different conditions such as time_interval, locisp, ip, just like
- * "group by" syntax in SQL, @see class log_stat
+ * 2.the core design is to grouping logs into std::map/std::unordered_map by different conditions \
+ * such as time_interval, locisp, ip, just like "group by" syntax in SQL, @see class log_stat
+ *
+ * @note:
+ * 1.gcc define ENABLE_IPMAP to enable libipmap
+ * 2.gcc enable c++11: -std=c++0x
+ * 3.gcc include path add -I../inc/ or -I"${workspace_loc:/${ProjName}/inc}"
+ * 4.gcc add -fPIC for shared libraries
+ * 5.gcc add -lpopt -lpthread -lcrypto -lrt
  */
-#define ENABLE_IPMAP
-
 #include <stdio.h>
 #include <string.h> 	/*strncpy*/
 #include <fnmatch.h>	/*fnmatch*/
@@ -36,8 +43,10 @@ extern int test_nginx_log_analysis_main(int argc, char ** argv);
  * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
 
  * @NOTE:current nginx_log format:
- * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method $request_uri $server_protocol" $status $bytes_sent \
- * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" $scheme $request_length $upstream_response_time'
+ * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method \
+ * $request_uri $server_protocol" $status $bytes_sent \
+ * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" \
+ * $scheme $request_length $upstream_response_time'
  *
  * total fields == 18
  * TODO:make it customizable
