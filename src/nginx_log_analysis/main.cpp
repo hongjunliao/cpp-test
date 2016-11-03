@@ -580,7 +580,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	std::map<time_group, log_stat> logstats;
 	parallel_parse(nginx_log_file, logstats);
 	if(nla_opt.verbose)
-		fprintf(stdout, "\r%s: processed, total_line: %-8ld\n", __FUNCTION__, g_line_count);
+		fprintf(stdout, "\r%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
 
 	/*output results*/
 	print_stats(logstats, device_id, site_id, user_id);

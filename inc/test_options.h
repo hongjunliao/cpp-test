@@ -41,11 +41,27 @@ struct nla_options
 	int verbose;
 };
 
-/*test_options.cpp*/
+/*nginx_log_analysis/option.cpp*/
 void nla_options_fprint(FILE * stream, nla_options const * opt);
 int nginx_log_stats_parse_options(int argc, char ** argv);
 void nginx_log_stats_show_help(FILE * stream);
 void nginx_log_stats_show_usage(FILE * stream);
+
+
+/*sla: srs_log_analysis*/
+struct sla_options
+{
+	char const * log_file;
+	int show_help;
+	int show_version;
+	int verbose;
+};
+
+/*srs_log_analysis/option.cpp*/
+void sla_options_fprint(FILE * stream, sla_options const * opt);
+int srs_log_stats_parse_options(int argc, char ** argv);
+void srs_log_stats_show_help(FILE * stream);
+void srs_log_stats_show_usage(FILE * stream);
 
 #ifdef __cplusplus
 }

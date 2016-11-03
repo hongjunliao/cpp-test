@@ -3,6 +3,9 @@
 #include <popt.h>	/*poptOption*/
 #include "test_options.h"
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//nla_options
+
 static bool nla_options_is_ok(nla_options const& opt);
 
 nla_options nla_opt = {
@@ -179,3 +182,4 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 		, "verbose", opt.verbose
 	);
 }
+
