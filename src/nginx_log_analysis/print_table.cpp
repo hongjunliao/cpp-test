@@ -20,6 +20,8 @@ static void print_flow_table(FILE * stream, std::map<time_group, log_stat> const
 /*hot url*/
 static void print_url_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
+static void print_url_popular_table(char const * folder, std::map<time_group, log_stat> const& stats,
+		int device_id, int site_id, int user_id);
 /*hot ip*/
 static void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
@@ -74,42 +76,61 @@ static void print_flow_table(FILE * stream, std::map<time_group, log_stat> const
 		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
 }
 
+void do_print_url_popular_table(FILE * stream, time_group const& g, log_stat const& stat, size_t& i)
+{
+	for(auto const& url_item : stat._url_stats){
+		auto const& url = url_item.first;
+		auto const& st = url_item.second;
+		auto num_total = st.access_total(), num_200 = st.access(200), size_200 = st.bytes(200)
+				, num_206 = st.access(206), size_206 = st.bytes(206), num_301302 = st.access(301, 302)
+				, num_304 = st.access(304) , num_403 = st.access(403), num_404 = st.access(404), num_416 = st.access(416)
+				, num_499 = st.access(499), num_500 = st.access(500), num_502 = st.access(502)
+				, num_other = num_total - (num_200 + num_206 + num_301302 + num_304 + num_403
+								+ num_404 + num_416 + num_499 + num_500 + num_502)
+				;
+		/*format:
+		 *datetime, url_key, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
+		 *, num_403, num_404, num_416, num_499, num_500, num_502, num_other*/
+//			char sha1buf[33];
+		auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
+					g.c_str("%Y%m%d%H%M"), url.c_str()/*sha1sum_r(url.c_str(), url.size(), sha1buf)*/
+					, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
+					, num_403, num_404, num_416, num_499, num_500, num_502
+					, num_other
+					);
+		if(sz <= 0) ++i;
+	}
+}
+
 inline void print_url_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	size_t i = 0;
 	for(auto const& item : stats){
 		auto const& stat = item.second;
-//		std::string fname = std::string("/home/jun/ws/debug/linux/tq_20160825/url/") + item.first.c_str("%Y%m%d%H%M");
-//		stream  = fopen(fname.c_str(), "w");
-		for(auto const& url_item : stat._url_stats){
-			auto const& url = url_item.first;
-			auto const& st = url_item.second;
-			auto num_total = st.access_total(), num_200 = st.access(200), size_200 = st.bytes(200)
-					, num_206 = st.access(206), size_206 = st.bytes(206), num_301302 = st.access(301, 302)
-					, num_304 = st.access(304) , num_403 = st.access(403), num_404 = st.access(404), num_416 = st.access(416)
-					, num_499 = st.access(499), num_500 = st.access(500), num_502 = st.access(502)
-					, num_other = num_total - (num_200 + num_206 + num_301302 + num_304 + num_403
-									+ num_404 + num_416 + num_499 + num_500 + num_502)
-					;
-			/*format:
-			 *datetime, url_key, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
-			 *, num_403, num_404, num_416, num_499, num_500, num_502, num_other*/
-//			char sha1buf[33];
-			auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
-						item.first.c_str("%Y%m%d%H%M"), url.c_str()/*sha1sum_r(url.c_str(), url.size(), sha1buf)*/
-						, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
-						, num_403, num_404, num_416, num_499, num_500, num_502
-						, num_other
-						);
-			if(sz <= 0) ++i;
-		}
-//		fclose(stream);
+		do_print_url_popular_table(stream, item.first, stat, i);
 	}
 	if(i != 0)
 		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
 }
 
+static void print_url_popular_table(char const * folder, std::map<time_group, log_stat> const& stats,
+		int device_id, int site_id, int user_id)
+{
+	size_t i = 0;
+	for(auto const& item : stats){
+		auto const& stat = item.second;
+		//FIXME: fname to be customizable
+		std::string fname = std::string(folder) + item.first.c_str("%Y%m%d%H%M");
+		auto stream  = fopen(fname.c_str(), "w");
+		if(!stream) continue;
+		do_print_url_popular_table(stream, item.first, stat, i);
+		fclose(stream);
+	}
+	if(i != 0)
+		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
+
+}
 inline void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
@@ -249,10 +270,16 @@ int print_stats(std::map<time_group, log_stat>const& logstats,
 	}
 	f = nla_opt.output_file_url_popular;
 	if(nla_opt.url_popular){
-		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
-			print_url_popular_table(stream, logstats, device_id, site_id, user_id);
-		else
-			fprintf(stderr, "%s: fopen output_file_url_popular '%s' for append failed\n", __FUNCTION__, f);
+		bool is_to_stdout = strcmp(f, "1") == 0,
+			is_split = !is_to_stdout && nla_opt.output_file_url_popular_split;
+		if(is_split)
+			print_url_popular_table(f, logstats, device_id, site_id, user_id);
+		else {
+			if(is_to_stdout || (stream = fopen(f, "a")) != NULL)
+				print_url_popular_table(stream, logstats, device_id, site_id, user_id);
+			else
+				fprintf(stderr, "%s: fopen output_file_url_popular '%s' for append failed\n", __FUNCTION__, f);
+		}
 	}
 	f = nla_opt.output_file_ip_popular;
 	if(nla_opt.ip_popular){

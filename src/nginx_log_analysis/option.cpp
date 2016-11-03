@@ -1,4 +1,5 @@
 #include <cstdlib>	/*atoi*/
+#include <cstring>	/*strcmp*/
 #include <popt.h>	/*poptOption*/
 #include "test_options.h"
 
@@ -13,6 +14,7 @@ nla_options nla_opt = {
 
 		.output_file_flow = NULL,
 		.output_file_url_popular = NULL,
+		.output_file_url_popular_split = false,
 		.output_file_ip_popular = NULL,
 		.output_file_http_stats = NULL,
 		.output_file_ip_slowfast = NULL,
@@ -73,7 +75,18 @@ int nginx_log_stats_parse_options(int argc, char ** argv)
 		case 's': nla_opt.siteuidlist_file = poptGetOptArg(pc); break;
 		case 'm': nla_opt.ipmap_file = poptGetOptArg(pc); break;
 		case 'o': { nla_opt.flow = 1; nla_opt.output_file_flow = poptGetOptArg(pc); } break;
-		case 'u': { nla_opt.url_popular = 1; nla_opt.output_file_url_popular = poptGetOptArg(pc); } break;
+		case 'u': {
+			nla_opt.url_popular = 1;
+			auto str = poptGetOptArg(pc);
+			char * p = strchr(str, ',');
+			if(p){
+				*p = '\0';
+				//FIXME: regex?
+				nla_opt.output_file_url_popular_split = (strcmp("split=1", ++p) == 0);
+			}
+			nla_opt.output_file_url_popular = str;
+		}
+		break;
 		case 'p': { nla_opt.ip_popular = 1; nla_opt.output_file_ip_popular = poptGetOptArg(pc); } break;
 		case 't': { nla_opt.http_stats = 1; nla_opt.output_file_http_stats = poptGetOptArg(pc); } break;
 		case 'w': { nla_opt.output_file_ip_slowfast = poptGetOptArg(pc); } break;
@@ -101,6 +114,10 @@ void nginx_log_stats_show_help(FILE * stream)
 {
 	fprintf(stream, "analysis nginx log file and print results, build at %s %s\n", __DATE__, __TIME__);
 	poptPrintHelp(pc, stream, 0);
+	fprintf(stream, "NOTES:\n  1.append option 'split=1'to split output to multi-files by time interval(fmt:YYYYmmDDHHMM), currently support:\n"
+			"\t-u url_popular,split=1('url_popular' treated as a folder now; comma separated) \n"
+			"\t-w ip_slowfast,split=1\n"
+			);
 }
 
 void nginx_log_stats_show_usage(FILE * stream)
@@ -128,7 +145,8 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 	fprintf(stream,
 			"%-30s%-20s" "\n%-30s%-20d" "\n%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n"
 			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
-			"%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n"
+			"%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20d\n"
+			"%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n"
 			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
 			"%-30s%-20d\n"
 		, "log_file", opt.log_file
@@ -144,6 +162,8 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 
 		, "output_file_flow", opt.output_file_flow
 		, "output_file_url_popular", opt.output_file_url_popular
+		, "output_file_url_popular_split", opt.output_file_url_popular_split
+
 		, "output_file_ip_popular", opt.output_file_ip_popular
 		, "output_file_http_stats", opt.output_file_http_stats
 		, "output_file_ip_slowfast", opt.output_file_ip_slowfast
