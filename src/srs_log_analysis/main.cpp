@@ -41,41 +41,10 @@ extern struct sla_options sla_opt;	/*test_options.cpp*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 {
-	time_t * time_tamp;
-	int * sid;
-
-	//RTMP client ip=([0-9.]+)
-	static auto s1 = "RTMP client ip=([0-9.]+)",
-		 s2 = "<- CPB time=[0-9]+, obytes=([0-9]+), ibytes=([0-9]+),"
-				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
-	std::cmatch m;
-	/*FIXME:std::regex::basic OK, default crash?*/
-	static std::regex conn_regex{"RTMP client ip=([0-9.]+)", std::regex::egrep}, trans_regex{"", std::regex::egrep};
-	if(regex_search(buff, m, conn_regex)) {
-		fprintf(stderr, "______________________matched conn___________________\n");
-		log_type = 1;
-		memset(&logitem.conn, 0, sizeof(logitem.conn));
-		time_tamp = &logitem.conn.time_stamp;
-		sid = &logitem.conn.sid;
-		logitem.conn.ip = 1;//netutil_get_ip_from_str(m[1].str().c_str());
-	}
-	else if(regex_search(buff, m, trans_regex)) {
-		fprintf(stderr, "______________________matched trans___________________\n");
-		log_type = 2;
-		memset(&logitem.trans, 0, sizeof(logitem.trans));
-		time_tamp = &logitem.trans.time_stamp;
-		sid = &logitem.trans.sid;
-		char * end;
-		logitem.trans.obytes = 1;//strtoul(m[1].str().c_str(), &end, 10);
-		logitem.trans.ibytes = 1;//strtoul(m[2].str().c_str(), &end, 10);
-		logitem.trans.okbps = 1;//strtoul(m[3].str().c_str(), &end, 10);
-		logitem.trans.ikbps = 1;//strtoul(m[4].str().c_str(), &end, 10);
-	}
-	else{
-		log_type = 0;
-		return 1;
-	}
 	/*parse time_stamp, sid from '[2016-11-03 11:33:16.924][trace][21373][110] '*/
+	time_t time_tamp = 0;
+	int sid;
+	char * lbuff;
 	int index = 0;
 	bool is_arg_start = false;
 	for(auto p = buff, q = buff; ; ++q){
@@ -91,11 +60,12 @@ static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 				char const * result = strptime(p + 1, "%Y-%m-%d %H:%M:%S", &my_tm);
 				if(!result) return -1;
 				my_tm.tm_isdst = 0;
-				*time_tamp = mktime(&my_tm);
+				time_tamp = mktime(&my_tm);
 			}
 			else if(index == 3){
 				/*FIXME: sid CAN BE 0?*/
-				*sid = atoi(p + 1);
+				sid = atoi(p + 1);
+				lbuff = q + 1;
 				break;
 			}
 			p = q + 1;
@@ -103,7 +73,42 @@ static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 			is_arg_start = false;
 		}
 	}
-	return *time_tamp == 0? -1 : 0;
+
+
+	//RTMP client ip=([0-9.]+)
+	static auto s1 = "h";
+	static auto s2 = "<- CPB time=[0-9]+, obytes=([0-9]+), ibytes=([0-9]+),"
+				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
+	std::cmatch m;
+	/*FIXME:std::regex::basic OK, default crash?*/
+	static std::regex conn_regex{s1};
+	static std::regex trans_regex{s1};
+	if(regex_search("hello", m, conn_regex)) {
+		fprintf(stderr, "______________________matched conn___________________\n");
+		log_type = 1;
+		memset(&logitem.conn, 0, sizeof(logitem.conn));
+		logitem.conn.time_stamp = time_tamp;
+		logitem.conn.sid = sid;
+		logitem.conn.ip = 1;//netutil_get_ip_from_str(m[1].str().c_str());
+	}
+	else if(regex_search(buff, m, trans_regex)) {
+		fprintf(stderr, "______________________matched trans___________________\n");
+		log_type = 2;
+		memset(&logitem.trans, 0, sizeof(logitem.trans));
+		logitem.trans.time_stamp = time_tamp;
+		logitem.trans.sid = sid;
+		char * end;
+		logitem.trans.obytes = 1;//strtoul(m[1].str().c_str(), &end, 10);
+		logitem.trans.ibytes = 1;//strtoul(m[2].str().c_str(), &end, 10);
+		logitem.trans.okbps = 1;//strtoul(m[3].str().c_str(), &end, 10);
+		logitem.trans.ikbps = 1;//strtoul(m[4].str().c_str(), &end, 10);
+	}
+	else{
+		fprintf(stderr, "______________________match FAILED___________________\n");
+		log_type = 0;
+		return 1;
+	}
+	return time_tamp == 0? -1 : 0;
 }
 
 int test_srs_log_stats_main(int argc, char ** argv)
