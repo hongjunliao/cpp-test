@@ -26,8 +26,8 @@ struct srs_trans
 	int sid;
 	size_t ibytes;
 	size_t obytes;
-	int ikbps;
-	int okbps;
+	size_t ikbps;
+	size_t okbps;
 };
 
 struct srs_disconnect

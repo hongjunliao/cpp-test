@@ -51,14 +51,14 @@ extern int test_nginx_log_analysis_main(int argc, char ** argv);
  * total fields == 18
  * TODO:make it customizable
  * */
-static int do_parse_log_item(char ** fields, char *& szitem, char delim = '\0');
+static int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
 /*parse nginx_log buffer @apram ct, and output results*/
-static int parse_log_item_buf(parse_context& ct);
+static int parse_nginx_log_item_buf(parse_context& ct);
 /*split file @param f into parts, use pthread to parallel parse */
-static int parallel_parse(FILE * f, std::map<time_group, log_stat> & stats);
+static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & stats);
 
-/*log statistics with time interval*/
-static int log_stats(log_item const& item, std::map<time_group, log_stat>& logstats);
+/*do log statistics with time interval*/
+static int do_nginx_log_stats(log_item const& item, std::map<time_group, log_stat>& logstats);
 
 /*load devicelist, @param devicelist map<device_id, ip>*/
 static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
@@ -103,7 +103,7 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 {
 	memset(&item, 0, sizeof(log_item));
 	char *items[18];
-	int result = do_parse_log_item(items, logitem, delim);
+	int result = do_parse_nginx_log_item(items, logitem, delim);
 	if(result != 0){
 		return 1;
 	}
@@ -135,7 +135,7 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	return 0;
 }
 
-static int log_stats(log_item const& item, std::map<time_group, log_stat>& logstats)
+static int do_nginx_log_stats(log_item const& item, std::map<time_group, log_stat>& logstats)
 {
 	log_stat& logsstat = logstats[item.time_local];
 	if(!item.is_hit){
@@ -284,7 +284,7 @@ static char const * find_domain(char const * nginx_log_file)
 	return domain;
 }
 
-int do_parse_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
+int do_parse_nginx_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
 {
 //	for(char * ch = szitem; ; ++ch) { fprintf(stdout, "%c", *ch); if(*ch == delim) break; }
 	auto arg_start = false;
@@ -384,7 +384,7 @@ static char const * str_find(char const *str, int len)
 	return s;
 }
 
-int parse_log_item_buf(parse_context& ct)
+int parse_nginx_log_item_buf(parse_context& ct)
 {
 	auto & buf = ct.buf;
 	auto & len = ct.len;
@@ -395,7 +395,7 @@ int parse_log_item_buf(parse_context& ct)
 	for(char * p = buf; p != buf + len; ++p){
 		int result = parse_log_item(item, p, '\n');
 		if(result == 0){
-			log_stats(item, logstats);
+			do_nginx_log_stats(item, logstats);
 		}
 		else {
 			//current line failed, move to next line
@@ -413,7 +413,7 @@ void * parallel_parse_thread_func(void * varg)
 	if(!varg) return varg;
 	auto & arg = *(parse_context*)varg;
 	/*arg->buf, arg->len, arg->logstats, arg->total_lines, arg->failed_lines*/
-	parse_log_item_buf(arg);
+	parse_nginx_log_item_buf(arg);
 
 	return varg;
 }
@@ -426,7 +426,7 @@ static int log_stats_append(std::map<time_group, log_stat> & a, std::map<time_gr
 	return 0;
 }
 
-static int parallel_parse(FILE * f, std::map<time_group, log_stat> & stats)
+static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & stats)
 {
 	struct stat logfile_stat;
 	if(fstat(fileno(f), &logfile_stat) < 0){
@@ -488,7 +488,7 @@ static int parallel_parse(FILE * f, std::map<time_group, log_stat> & stats)
 	arg.buf = start_p + offset_p;
 	arg.len = left_len;
 	arg.total_lines = 0;
-	parse_log_item_buf(arg);
+	parse_nginx_log_item_buf(arg);
 
 	for(auto & item : threads){
 		void * tret;
@@ -578,7 +578,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 
 	/*parse logs*/
 	std::map<time_group, log_stat> logstats;
-	parallel_parse(nginx_log_file, logstats);
+	parallel_parse_nginx_log(nginx_log_file, logstats);
 	if(nla_opt.verbose)
 		fprintf(stdout, "\r%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
 

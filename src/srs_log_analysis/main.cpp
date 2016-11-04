@@ -5,16 +5,21 @@
  * @date 2016/9
  * 1.about srs: https://github.com/ossrs/srs/tree/2.0release
  * 2.about srs_log: https://github.com/ossrs/srs/wiki/v1_CN_SrsLog
+ *
+ * @NOTE:
+   1.FIXME:std::regex FAILED, gcc-4.8 c++11 NOT fully support, use boost::regex instead
+ * 2.g++ link options: -lboost_regex
  */
 
 #include <stdio.h>
 #include <cstring>
-#include <vector>	/*std::vector*/
-#include <regex> 		/*regex_search*/
-#include "bd_test.h"	/*test_srs_log_stats_main*/
-#include "test_options.h" /*sla_options*/
+#include <vector>				/*std::vector*/
+//#include <regex>
+#include <boost/regex.hpp> 		/*regex_search*/
+#include "bd_test.h"			/*test_srs_log_stats_main*/
+#include "test_options.h" 		/*sla_options*/
 
-#include "net_util.h"	/*netutil_get_ip_from_str*/
+#include "net_util.h"			/*netutil_get_ip_from_str*/
 #include "srs_log_analysis.h"	/*srs_log_item, ...*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*!parse srs log item, currently get <timestamp>, <client_ip>, <time>, <obytes>, <ibytes>
@@ -30,7 +35,7 @@
  * 3.disconnect:
  * [2016-11-03 11:34:33.360][warn][21373][110][32] client disconnect peer. ret=1004
  *
- *@param log_type, 1-connect; 2-trans; 3-disconect
+ *@param log_type, 0-other; 1-connect; 2-trans; 3-disconect
  * */
 static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
 /*srs_log_analysis/print_table.cpp*/
@@ -74,39 +79,37 @@ static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 		}
 	}
 
-
-	//RTMP client ip=([0-9.]+)
-	static auto s1 = "h";
-	static auto s2 = "<- CPB time=[0-9]+, obytes=([0-9]+), ibytes=([0-9]+),"
+	static auto s1 = "RTMP client ip=([0-9.]+)";
+	static auto s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
 				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
-	std::cmatch m;
-	/*FIXME:std::regex::basic OK, default crash?*/
-	static std::regex conn_regex{s1};
-	static std::regex trans_regex{s1};
-	if(regex_search("hello", m, conn_regex)) {
-		fprintf(stderr, "______________________matched conn___________________\n");
+	static auto s3 = "client disconnect peer\\. ret=[0-9]+";
+	static boost::regex r1{s1}, r2{s2}, r3{s3};
+
+	boost::cmatch m;
+	if(boost::regex_search(lbuff, m, r1)) {
 		log_type = 1;
 		memset(&logitem.conn, 0, sizeof(logitem.conn));
 		logitem.conn.time_stamp = time_tamp;
 		logitem.conn.sid = sid;
-		logitem.conn.ip = 1;//netutil_get_ip_from_str(m[1].str().c_str());
+		logitem.conn.ip = netutil_get_ip_from_str(m[1].str().c_str());
 	}
-	else if(regex_search(buff, m, trans_regex)) {
-		fprintf(stderr, "______________________matched trans___________________\n");
+	else if(boost::regex_search(lbuff, m, r2)) {
 		log_type = 2;
 		memset(&logitem.trans, 0, sizeof(logitem.trans));
 		logitem.trans.time_stamp = time_tamp;
 		logitem.trans.sid = sid;
 		char * end;
-		logitem.trans.obytes = 1;//strtoul(m[1].str().c_str(), &end, 10);
-		logitem.trans.ibytes = 1;//strtoul(m[2].str().c_str(), &end, 10);
-		logitem.trans.okbps = 1;//strtoul(m[3].str().c_str(), &end, 10);
-		logitem.trans.ikbps = 1;//strtoul(m[4].str().c_str(), &end, 10);
+		logitem.trans.obytes = strtoul(m[1].str().c_str(), &end, 10);
+		logitem.trans.ibytes = strtoul(m[2].str().c_str(), &end, 10);
+		logitem.trans.okbps = strtoul(m[3].str().c_str(), &end, 10);
+		logitem.trans.ikbps = strtoul(m[4].str().c_str(), &end, 10);
+	}
+	else if(boost::regex_search(lbuff, m, r3)) {
+		log_type = 3;
 	}
 	else{
-		fprintf(stderr, "______________________match FAILED___________________\n");
 		log_type = 0;
-		return 1;
+		return 0;
 	}
 	return time_tamp == 0? -1 : 0;
 }
@@ -127,7 +130,7 @@ int test_srs_log_stats_main(int argc, char ** argv)
 		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, sla_opt.log_file);
 		return 1;
 	}
-	size_t linecount = 0, failed_count = 0;
+	size_t linecount = 0, failed_count = 0, skip_count = 0;
 	char data[8192];
 	char const * result = 0;
 	std::vector<srs_trans> tstats;
@@ -154,9 +157,12 @@ int test_srs_log_stats_main(int argc, char ** argv)
 			tstats.push_back(logitem.trans);
 		else if(log_type == 1)
 			cstats.push_back(logitem.conn);
+		else if(log_type == 0)
+			++skip_count;
 	}
 	if(sla_opt.verbose)
-		fprintf(stdout, "\r%s: processed, total_line: %zu, failed=%zu\n", __FUNCTION__, linecount, failed_count);
+		fprintf(stdout, "\r%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
+				, linecount, failed_count, skip_count);
 
 	fprint_srs_log_stats(stdout, tstats, cstats);
 	return 0;
