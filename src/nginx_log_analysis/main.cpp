@@ -32,8 +32,9 @@
 #include "nginx_log_analysis.h"	/*log_stats, ...*/
 #include "string_util.h"	/*md5sum*/
 #include "net_util.h"	/*get_if_addrs, ...*/
+#include <algorithm>	/*std::min*/
 
-/*tests, @see nginx_log_analysis2.cpp*/
+/*tests, @see nginx_log_analysis/test.cpp*/
 extern int test_nginx_log_analysis_main(int argc, char ** argv);
 /*!
  * parse ' ' splitted nginx log
@@ -57,6 +58,13 @@ static int parse_nginx_log_item_buf(parse_context& ct);
 /*split file @param f into parts, use pthread to parallel parse */
 static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & stats);
 
+/* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
+ * @param mode:
+ * mode 0, url endwith ' ', reserve all, e.g. "POST /zzz.asp;.jpg HTTP/1.1", return "/zzz.asp;.jpg"
+ * mode 1, url endwith '?'(if no '?', then endwith ' '), ignore parameters, e.g. "GET /V3/?page_id=1004&cid=1443 HTTP/1.1", return "/V3/"
+ * mode 2, custom, @param cache_status required
+ * */
+static char * parse_nginx_log_request_uri_url(char * request_uri, int & len, char const * cache_status, int mode = 2);
 /*do log statistics with time interval*/
 static int do_nginx_log_stats(log_item const& item, std::map<time_group, log_stat>& logstats);
 
@@ -84,8 +92,6 @@ extern int print_stats(std::map<time_group, log_stat>const& logstats,
 //////////////////////////////////////////////////////////////////////////////////
 
 /*GLOBAL vars*/
-/*all options: test_options.cpp*/
-extern struct nla_options nla_opt;
 /*map<device_id, ip_addr>*/
 static std::unordered_map<int, char[16]> g_devicelist;
 /*map<domain, site_info>*/
@@ -99,6 +105,33 @@ struct ipmap_ctx g_ipmap_ctx;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
+static char * parse_nginx_log_request_uri_url(char * request_uri, int & len, char const * cache_status, int mode/* = 2*/)
+{
+	auto url = strchr(request_uri, '/'); /*"GET /abc?param1=abc"*/
+
+	auto pos = strchr(url, ' ');
+	auto m = nla_opt.parse_url_mode;
+	if(m == 1){
+		auto p = strchr(url, '?');
+		if(p) pos = p;
+	}
+	else if(m == 2){
+		auto miss0 = strrchr(cache_status, '0');
+		auto pos1 = strchr(url, '?'), pos2 = strchr(url, ';');
+		if(miss0 && (pos1 || pos2)){
+			if(pos1 && pos2)
+				pos = std::min(pos1, pos2);
+			else{
+				pos = (pos1? pos1 : pos2);
+			}
+		}
+	}
+	len = pos - url;
+	url[len] = '\0';
+
+	return url;
+}
+
 static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/)
 {
 	memset(&item, 0, sizeof(log_item));
@@ -107,9 +140,11 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	if(result != 0){
 		return 1;
 	}
+
 	item.client_ip = netutil_get_ip_from_str(items[1]);
 	if(item.client_ip == 0)
 		return 1;
+
 	char * end;
 	item.request_time = strtoul(items[2], &end, 10);
 	/*format: [17/Sep/2016:00:26:08 +0800]*/
@@ -118,20 +153,19 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 		return -1;
 	my_tm.tm_isdst = 0;
 	item.time_local = mktime(&my_tm);
-	char * url = strchr(items[6], '/'); /*"GET /abc?param1=abc"*/
-	int len = strchr(url, ' ') - url;
-	url[len] = '\0';
 
 	/*!
 	 * FIXME: str_find NOT correct in multi-thread, and little speedup, disabled, @date 2016/10/27
 	 */
+	int len;
 	char buff[33];
-	item.request_url = md5sum_r(url, len, buff);
+	char * url = parse_nginx_log_request_uri_url(items[6], len, items[3]);
+	item.request_url = sha1sum_r(url, len, buff);
 
 	char const * p = items[8];
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
-	item.is_hit = (strcmp(strupr(items[3]),"HIT") == 0);
+	item.is_hit = (strcmp(items[3],"HIT") == 0);
 	return 0;
 }
 

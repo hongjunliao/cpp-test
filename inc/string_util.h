@@ -21,7 +21,7 @@ char *strupr(char *s);
 
 /*@param buff[33] at least(include NULL)*/
 char * md5sum_r(char const * str, int len, char * buff);
-/*@param buff[33] at least(include NULL)*/
+/*@param buff[41] at least(include NULL)*/
 char * sha1sum_r(char const * str, int len, char * buff);
 extern char const * byte_to_mb_kb_str(size_t bytes, char const * fmt);
 extern char * byte_to_mb_kb_str_r(size_t bytes, char const * fmt, char * buff);

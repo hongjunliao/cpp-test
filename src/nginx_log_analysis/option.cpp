@@ -35,6 +35,7 @@ nla_options nla_opt = {
 		.print_device_id = 0,
 		.print_site_user_id = 0,
 		.enable_multi_thread = 0,
+		.parse_url_mode = 2,
 		.show_help = 0,
 		.show_version = 0,
 		.verbose = 0,
@@ -52,15 +53,17 @@ static struct poptOption nla_popt[] = {
 	{"output-file-ip-popular",  'p',  POPT_ARG_STRING,   0, 'p', "output_file, ip_popular table, 1 for to stdout", 0 },
 	{"output-file-http-stats",  't',  POPT_ARG_STRING,   0, 't', "output_file, http_stats table, 1 for to stdout", 0 },
 	{"output-file-ip-slowfast", 'w',  POPT_ARG_STRING,   0, 'w', "output_file, ip_slowfast table, 1 for to stdout", 0 },
-	{"output-file-cutip-slowfast"  , 'f',  POPT_ARG_STRING,   0, 'f', "output_file, cutip_slowfast table, 1 for to stdout", 0 },
+	{"output-file-cutip-slowfast"
+			                  , 'f',  POPT_ARG_STRING,   0, 'f', "output_file, cutip_slowfast table, 1 for to stdout", 0 },
 	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output_file, ip_source table, 1 for to stdout", 0 },
-	{"device-id",               'e',  POPT_ARG_INT,     0,  'e', "device_id integer(> 0)", 0 },
-	{"print-divice-id",         'c',  POPT_ARG_NONE,   0,   'c', "print device_id and exit", 0 },
-	{"print-site-user-id",      'n',  POPT_ARG_NONE,   0,   'n', "print site_user_id and exit, output format:<site_id> <user_id>", 0 },
-	{"enable-multi-thread",       0,  POPT_ARG_NONE,   0,   'a', "enable_multi_thread", 0 },
+	{"device-id",               'e',  POPT_ARG_INT,      0, 'e', "device_id integer(> 0)", 0 },
+	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
+	{"print-site-user-id",      'n',  POPT_ARG_NONE,     0, 'n', "print site_user_id and exit, output format:<site_id> <user_id>", 0 },
+	{"enable-multi-thread",     0,  POPT_ARG_NONE,       0, 'a', "enable_multi_thread", 0 },
+	{"parse-url-mode",          0,    POPT_ARG_INT,      0, 'P', "parse nginx log field '$request_uri' url mode, 0|1|2, default 2", 0 },
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",                   0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
-	{"verbose",                 'v',  POPT_ARG_NONE,   0, 'v', "verbose, print more details", 0 },
+	{"verbose",                 'v',  POPT_ARG_NONE,     0, 'v', "verbose, print more details", 0 },
 	NULL	/*required!!!*/
 };
 
@@ -98,6 +101,7 @@ int nginx_log_stats_parse_options(int argc, char ** argv)
 		case 'c': nla_opt.print_device_id = 1; break;
 		case 'n': nla_opt.print_site_user_id = 1; break;
 		case 'a': nla_opt.enable_multi_thread = 1; break;
+		case 'P': nla_opt.parse_url_mode = atoi(poptGetOptArg(pc)); break;
 		case 'h': nla_opt.show_help = 1; break;
 		case 'V': nla_opt.show_version = 1; break;
 		case 'v': nla_opt.verbose = 1; break;
@@ -150,7 +154,7 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
 			"%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20d\n"
 			"%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n" "%-30s%-20s\n"
-			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
+			"%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n" "%-30s%-20d\n"
 			"%-30s%-20d\n"
 		, "log_file", opt.log_file
 		, "interval", opt.interval
@@ -176,6 +180,7 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 		, "device_id", opt.device_id
 		, "print_device_id", opt.print_device_id
 		, "print_site_user_id", opt.print_site_user_id
+		, "parse_url_mode", opt.parse_url_mode
 		, "show_help", opt.show_help
 		, "show_version", opt.show_version
 

@@ -3,6 +3,7 @@
  * ouput results table
  */
 #include <stdio.h>
+#include <limits.h>	/*PATH_MAX*/
 #include <string.h> 	/*strncpy*/
 #include <netinet/in.h>
 #include <map>			/*std::map*/
@@ -121,8 +122,9 @@ static void print_url_popular_table(char const * folder, std::map<time_group, lo
 	for(auto const& item : stats){
 		auto const& stat = item.second;
 		//FIXME: fname to be customizable
-		std::string fname = std::string(folder) + item.first.c_str("%Y%m%d%H%M");
-		auto stream  = fopen(fname.c_str(), "w");
+		char fname[PATH_MAX];
+		snprintf(fname, PATH_MAX, "%surlstat.%s.%d.%d", folder, item.first.c_str("%Y%m%d%H%M"), site_id, device_id);
+		auto stream  = fopen(fname, "w");
 		if(!stream) continue;
 		do_print_url_popular_table(stream, item.first, stat, i);
 		fclose(stream);

@@ -10,6 +10,7 @@
 #include <math.h> /*pow*/
 #include <assert.h>
 #include <pthread.h> /*pthread*/
+#include <openssl/sha.h>	/*SHA_DIGEST_LENGTH, SHA1*/
 
 #include <vector>
 #include <algorithm> /*std::sort*/
@@ -203,6 +204,13 @@ int test_nginx_log_analysis_main(int argc, char ** argv)
 	//		--left;
 	//	}
 	//	return 0;
+
+//    char data[] = {'h', 'e', 'l', 'l', 'o', '\0'};
+//    char sha1[64], md5[64];
+//	fprintf(stdout, "%s: data=%c%c%c%c%c, sha1=%s, md5=%s\n", __FUNCTION__
+//			, data[0], data[1], data[2], data[3], data[4]
+//			, sha1sum_r(data, sizeof(data), sha1), md5sum_r(data, sizeof(data), md5));
+//	exit(0);
 
 	int r = setpriority(PRIO_PROCESS, getpid(), -10);
 	if(r !=0 && nla_opt.verbose){

@@ -36,12 +36,14 @@ struct nla_options
 	int print_device_id;
 	int print_site_user_id;
 	int enable_multi_thread;	/*enalbe_multi_thread?*/
+	int parse_url_mode;		/*0|1|2, default 2, @see parse_nginx_log_request_uri_url*/
 	int show_help;
 	int show_version;
 	int verbose;
 };
 
 /*nginx_log_analysis/option.cpp*/
+extern struct nla_options nla_opt;
 void nla_options_fprint(FILE * stream, nla_options const * opt);
 int nginx_log_stats_parse_options(int argc, char ** argv);
 void nginx_log_stats_show_help(FILE * stream);
