@@ -2,7 +2,7 @@
 
 #ifndef _CPP_TEST_OPTIONS_H_
 #define _CPP_TEST_OPTIONS_H_
-
+#include <stdio.h> /*FILE*/
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -19,6 +19,7 @@ struct nla_options
 	char const * output_file_flow;	/*'1' for stdout*/
 	char const * output_file_url_popular;
 	bool output_file_url_popular_split;
+	char const * output_file_url_popular_format;
 	char const * output_file_ip_popular;
 	char const * output_file_http_stats;
 	char const * output_file_ip_slowfast;

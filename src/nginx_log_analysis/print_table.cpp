@@ -115,16 +115,28 @@ inline void print_url_popular_table(FILE * stream, std::map<time_group, log_stat
 		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
 }
 
+int parse_fmt(char const * in, std::string& out,
+		std::unordered_map<std::string, std::string> const& argmap);
+
 static void print_url_popular_table(char const * folder, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	size_t i = 0;
+
 	for(auto const& item : stats){
 		auto const& stat = item.second;
 		//FIXME: fname to be customizable
-		char fname[PATH_MAX];
-		snprintf(fname, PATH_MAX, "%surlstat.%s.%d.%d", folder, item.first.c_str("%Y%m%d%H%M"), site_id, device_id);
-		auto stream  = fopen(fname, "w");
+		std::unordered_map<std::string, std::string> argmap = {
+				{"datetime",  item.first.c_str("%Y%m%d%H%M")},
+				{"site_id", std::to_string(site_id)},
+				{"device_id", std::to_string(device_id)},
+				{"user_id", std::to_string(user_id)},
+		};
+		std::string fname = folder, outname;
+		parse_fmt(nla_opt.output_file_url_popular_format, outname, argmap);
+		fname += '/'; fname += outname;
+
+		auto stream  = fopen(fname.c_str(), "w");
 		if(!stream) continue;
 		do_print_url_popular_table(stream, item.first, stat, i);
 		fclose(stream);

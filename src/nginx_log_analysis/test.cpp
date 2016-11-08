@@ -29,6 +29,11 @@ extern int test_alloc_mmap_main(int argc, char * argv[]);
 /*net_util.cpp*/
 extern int test_net_util_main(int argc, char ** argv);
 
+/*nginx_log_analysis/parse_fmt.cpp*/
+extern int test_nginx_log_parse_fmt_main(int argc, char ** argv);
+
+/*nginx_log_analysis/parse_option.cpp*/
+int test_nginx_log_parse_option_main(int argc, char ** argv);
 /*all options: test_options.cpp*/
 extern struct nla_options nla_opt;
 
@@ -210,7 +215,11 @@ int test_nginx_log_analysis_main(int argc, char ** argv)
 //	fprintf(stdout, "%s: data=%c%c%c%c%c, sha1=%s, md5=%s\n", __FUNCTION__
 //			, data[0], data[1], data[2], data[3], data[4]
 //			, sha1sum_r(data, sizeof(data), sha1), md5sum_r(data, sizeof(data), md5));
+
+//	test_nginx_log_parse_fmt_main(argc, argv);
+//	test_nginx_log_parse_option_main(argc, argv);
 //	exit(0);
+
 
 	int r = setpriority(PRIO_PROCESS, getpid(), -10);
 	if(r !=0 && nla_opt.verbose){
