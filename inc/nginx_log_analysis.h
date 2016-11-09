@@ -129,7 +129,7 @@ class locisp_group
 public:
 	locisp_group(uint32_t ip = 0);
 	/*buff sample: 'CN3501 0B'*/
-	void loc_isp_c_str(char * buff, int len) const;
+	char * loc_isp_c_str(char * buff, int len) const;
 };
 
 bool operator ==(const locisp_group& one, const locisp_group& another);

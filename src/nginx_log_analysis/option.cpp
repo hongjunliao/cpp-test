@@ -29,13 +29,8 @@ nla_options nla_opt = {
 		.output_file_ip_slowfast = NULL,
 		.output_file_cutip_slowfast = NULL,
 		.output_file_ip_source = NULL,
-
-		.flow = 0,
-		.url_popular = 0,
-		.ip_popular = 0,
-		.http_stats = 0,
-		.cutip_slowfast = 0,
-		.ip_source = 0,
+		.output_file_ip_source_split = false,
+		.output_file_ip_source_format = "IPSource.${datetime}.${site_id}.${device_id}",
 
 		.device_id = 0,
 		.print_device_id = 0,
@@ -62,7 +57,7 @@ static struct poptOption nla_popt[] = {
 	{"output-file-ip-slowfast", 'w',  POPT_ARG_STRING,   0, 'w', "output_file, ip_slowfast table, 1 for to stdout", 0 },
 	{"output-file-cutip-slowfast"
 			                  , 'f',  POPT_ARG_STRING,   0, 'f', "output_file, cutip_slowfast table, 1 for to stdout", 0 },
-	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output_file, ip_source table, 1 for to stdout", 0 },
+	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output_file, ip_source table, 1 for to stdout, see NOTES for additional options", 0 },
 	{"device-id",               'e',  POPT_ARG_INT,      0, 'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
 	{"print-site-user-id",      'n',  POPT_ARG_NONE,     0, 'n', "print site_user_id and exit, output format:<site_id> <user_id>", 0 },
@@ -76,7 +71,6 @@ static struct poptOption nla_popt[] = {
 
 static bool nginx_log_stats_parse_options_url_popular(poptContext pc)
 {
-	nla_opt.url_popular = 1;
 	auto str = poptGetOptArg(pc);
 	char * p = strchr(str, ',');
 	if(p){
@@ -90,6 +84,24 @@ static bool nginx_log_stats_parse_options_url_popular(poptContext pc)
 			nla_opt.output_file_url_popular_format = out["format"];
 	}
 	nla_opt.output_file_url_popular = str;
+	return true;
+}
+
+static bool nginx_log_stats_parse_options_ip_source(poptContext pc)
+{
+	auto str = poptGetOptArg(pc);
+	char * p = strchr(str, ',');
+	if(p){
+		*p = '\0';
+		++p;
+		std::unordered_map<std::string, char *> out;
+		if(parse_option(p, out) != 0)
+			return false;
+		nla_opt.output_file_ip_source_split = atoi(out["split"]);
+		if(out["format"] && out["format"][0] != '\0')
+			nla_opt.output_file_ip_source_format = out["format"];
+	}
+	nla_opt.output_file_ip_source = str;
 	return true;
 }
 
@@ -107,13 +119,13 @@ int nginx_log_stats_parse_options(int argc, char ** argv)
 		case 'd': nla_opt.devicelist_file = poptGetOptArg(pc); break;
 		case 's': nla_opt.siteuidlist_file = poptGetOptArg(pc); break;
 		case 'm': nla_opt.ipmap_file = poptGetOptArg(pc); break;
-		case 'o': { nla_opt.flow = 1; nla_opt.output_file_flow = poptGetOptArg(pc); } break;
+		case 'o': { nla_opt.output_file_flow = poptGetOptArg(pc); } break;
 		case 'u': { if(!nginx_log_stats_parse_options_url_popular(pc)) return  -1; }; break;
-		case 'p': { nla_opt.ip_popular = 1; nla_opt.output_file_ip_popular = poptGetOptArg(pc); } break;
-		case 't': { nla_opt.http_stats = 1; nla_opt.output_file_http_stats = poptGetOptArg(pc); } break;
+		case 'p': { nla_opt.output_file_ip_popular = poptGetOptArg(pc); } break;
+		case 't': { nla_opt.output_file_http_stats = poptGetOptArg(pc); } break;
 		case 'w': { nla_opt.output_file_ip_slowfast = poptGetOptArg(pc); } break;
-		case 'f': { nla_opt.cutip_slowfast = 1; nla_opt.output_file_cutip_slowfast = poptGetOptArg(pc); } break;
-		case 'r': { nla_opt.ip_source = 1; nla_opt.output_file_ip_source = poptGetOptArg(pc); } break;
+		case 'f': { nla_opt.output_file_cutip_slowfast = poptGetOptArg(pc); } break;
+		case 'r': { if(!nginx_log_stats_parse_options_ip_source(pc)) return  -1; }; break;
 		case 'c': nla_opt.print_device_id = 1; break;
 		case 'n': nla_opt.print_site_user_id = 1; break;
 		case 'a': nla_opt.enable_multi_thread = 1; break;
@@ -137,7 +149,7 @@ void nginx_log_stats_show_help(FILE * stream)
 {
 	fprintf(stream, "analysis nginx log file and print results, build at %s %s\n", __DATE__, __TIME__);
 	poptPrintHelp(pc, stream, 0);
-	fprintf(stream, "NOTES:\n  1.split output to multi-files by time interval, currently support -u -w, e.g.:\n"
+	fprintf(stream, "NOTES:\n  1.split output to multi-files by time interval, currently support -u -w -r, e.g.:\n"
 			"    -u 'url_popular_folder,split=1,format=rlstat.${datetime}.${device_id}.${site_id}'\n"
 			);
 }
@@ -166,9 +178,10 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 	auto& opt = *popt;
 	fprintf(stream,
 			"%-34s%-20s" "\n%-34s%-20d" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
-			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20s\n"
 			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "log_file", opt.log_file
@@ -177,12 +190,8 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 		, "siteuidlist_file", opt.siteuidlist_file
 		, "ipmap_file", opt.ipmap_file
 
-		, "flow", opt.flow
-		, "url_popular", opt.url_popular
-		, "ip_popular", opt.ip_popular
-		, "http_stats", opt.http_stats
-
 		, "output_file_flow", opt.output_file_flow
+
 		, "output_file_url_popular", opt.output_file_url_popular
 		, "output_file_url_popular_split", opt.output_file_url_popular_split
 		, "output_file_url_popular_format", opt.output_file_url_popular_format
@@ -192,7 +201,10 @@ void nla_options_fprint(FILE * stream, nla_options const * popt)
 		, "output_file_http_stats", opt.output_file_http_stats
 		, "output_file_ip_slowfast", opt.output_file_ip_slowfast
 		, "output_file_cutip_slowfast", opt.output_file_cutip_slowfast
+
 		, "output_file_ip_source", opt.output_file_ip_source
+		, "output_file_ip_source_split", opt.output_file_ip_source_split
+		, "output_file_ip_source_format", opt.output_file_ip_source_format
 
 		, "device_id", opt.device_id
 		, "print_device_id", opt.print_device_id

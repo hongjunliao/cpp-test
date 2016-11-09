@@ -17,21 +17,19 @@ struct nla_options
 	char const * ipmap_file;
 
 	char const * output_file_flow;	/*'1' for stdout*/
+
 	char const * output_file_url_popular;
-	bool output_file_url_popular_split;
-	char const * output_file_url_popular_format;
+	bool output_file_url_popular_split;				/*split url_popular_table?*/
+	char const * output_file_url_popular_format;	/*output url_popular_table filename format*/
+
 	char const * output_file_ip_popular;
 	char const * output_file_http_stats;
 	char const * output_file_ip_slowfast;
 	char const * output_file_cutip_slowfast;
-	char const * output_file_ip_source;
 
-	int flow; 			/*print flow table?*/
-	int url_popular; 	/*print url_popular table?*/
-	int ip_popular; 	/*print ip_popular table?*/
-	int http_stats; 	/*print http_stats table?*/
-	int cutip_slowfast; 	/*print cutip_slowfast table?*/
-	int ip_source; 		/*print ip_source table?*/
+	char const * output_file_ip_source;
+	bool output_file_ip_source_split;
+	char const * output_file_ip_source_format;
 
 	int device_id;		/*if not provided, find it in devicelist_file by local machine ip*/
 	int print_device_id;

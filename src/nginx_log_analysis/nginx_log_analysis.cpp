@@ -128,22 +128,25 @@ locisp_group::locisp_group(uint32_t ip/* = 0*/)
 {
 	strcpy(_locisp, "- -");
 #ifdef ENABLE_IPMAP
-    auto isp = ipmap_nlookup(&g_ipmap_ctx, ip);
+	/*FIXME: ipmap_nlookup, ipmap_alookup return NOT same*/
+//    auto isp = ipmap_nlookup(&g_ipmap_ctx, ip);
+	char buf[32];
+	auto isp = ipmap_alookup(&g_ipmap_ctx, netutil_get_ip_str(ip, buf, sizeof(buf)));
     if(isp){
 		char ispbuff[32] = "";
-		char const * str_isp, * fmt, *param;
-    	str_isp = ipmap_tostr2(isp, ispbuff);
-		bool f = strcmp(str_isp, "CN") && strcmp(str_isp, "CA") && strcmp(str_isp, "US");
-		fmt = f? "%s -" : "%s";
-		param = f? str_isp : ispbuff;
-		snprintf(_locisp, 32, fmt, param);
+    	auto str_isp = ipmap_tostr2(isp, ispbuff);
+		bool f = strlen(str_isp) == 2 && strcmp(str_isp, "CN") && strcmp(str_isp, "CA") && strcmp(str_isp, "US");
+		f? snprintf(_locisp, 32, "%s -", str_isp): snprintf(_locisp, 32, "%s", ispbuff);;
+
+//		fprintf(stdout, "%s: str_isp=%s, ispbuff=%s\n", __FUNCTION__, str_isp, ispbuff);
     }
 #endif //ENABLE_IPMAP
 }
 
-void locisp_group::loc_isp_c_str(char * buff, int len) const
+char * locisp_group::loc_isp_c_str(char * buff, int len) const
 {
 	strncpy(buff, _locisp, len);
+	return buff;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

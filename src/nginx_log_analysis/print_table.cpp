@@ -12,8 +12,9 @@
 #include "string_util.h"	/*sha1sum*/
 #include "net_util.h"	/*netutil_get_ip_str*/
 
-/*all options: test_options.cpp*/
-extern struct nla_options nla_opt;
+/*parse_fmt.cpp*/
+extern int parse_fmt(char const * in, std::string& out,
+		std::unordered_map<std::string, std::string> const& argmap);
 
 /*flow table*/
 static void print_flow_table(FILE * stream, std::map<time_group, log_stat> const& stats,
@@ -41,12 +42,14 @@ static void print_url_key_table(FILE * stream, std::map<time_group, log_stat> co
 /*ip_source*/
 static void print_ip_source_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id);
+static void print_ip_source_table(char const * folder, std::map<time_group, log_stat> const& stats,
+		int device_id, int site_id, int user_id);
 
 static void print_flow_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
 	std::string buff;
-	int i = 0;
+	size_t i = 0;
 	for(auto const& item : stats){
 		auto const& stat = item.second;
 		char line[512];
@@ -74,7 +77,7 @@ static void print_flow_table(FILE * stream, std::map<time_group, log_stat> const
 				__FUNCTION__, buff.size(), r);
 
 	if(i != 0)
-		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
+		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
 }
 
 void do_print_url_popular_table(FILE * stream, time_group const& g, log_stat const& stat, size_t& i)
@@ -115,9 +118,6 @@ inline void print_url_popular_table(FILE * stream, std::map<time_group, log_stat
 		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
 }
 
-int parse_fmt(char const * in, std::string& out,
-		std::unordered_map<std::string, std::string> const& argmap);
-
 static void print_url_popular_table(char const * folder, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
@@ -125,7 +125,6 @@ static void print_url_popular_table(char const * folder, std::map<time_group, lo
 
 	for(auto const& item : stats){
 		auto const& stat = item.second;
-		//FIXME: fname to be customizable
 		std::unordered_map<std::string, std::string> argmap = {
 				{"datetime",  item.first.c_str("%Y%m%d%H%M")},
 				{"site_id", std::to_string(site_id)},
@@ -148,7 +147,7 @@ static void print_url_popular_table(char const * folder, std::map<time_group, lo
 inline void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
-	int i = 0;
+	size_t i = 0;
 	for(auto const& item : stats){
 		for(auto const& ip_item : item.second._ip_stats){
 			auto const& ipstat = ip_item.second;
@@ -162,7 +161,7 @@ inline void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat>
 		}
 	}
 	if(i != 0)
-		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
+		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
 }
 
 inline void print_http_stats_table(FILE * stream, std::map<time_group, log_stat> const& stats,
@@ -248,27 +247,58 @@ static void print_url_key_table(FILE * stream, std::map<time_group, log_stat> co
 {
 	//NOT implement yet
 }
+
+
+void do_print_ip_source_table(FILE * stream, time_group const& g, log_stat const& stat, size_t& i, int device_id)
+{
+	for(auto const& li_item : stat._locisp_stats){
+		auto const & li = li_item.first;
+		auto const & listat = li_item.second;
+		char loc_isp[7 + 1 + 3 + 1 + 20]; /*<loc><blank><isp><NULL><?>*/
+		/*format: bw_time, local_id, isp_id, pvs, tx, pvs_m, tx_m, device_id*/
+		auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %d\n",
+						g.c_str("%Y%m%d%H%M"),
+						li.loc_isp_c_str(loc_isp, sizeof(loc_isp)),
+						listat.access, listat.bytes,
+						listat.access_m, listat.bytes_m, device_id);
+		if(sz <= 0) ++i;
+	}
+}
+
+static void print_ip_source_table(char const * folder, std::map<time_group, log_stat> const& stats,
+		int device_id, int site_id, int user_id)
+{
+	size_t i = 0;
+	for(auto const& item : stats){
+		auto const& stat = item.second;
+		std::unordered_map<std::string, std::string> argmap = {
+				{"datetime",  item.first.c_str("%Y%m%d%H%M")},
+				{"site_id", std::to_string(site_id)},
+				{"device_id", std::to_string(device_id)},
+				{"user_id", std::to_string(user_id)},
+		};
+		std::string fname = folder, outname;
+		parse_fmt(nla_opt.output_file_ip_source_format, outname, argmap);
+		fname += '/'; fname += outname;
+
+		auto stream  = fopen(fname.c_str(), "w");
+		if(!stream) continue;
+		do_print_ip_source_table(stream, item.first, stat, i, device_id);
+		fclose(stream);
+	}
+	if(i != 0)
+		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
+}
+
 static void print_ip_source_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {
-	int i = 0;
+	size_t i = 0;
 	for(auto const& item : stats){
-		for(auto const& li_item : item.second._locisp_stats){
-			auto const & li = li_item.first;
-			auto const & listat = li_item.second;
-			char loc_isp[7 + 1 + 3 + 1 + 20]; /*<loc><blank><isp><NULL><?>*/
-			li.loc_isp_c_str(loc_isp, sizeof(loc_isp));
-			/*format: bw_time, local_id, isp_id, pvs, tx, pvs_m, tx_m, device_id*/
-			auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %d\n",
-							item.first.c_str("%Y%m%d%H%M"),
-							loc_isp,
-							listat.access, listat.bytes,
-							listat.access_m, listat.bytes_m, device_id);
-			if(sz <= 0) ++i;
-		}
+		do_print_ip_source_table(stream, item.first, item.second, i, device_id);
 	}
 	if(i != 0)
-		fprintf(stderr, "%s: WARNING, skip %d lines\n", __FUNCTION__, i);
+		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
 }
 
 int print_stats(std::map<time_group, log_stat>const& logstats,
@@ -276,14 +306,14 @@ int print_stats(std::map<time_group, log_stat>const& logstats,
 {
 	auto stream = stdout;
 	auto f = nla_opt.output_file_flow;
-	if(nla_opt.flow){
+	if(f){
 		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
 			print_flow_table(stream, logstats, device_id, site_id, user_id);
 		else
 			fprintf(stderr, "%s: fopen output_file_flow '%s' for append failed\n", __FUNCTION__, f);
 	}
 	f = nla_opt.output_file_url_popular;
-	if(nla_opt.url_popular){
+	if(f){
 		bool is_to_stdout = strcmp(f, "1") == 0,
 			is_split = !is_to_stdout && nla_opt.output_file_url_popular_split;
 		if(is_split)
@@ -296,14 +326,14 @@ int print_stats(std::map<time_group, log_stat>const& logstats,
 		}
 	}
 	f = nla_opt.output_file_ip_popular;
-	if(nla_opt.ip_popular){
+	if(f){
 		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
 			print_ip_popular_table(stream, logstats, device_id, site_id, user_id);
 		else
 			fprintf(stderr, "%s: fopen output_file_ip_popular '%s' for append failed\n", __FUNCTION__, f);
 	}
 	f = nla_opt.output_file_http_stats;
-	if(nla_opt.http_stats){
+	if(f){
 		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
 			print_http_stats_table(stream, logstats, device_id, site_id, user_id);
 		else
@@ -325,10 +355,16 @@ int print_stats(std::map<time_group, log_stat>const& logstats,
 	}
 	f = nla_opt.output_file_ip_source;
 	if(f){
-		if(strcmp(f, "1") == 0 || (stream = fopen(f, "a")) != NULL)
-			print_ip_source_table(stream, logstats, device_id, site_id, user_id);
-		else
-			fprintf(stderr, "%s: fopen output_file_ip_source '%s' for append failed\n", __FUNCTION__, f);
+		bool is_to_stdout = strcmp(f, "1") == 0,
+			is_split = !is_to_stdout && nla_opt.output_file_ip_source_split;
+		if(is_split)
+			print_ip_source_table(f, logstats, device_id, site_id, user_id);
+		else {
+			if(is_to_stdout || (stream = fopen(f, "a")) != NULL)
+				print_ip_source_table(stream, logstats, device_id, site_id, user_id);
+			else
+				fprintf(stderr, "%s: fopen output_file_ip_source '%s' for append failed\n", __FUNCTION__, f);
+		}
 	}
 	return 0;
 }
