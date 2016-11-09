@@ -144,6 +144,7 @@ static void print_url_popular_table(char const * folder, std::map<time_group, lo
 		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, i);
 
 }
+
 inline void print_ip_popular_table(FILE * stream, std::map<time_group, log_stat> const& stats,
 		int device_id, int site_id, int user_id)
 {

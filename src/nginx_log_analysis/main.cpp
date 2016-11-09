@@ -38,18 +38,18 @@
 extern int test_nginx_log_analysis_main(int argc, char ** argv);
 /*!
  * parse ' ' splitted nginx log
+ * @NOTE:
+ * 1.current nginx_log format:
+ * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method \
+ * $request_uri $server_protocol" $status $bytes_sent \
+ * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" \
+ * $scheme $request_length $upstream_response_time', total fields == 18
+ *
  * nginx_log sample:
  * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
  * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
  * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
 
- * @NOTE:current nginx_log format:
- * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method \
- * $request_uri $server_protocol" $status $bytes_sent \
- * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" \
- * $scheme $request_length $upstream_response_time'
- *
- * total fields == 18
  * TODO:make it customizable
  * */
 static int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
@@ -64,7 +64,7 @@ static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & s
  * mode 1, url endwith '?'(if no '?', then endwith ' '), ignore parameters, e.g. "GET /V3/?page_id=1004&cid=1443 HTTP/1.1", return "/V3/"
  * mode 2, custom, @param cache_status required
  * */
-static char * parse_nginx_log_request_uri_url(char * request_uri, int & len, char const * cache_status, int mode = 2);
+static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode = 2);
 /*do log statistics with time interval*/
 static int do_nginx_log_stats(log_item const& item, std::map<time_group, log_stat>& logstats);
 
@@ -105,10 +105,10 @@ struct ipmap_ctx g_ipmap_ctx;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-static char * parse_nginx_log_request_uri_url(char * request_uri, int & len, char const * cache_status, int mode/* = 2*/)
+static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode/* = 2*/)
 {
 	auto url = strchr(request_uri, '/'); /*"GET /abc?param1=abc"*/
-
+	if(!url) return NULL;
 	auto pos = strchr(url, ' ');
 	auto m = nla_opt.parse_url_mode;
 	if(m == 1){
@@ -126,9 +126,10 @@ static char * parse_nginx_log_request_uri_url(char * request_uri, int & len, cha
 			}
 		}
 	}
-	len = pos - url;
-	url[len] = '\0';
-
+	auto length = pos - url;
+	url[length] = '\0';
+	if(len)
+		*len = length;
 	return url;
 }
 
@@ -154,13 +155,9 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	my_tm.tm_isdst = 0;
 	item.time_local = mktime(&my_tm);
 
-	/*!
-	 * FIXME: str_find NOT correct in multi-thread, and little speedup, disabled, @date 2016/10/27
-	 */
-	int len;
-	char buff[33];
-	char * url = parse_nginx_log_request_uri_url(items[6], len, items[3]);
-	item.request_url = sha1sum_r(url, len, buff);
+	auto url = parse_nginx_log_request_uri_url(items[6], NULL, items[3]);
+	if(!url) return -1;
+	item.request_url = url;
 
 	char const * p = items[8];
 	item.bytes_sent = strtoul(p, &end, 10);
@@ -178,7 +175,9 @@ static int do_nginx_log_stats(log_item const& item, std::map<time_group, log_sta
 	}
 
 	if(nla_opt.output_file_flow || nla_opt.output_file_url_popular || nla_opt.output_file_http_stats){
-		url_stat& urlstat = logsstat._url_stats[item.request_url];
+		char buff[strlen(item.request_url)];
+		sha1sum_r(item.request_url, sizeof(buff), buff);
+		url_stat& urlstat = logsstat._url_stats[buff];
 		++urlstat._status[item.status];
 		urlstat._bytes[item.status] += item.bytes_sent;
 	}
@@ -437,8 +436,6 @@ int parse_nginx_log_item_buf(parse_context& ct)
 		}
 		++total_lines;
 	}
-
-
 	return 0;
 }
 
@@ -541,6 +538,9 @@ static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & s
 		log_stats_append(stats, parse_args[parallel_count].logstats);
 	}
 	g_line_count += parse_args[parallel_count].total_lines;
+	if(nla_opt.verbose)
+		fprintf(stdout, "\r%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
+
 	munmap(start_p, logfile_stat.st_size);
 	return 0;
 }
@@ -613,9 +613,6 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	/*parse logs*/
 	std::map<time_group, log_stat> logstats;
 	parallel_parse_nginx_log(nginx_log_file, logstats);
-	if(nla_opt.verbose)
-		fprintf(stdout, "\r%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
-
 	/*output results*/
 	print_stats(logstats, device_id, site_id, user_id);
 
