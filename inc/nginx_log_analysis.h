@@ -23,6 +23,7 @@ class cutip_group;
 //////////////////////////////////////////////////////////////////////////////////
 /*a line of nginx log*/
 struct log_item{
+	char const * domain;
 	time_t time_local;
 	char const *request_url;
 	size_t request_time;
@@ -44,18 +45,6 @@ struct url_count
 {
 	std::string/*char const **/ url;
 	size_t count;
-};
-//////////////////////////////////////////////////////////////////////////////////
-/*log buffer and parse result, @see parse_log_item_buf*/
-struct parse_context
-{
-/*input*/
-	char * buf;
-	size_t len;
-
-/*output*/
-	std::map<time_group, log_stat> logstats;
-	size_t total_lines;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -194,6 +183,28 @@ public:
 	size_t access_total() const;
 	size_t access(int code1, int code2 = -1) const;
 	log_stat& operator+=(log_stat const& another);
+};
+
+//////////////////////////////////////////////////////////////////////////////////
+/*log statistics by domain*/
+struct domain_stat
+{
+	std::map<time_group, log_stat> _stats;
+	int _site_id;
+	int _user_id;
+};
+
+//////////////////////////////////////////////////////////////////////////////////
+/*log buffer and parse result, @see parse_log_item_buf*/
+struct parse_context
+{
+/*input*/
+	char * buf;
+	size_t len;
+
+/*output*/
+	std::unordered_map<std::string, domain_stat> logstats;	/*domain : domain_stat*/
+	size_t total_lines;
 };
 
 #endif /*_NGINX_LOG_ANALYSIS_H_*/

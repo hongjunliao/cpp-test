@@ -55,8 +55,8 @@ extern int test_nginx_log_analysis_main(int argc, char ** argv);
 static int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
 /*parse nginx_log buffer @apram ct, and output results*/
 static int parse_nginx_log_item_buf(parse_context& ct);
-/*split file @param f into parts, use pthread to parallel parse */
-static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & stats);
+/* split file @param f into parts, use pthread to parallel parse*/
+static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, domain_stat> & stats);
 
 /* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
  * @param mode:
@@ -66,7 +66,7 @@ static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & s
  * */
 static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode = 2);
 /*do log statistics with time interval*/
-static int do_nginx_log_stats(log_item const& item, std::map<time_group, log_stat>& logstats);
+static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::string, domain_stat> & logstats);
 
 /*load devicelist, @param devicelist map<device_id, ip>*/
 static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
@@ -74,7 +74,7 @@ static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& 
 static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist);
 
 /*find site_id by site_name/domain*/
-static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int & siteid, int * user_id = NULL);
+int find_site_id(const char* site, int & siteid, int * user_id = NULL);
 /*get device_id by ip*/
 static int get_device_id(std::unordered_map<int, char[16]> const& devicelist);
 
@@ -86,9 +86,8 @@ static char const * find_domain(char const * nginx_log_file);
  */
 static char const * str_find(char const *str, int len = -1);
 
-/*nginx_log_analysis_print_table.cpp*/
-extern int print_stats(std::map<time_group, log_stat>const& logstats,
-		int device_id, int site_id, int user_id);
+/*nginx_log_analysis/print_table.cpp*/
+extern int print_stats(std::unordered_map<std::string, domain_stat> const& logstats);
 //////////////////////////////////////////////////////////////////////////////////
 
 /*GLOBAL vars*/
@@ -97,6 +96,8 @@ static std::unordered_map<int, char[16]> g_devicelist;
 /*map<domain, site_info>*/
 static std::unordered_map<std::string, site_info> g_sitelist;
 static size_t g_line_count = 0;
+time_t g_start_time = 0;
+int g_device_id = 0;
 
 #ifdef ENABLE_IPMAP
 #include "ipmap.h"		/*ipmap_load, ipmap_ctx*/
@@ -142,6 +143,7 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 		return 1;
 	}
 
+	item.domain = items[0];
 	item.client_ip = netutil_get_ip_from_str(items[1]);
 	if(item.client_ip == 0)
 		return 1;
@@ -166,9 +168,13 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	return 0;
 }
 
-static int do_nginx_log_stats(log_item const& item, std::map<time_group, log_stat>& logstats)
+static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::string, domain_stat> & logstats)
 {
-	log_stat& logsstat = logstats[item.time_local];
+	auto & dstat = logstats[item.domain];
+	if(dstat._site_id == 0)
+		find_site_id(item.domain, dstat._site_id, &dstat._user_id);
+
+	auto & logsstat = dstat._stats[item.time_local];
 	if(!item.is_hit){
 		logsstat._bytes_m += item.bytes_sent;
 		++logsstat._access_m;
@@ -233,8 +239,9 @@ static int load_sitelist(char const* file, std::unordered_map<std::string, site_
 	return 0;
 }
 
-static int find_site_id(std::unordered_map<std::string, site_info> const& sitelist, const char* site, int & siteid, int * user_id)
+int find_site_id(const char* site, int & siteid, int * user_id)
 {
+	auto & sitelist = g_sitelist;
 	if(!site || !site[0])
 		return -1;
 
@@ -449,15 +456,16 @@ void * parallel_parse_thread_func(void * varg)
 	return varg;
 }
 
-static int log_stats_append(std::map<time_group, log_stat> & a, std::map<time_group, log_stat> const& b)
+static int log_stats_append(std::unordered_map<std::string, domain_stat> & a,
+		std::unordered_map<std::string, domain_stat> const& b)
 {
-	for(auto const& item : b){
-		a[item.first] += item.second;
-	}
+//	for(auto const& item : b){
+//		a[item.first] += item.second;
+//	}
 	return 0;
 }
 
-static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & stats)
+static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, domain_stat> & stats)
 {
 	struct stat logfile_stat;
 	if(fstat(fileno(f), &logfile_stat) < 0){
@@ -539,7 +547,7 @@ static int parallel_parse_nginx_log(FILE * f, std::map<time_group, log_stat> & s
 	}
 	g_line_count += parse_args[parallel_count].total_lines;
 	if(nla_opt.verbose)
-		fprintf(stdout, "\r%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
+		fprintf(stdout, "%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
 
 	munmap(start_p, logfile_stat.st_size);
 	return 0;
@@ -567,11 +575,12 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 		int result = load_sitelist(nla_opt.siteuidlist_file, g_sitelist);
 		int site_id = 0, user_id  = 0;
 		if(result == 0)
-			find_site_id(g_sitelist, find_domain(nla_opt.log_file), site_id, &user_id);
+			find_site_id(find_domain(nla_opt.log_file), site_id, &user_id);
 		fprintf(stdout, "%d %d\n", site_id, user_id);
 		return result == 0? 0 : 1;
 	}
 
+	g_start_time = time(NULL);
 	result = load_devicelist(nla_opt.devicelist_file, g_devicelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);
@@ -591,7 +600,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	fprintf(stdout, "%s: ipmap DISABLED on this platform\n", __FUNCTION__);
 #endif //ENABLE_IPMAP
 
-	FILE * nginx_log_file = fopen(nla_opt.log_file, "r");
+	auto nginx_log_file = fopen(nla_opt.log_file, "r");
 	if(!nginx_log_file) {
 		fprintf(stderr, "fopen file %s failed\n", nla_opt.log_file);
 		return 1;
@@ -603,18 +612,19 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	}
 	time_group::_sec = interval;
 
-	int device_id = 0, site_id = 0, user_id  = 0;
-	device_id = nla_opt.device_id > 0? nla_opt.device_id : get_device_id(g_devicelist);
-	find_site_id(g_sitelist, find_domain(nla_opt.log_file), site_id, &user_id);
+	int site_id = 0, user_id  = 0;
+	g_device_id = nla_opt.device_id > 0? nla_opt.device_id : get_device_id(g_devicelist);
+	find_site_id(find_domain(nla_opt.log_file), site_id, &user_id);
 	if(nla_opt.verbose)
 		fprintf(stdout, "%s: device_id=%d, site_id=%d, user_id=%d\n", __FUNCTION__,
-			device_id, site_id, user_id);
+			g_device_id, site_id, user_id);
 
 	/*parse logs*/
-	std::map<time_group, log_stat> logstats;
+	std::unordered_map<std::string, domain_stat> logstats;	/*[domain: domain_stat]*/
 	parallel_parse_nginx_log(nginx_log_file, logstats);
+
 	/*output results*/
-	print_stats(logstats, device_id, site_id, user_id);
+	print_stats(logstats);
 
 	return 0;
 }

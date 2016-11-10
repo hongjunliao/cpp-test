@@ -16,20 +16,26 @@ struct nla_options
 	char const * siteuidlist_file;
 	char const * ipmap_file;
 
-	char const * output_file_flow;	/*'1' for stdout*/
+	char const * output_file_flow;	/*flow_table output dir*/
+	char const * format_flow;		/*output flow_table filename format*/
 
 	char const * output_file_url_popular;
-	bool output_file_url_popular_split;				/*split url_popular_table?*/
-	char const * output_file_url_popular_format;	/*output url_popular_table filename format*/
+	char const * format_url_popular;
 
 	char const * output_file_ip_popular;
+	char const * format_ip_popular;
+
 	char const * output_file_http_stats;
+	char const * format_http_stats;
+
 	char const * output_file_ip_slowfast;
+	char const * format_ip_slowfast;
+
 	char const * output_file_cutip_slowfast;
+	char const * format_cutip_slowfast;
 
 	char const * output_file_ip_source;
-	bool output_file_ip_source_split;
-	char const * output_file_ip_source_format;
+	char const * format_ip_source;
 
 	int device_id;		/*if not provided, find it in devicelist_file by local machine ip*/
 	int print_device_id;

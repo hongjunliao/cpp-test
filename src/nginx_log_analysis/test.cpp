@@ -23,7 +23,8 @@
 /*tests, @see do_test*/
 static int test_strptime_main(int argc, char ** argv);
 static int test_time_mark_main(int argc, char ** argv);
-int test_nginx_log_split_main(int argc, char ** argv);
+/*nginx_log_slit/main.cpp*/
+extern int test_nginx_log_split_main(int argc, char ** argv);
 /*test_mem.cpp*/
 extern int test_alloc_mmap_main(int argc, char * argv[]);
 /*net_util.cpp*/
@@ -87,57 +88,6 @@ static int test_strptime_main(int argc, char ** argv)
 	mktime(&my_tm);
 	fprintf(stdout, "time=%s, NOT paused=[%s], asctime:sec=%d,all=%s\n",
 			stime, result? result : "<null>", my_tm.tm_sec, asctime(&my_tm));
-	return 0;
-}
-
-int test_nginx_log_split_main(int argc, char ** argv)
-{
-	if(argc < 3){
-		fprintf(stderr, "split nginx log file into multiple files, by domain field.\n"
-				"usage: %s <nginx_log_file> <output_folder>\n"
-				"  <nginx_log_file>     nginx log file\n"
-				"  <output_folder>      folder name where splitted files will save to\n"
-				, __FUNCTION__);
-		return 1;
-	}
-	FILE * f = fopen(argv[1], "r");
-	if(!f) {
-		fprintf(stderr, "fopen file %s failed\n", argv[1]);
-		return 1;
-	}
-	char out_folder[32] = "logs";
-	strcpy(out_folder, argv[2]);
-	if(out_folder[strlen(out_folder) -1 ] != '/')
-		strcat(out_folder, "/");
-
-	std::unordered_map<std::string, FILE *> dmap;/*domain : log_file*/
-	size_t linecount = 0;
-	char data[8192] = "";
-	char const * result = 0;
-	while((result = fgets(data, sizeof(data), f)) != NULL){
-		++linecount;
-		fprintf(stdout, "\rprocessing %8ld line ...", linecount);
-		int len = strlen(result);
-		if(result[len - 1] != '\n'){
-			fprintf(stderr, "\n%s: WARNING, length > %zu bytes, skip:\n%s\n", __FUNCTION__, sizeof(data), data);
-			continue;
-		}
-		char domain[128] = "", out_file[512] = "";
-		strncpy(domain, data, strchr(data, ' ') - data);
-		strlwr(domain);
-
-		FILE * & file = dmap[domain];
-		sprintf(out_file, "%s%s", out_folder, domain);
-		if(!file && (file = fopen(out_file, "w")) == NULL){
-			fprintf(stderr, "\n%s: WARNING, create file %s failed, skip\n", __FUNCTION__, domain);
-			continue;
-		}
-		int result = fwrite(data, sizeof(char), len, file);
-		if(result < len || ferror(file)){
-			fprintf(stderr, "\n%s: WARNING, write domain file %s NOT complete:\n%s\n", __FUNCTION__, domain, data);
-		}
-	}
-	fprintf(stdout, "\n");
 	return 0;
 }
 
@@ -217,7 +167,7 @@ int test_nginx_log_analysis_main(int argc, char ** argv)
 //			, sha1sum_r(data, sizeof(data), sha1), md5sum_r(data, sizeof(data), md5));
 
 //	test_nginx_log_parse_fmt_main(argc, argv);
-//	test_nginx_log_parse_option_main(argc, argv);
+	test_nginx_log_parse_option_main(argc, argv);
 //	exit(0);
 
 
