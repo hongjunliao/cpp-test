@@ -167,7 +167,7 @@ int test_nginx_log_analysis_main(int argc, char ** argv)
 //			, sha1sum_r(data, sizeof(data), sha1), md5sum_r(data, sizeof(data), md5));
 
 //	test_nginx_log_parse_fmt_main(argc, argv);
-	test_nginx_log_parse_option_main(argc, argv);
+//	test_nginx_log_parse_option_main(argc, argv);
 //	exit(0);
 
 

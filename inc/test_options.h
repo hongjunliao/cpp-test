@@ -24,6 +24,7 @@ struct nla_options
 
 	char const * output_file_ip_popular;
 	char const * format_ip_popular;
+	int min_ip_popular, max_ip_popular; /*for filter output, minimal access_count for all ip*/
 
 	char const * output_file_http_stats;
 	char const * format_http_stats;

@@ -62,7 +62,6 @@ static std::string parse_fmt_filename(char const * fmt, char const *interval, in
 static void print_flow_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	/*format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m */
-	/*FIXME: use fprintf?*/
 	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu\n",
 			site_id, g.c_str("%Y%m%d%H%M"), g_device_id, stat.access_total()
 			, stat.bytes_total(), user_id, stat._access_m, stat._bytes_m);
@@ -99,6 +98,11 @@ inline void print_ip_popular_table(FILE * stream, time_group const& g, log_stat 
 {
 	for(auto const& ip_item : stat._ip_stats){
 		auto const& ipstat = ip_item.second;
+		if(nla_opt.min_ip_popular > 0 && ipstat.access < nla_opt.min_ip_popular)
+			continue;
+		if(nla_opt.max_ip_popular >= 0 && ipstat.access > nla_opt.max_ip_popular)
+			continue;
+
 		char ipbuff[20] = "0.0.0.0";
 		/*format: site_id, device_id, ip, datetime, num*/
 		/*FIXME: ip is string format?*/
@@ -224,6 +228,12 @@ int print_stats(std::unordered_map<std::string, domain_stat> const& stats)
 			}
 		}
 	}
+	for(auto & it : filemap){
+		if(it.second)
+			fclose(it.second);
+	}
+	if(n != 0)
+		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, n);
 	return 0;
 
 }
