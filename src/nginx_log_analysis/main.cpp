@@ -68,15 +68,15 @@ static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, cha
 /*do log statistics with time interval*/
 static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::string, domain_stat> & logstats);
 
-/*load devicelist, @param devicelist map<device_id, ip>*/
-static int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist);
+/*load devicelist, @param devicelist map<ip, device_id>*/
+static int load_devicelist(char const* file, std::unordered_map<std::string, int>& devicelist);
 /*load sitelist*/
 static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist);
 
 /*find site_id by site_name/domain*/
 int find_site_id(const char* site, int & siteid, int * user_id = NULL);
 /*get device_id by ip*/
-static int get_device_id(std::unordered_map<int, char[16]> const& devicelist);
+static int get_device_id(std::unordered_map<std::string, int> const& devicelist);
 
 /*read domain from log_file*/
 static char const * find_domain(char const * nginx_log_file);
@@ -91,8 +91,8 @@ extern int print_stats(std::unordered_map<std::string, domain_stat> const& logst
 //////////////////////////////////////////////////////////////////////////////////
 
 /*GLOBAL vars*/
-/*map<device_id, ip_addr>*/
-static std::unordered_map<int, char[16]> g_devicelist;
+/*map<ip_addr : device_id>*/
+static std::unordered_map<std::string, int> g_devicelist;
 /*map<domain, site_info>*/
 static std::unordered_map<std::string, site_info> g_sitelist;
 static size_t g_line_count = 0;
@@ -144,6 +144,7 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	}
 
 	item.domain = items[0];
+//	item.client_ip_2 = items[1];
 	item.client_ip = netutil_get_ip_from_str(items[1]);
 	if(item.client_ip == 0)
 		return 1;
@@ -202,6 +203,9 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 		cutipstat.sec += item.request_time;
 	}
 	if(nla_opt.output_file_ip_source){
+		/*FIXME, @date 2016/11/11*/
+//		if(nla_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
+//			return 0;
 		locisp_stat& listat = logsstat._locisp_stats[item.client_ip];
 		listat.bytes += item.bytes_sent;
 		++listat.access;
@@ -266,7 +270,7 @@ int find_site_id(const char* site, int & siteid, int * user_id)
 	return 0;
 }
 
-int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicelist)
+int load_devicelist(char const* file, std::unordered_map<std::string, int>& devicelist)
 {
 	if(!file) return -1;
 	FILE * f = fopen(file, "r");
@@ -280,15 +284,15 @@ int load_devicelist(char const* file, std::unordered_map<int, char[16]>& devicel
 		char const * token = strtok(data, " ");
 		int id = atoi(token);
 		token = strtok(NULL, " ");
-		strncpy(devicelist[id], token, 15);
+		devicelist[token] = id;
 	}
 //	for(auto const& item : devicelist){
-//		fprintf(stdout, "%d--%s\n", item.first, item.second);
+//		fprintf(stdout, "[%s]--[%d]\n", item.first.c_str(), item.second);
 //	}
 	return 0;
 }
 
-static int get_device_id(std::unordered_map<int, char[16]> const & devicelist)
+static int get_device_id(std::unordered_map<std::string, int> const & devicelist)
 {
 	char ips[64][16];
 	int count = 64;
@@ -298,8 +302,8 @@ static int get_device_id(std::unordered_map<int, char[16]> const & devicelist)
 	//std::find_first_of();
 	for(int i = 0; i < count; ++i){
 		for(auto const& item : devicelist){
-			if(strcmp(item.second, ips[i]) == 0)
-				return item.first;
+			if(item.first.compare(ips[i])  == 0)
+				return item.second;
 		}
 	}
 	return 0;

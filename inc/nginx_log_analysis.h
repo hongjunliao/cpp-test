@@ -28,6 +28,7 @@ struct log_item{
 	char const *request_url;
 	size_t request_time;
 	uint32_t client_ip;
+//	char const * client_ip_2;	/*same as client_ip*/
 	size_t bytes_sent;
 	int status;
 	bool is_hit;
