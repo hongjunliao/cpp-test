@@ -131,10 +131,11 @@ inline void print_http_stats_table(FILE * stream, time_group const& g, log_stat 
 
 inline void print_ip_slowfast_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
 {
+	return;
 	/*FIXME: print only top 10?*/
 	for(auto const& ip_item : stat._ip_stats){
 		auto const & ipstat = ip_item.second;
-		double speed = (double)ipstat.bytes / ipstat.sec;
+		double speed = (ipstat.sec != 0? (double)ipstat.bytes / ipstat.sec : (double)ipstat.bytes * 1000000.0);
 		/*format: device_id, ip, datetime, speed, type(MISS,HIT)*/
 		/*FIXME: type?*/
 		auto sz = fprintf(stream, "%d %u %s %.0f %d\n",
@@ -190,7 +191,6 @@ int print_stats(std::unordered_map<std::string, domain_stat> const& stats)
 	for(auto const& dstat : stats){
 		for(auto const& item : dstat.second._stats){
 			auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
-
 			if(nla_opt.output_file_flow){
 				auto outname = std::string(nla_opt.output_file_flow) +
 						parse_fmt_filename(nla_opt.format_flow, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
