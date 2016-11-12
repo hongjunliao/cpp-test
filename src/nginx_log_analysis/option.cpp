@@ -165,6 +165,7 @@ void nginx_log_stats_show_help(FILE * stream)
 			"    ${device_id}  device_id\n"
 			"    ${site_id}    site_id/domain id\n"
 			"    ${user_id}    user_id\n"
+			"  2.use ulimit(or other command) to increase 'open files', or may crash!\n"
 	);
 
 }
