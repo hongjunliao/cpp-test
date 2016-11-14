@@ -120,8 +120,14 @@ url_stat& url_stat::operator+=(url_stat const& another)
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef ENABLE_IPMAP
-#include "ipmap.h"		/*ipmap_nlookup*/
-extern struct ipmap_ctx g_ipmap_ctx;
+struct ipmap_ctx locisp_group::_ipmap_ctx;
+#endif //ENABLE_IPMAP
+
+#ifdef ENABLE_IPMAP
+int locisp_group::load_ipmap_file(char const * ipmap_file)
+{
+	return 0 == ipmap_load(ipmap_file, &_ipmap_ctx, 1)? 0 : 1;
+}
 #endif //ENABLE_IPMAP
 
 locisp_group::locisp_group(uint32_t ip/* = 0*/)
@@ -131,7 +137,7 @@ locisp_group::locisp_group(uint32_t ip/* = 0*/)
 	/*FIXME: ipmap_nlookup, ipmap_alookup return NOT same*/
 //    auto isp = ipmap_nlookup(&g_ipmap_ctx, ip);
 	char buf[32];
-	auto isp = ipmap_alookup(&g_ipmap_ctx, netutil_get_ip_str(ip, buf, sizeof(buf)));
+	auto isp = ipmap_alookup(&_ipmap_ctx, netutil_get_ip_str(ip, buf, sizeof(buf)));
     if(isp){
 		char ispbuff[32] = "";
     	auto str_isp = ipmap_tostr2(isp, ispbuff);

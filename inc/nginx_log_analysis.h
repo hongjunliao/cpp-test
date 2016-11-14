@@ -111,13 +111,26 @@ struct locisp_stat
 //////////////////////////////////////////////////////////////////////////////////
 /* group by local_id and isp: locisp
  * @note: define ENABLE_IPMAP to enable ipmap*/
+#ifdef ENABLE_IPMAP
+#include "ipmap.h"	/*ipmap_ctx*/
+#endif //ENABLE_IPMAP
+
 class locisp_group
 {
 	char _locisp[32];
 	friend bool operator ==(const locisp_group& one, const locisp_group& another);
 	friend struct std::hash<locisp_group>;
+#ifdef ENABLE_IPMAP
+private:
+	static struct ipmap_ctx _ipmap_ctx;
+#endif //ENABLE_IPMAP
 public:
 	locisp_group(uint32_t ip = 0);
+#ifdef ENABLE_IPMAP
+public:
+	static int load_ipmap_file(char const * ipmap_file);
+#endif //ENABLE_IPMAP
+public:
 	/*buff sample: 'CN3501 0B'*/
 	char * loc_isp_c_str(char * buff, int len) const;
 };

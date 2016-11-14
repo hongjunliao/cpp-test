@@ -1,20 +1,14 @@
 /*!
- * This file is PART of nginx_log_analysis
- * parse nginx logs and print results
+ * This file is PART of plcdn_log_analysis
+ * parse logs and print results, currently support: nginx, srs
  * @author hongjun.liao <docici@126.com>
- * @date 2016/9
- * @note:
- * 1.As of current design, the input nginx log file MUST have ONLY one domain, @see test_nginx_log_split_main
- * 2.the core design is to grouping logs into std::map/std::unordered_map by different conditions \
- * such as time_interval, locisp, ip, just like "group by" syntax in SQL, @see class log_stat
- *
- * @note:
- * 1.gcc define ENABLE_IPMAP to enable libipmap
- * 2.gcc enable c++11: -std=c++0x
- * 3.gcc include path add -I../inc/ or -I"${workspace_loc:/${ProjName}/inc}"
- * 4.gcc add -fPIC for shared libraries
- * 5.gcc add -lpopt -lpthread -lcrypto -lrt
+ * @date 2016/11
  */
+
+#include <stdio.h>
+#include "bd_test.h"			/*test_srs_log_stats_main*/
+#include "test_options.h" 		/*sla_options*/
+
 #include <stdio.h>
 #include <string.h> 	/*strncpy*/
 #include <fnmatch.h>	/*fnmatch*/
@@ -91,15 +85,15 @@ extern int print_stats(std::unordered_map<std::string, domain_stat> const& logst
 //////////////////////////////////////////////////////////////////////////////////
 
 /*GLOBAL vars*/
-/*nginx_log_analysis/option.cpp*/
-extern struct nla_options nla_opt;
+/*plcdn_log_analysis/option.cpp*/
+extern struct plcdn_la_options plcdn_la_opt;
 /*map<ip_addr : device_id>*/
 static std::unordered_map<std::string, int> g_devicelist;
 /*map<domain, site_info>*/
 static std::unordered_map<std::string, site_info> g_sitelist;
 static size_t g_line_count = 0;
-time_t g_start_time = 0;
-int g_device_id = 0;
+time_t g_plcdn_la_start_time = 0;
+int g_plcdn_la_device_id = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode/* = 2*/)
@@ -107,7 +101,7 @@ static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, cha
 	auto url = strchr(request_uri, '/'); /*"GET /abc?param1=abc"*/
 	if(!url) return NULL;
 	auto pos = strchr(url, ' ');
-	auto m = nla_opt.parse_url_mode;
+	auto m = plcdn_la_opt.parse_url_mode;
 	if(m == 1){
 		auto p = strchr(url, '?');
 		if(p) pos = p;
@@ -177,7 +171,7 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 		++logsstat._access_m;
 	}
 
-	if(nla_opt.output_file_flow || nla_opt.output_file_url_popular || nla_opt.output_file_http_stats){
+	if(plcdn_la_opt.output_file_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
 		char buff[strlen(item.request_url)];
 		sha1sum_r(item.request_url, sizeof(buff), buff);
 		url_stat& urlstat = logsstat._url_stats[buff];
@@ -186,21 +180,21 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 	}
 
 	/*if NOT required, we needn't statistics it*/
-	if(nla_opt.output_file_ip_popular || nla_opt.output_file_ip_slowfast){
+	if(plcdn_la_opt.output_file_ip_popular || plcdn_la_opt.output_file_ip_slowfast){
 		ip_stat& ipstat =logsstat._ip_stats[item.client_ip];
 		ipstat.bytes += item.bytes_sent;
 		ipstat.sec += item.request_time;
 		++ipstat.access;
 
 	}
-	if(nla_opt.output_file_cutip_slowfast){
+	if(plcdn_la_opt.output_file_cutip_slowfast){
 		auto & cutipstat = logsstat._cuitip_stats[item.client_ip];
 		cutipstat.bytes += item.bytes_sent;
 		cutipstat.sec += item.request_time;
 	}
-	if(nla_opt.output_file_ip_source){
+	if(plcdn_la_opt.output_file_ip_source){
 		/*FIXME, @date 2016/11/11*/
-//		if(nla_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
+//		if(plcdn_la_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
 //			return 0;
 		locisp_stat& listat = logsstat._locisp_stats[item.client_ip];
 		listat.bytes += item.bytes_sent;
@@ -386,7 +380,7 @@ static int str_find_realloc(char *& p, size_t & total, size_t step_len)
 		if(p2) {
 			p = (char * )p2;
 			total += new_sz;
-			if(nla_opt.verbose)
+			if(plcdn_la_opt.verbose)
 				fprintf(stdout, "%s: total=%s\n", __FUNCTION__, byte_to_mb_kb_str(total, "%-.0f %cB"));
 			return 0;
 		}
@@ -480,9 +474,9 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, do
 	 * 1. be aware of local static vars when in multi-thread
 	 * 2. disabled by default, because of little speedup
 	 */
-	if(!nla_opt.enable_multi_thread)
+	if(!plcdn_la_opt.enable_multi_thread)
 		parallel_count = 0;
-	if(nla_opt.verbose)
+	if(plcdn_la_opt.verbose)
 		fprintf(stdout, "%s: logfile_size = %ld/%s, para_count=%d\n", __FUNCTION__
 				, logfile_stat.st_size, byte_to_mb_kb_str(logfile_stat.st_size, "%-.2f %cB"), parallel_count);
 
@@ -508,7 +502,7 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, do
 			fprintf(stderr, "%s: pthread_create() failed, parallel index=%d\n", __FUNCTION__, i);
 			return 1;
 		}
-		if(nla_opt.verbose){
+		if(plcdn_la_opt.verbose){
 			char buff[64];
 			printf("%s: worker_thread=%zu, process size=%zu/%s, percent=%.1f%%\n", __FUNCTION__,
 					tid, nlen, byte_to_mb_kb_str_r(nlen, "%-.2f %cB", buff), (double)nlen * 100/ logfile_stat.st_size);
@@ -518,7 +512,7 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, do
 		offset_p += nlen;
 	}
 	size_t left_len = logfile_stat.st_size - offset_p;
-	if(nla_opt.verbose){
+	if(plcdn_la_opt.verbose){
 		char buff[64];
 		printf("%s: main_thread process size=%zu/%s, percent=%.1f%%\n", __FUNCTION__,
 				left_len, byte_to_mb_kb_str_r(left_len, "%-.2f %cB", buff), (double)left_len * 100/ logfile_stat.st_size);
@@ -532,7 +526,7 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, do
 	for(auto & item : threads){
 		void * tret;
 		pthread_join(item, &tret);
-		if(nla_opt.verbose)
+		if(plcdn_la_opt.verbose)
 			fprintf(stdout, "%s: thread=%zu exited\n", __FUNCTION__, item);
 		auto & ct = *(parse_context * )tret;
 		log_stats_append(stats, ct.logstats);
@@ -546,64 +540,63 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, do
 		log_stats_append(stats, parse_args[parallel_count].logstats);
 	}
 	g_line_count += parse_args[parallel_count].total_lines;
-	if(nla_opt.verbose)
+	if(plcdn_la_opt.verbose)
 		fprintf(stdout, "%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
 
 	munmap(start_p, logfile_stat.st_size);
 	return 0;
 }
 
-int test_nginx_log_stats_main(int argc, char ** argv)
+int test_plcdn_log_analysis_main(int argc, char ** argv)
 {
-	test_nginx_log_analysis_main(argc, argv);	/*for test only*/
-
-	int result = nginx_log_stats_parse_options(argc, argv);
-	if(result != 0 || nla_opt.show_help){
-		nla_opt.show_help? nginx_log_stats_show_help(stdout) :
-				nginx_log_stats_show_usage(stdout);
+	int result = plcdn_la_parse_options(argc, argv);
+	if(result != 0 || plcdn_la_opt.show_help){
+		plcdn_la_opt.show_help? plcdn_la_show_help(stdout) :
+				plcdn_la_show_usage(stdout);
 		return 0;
 	}
-	if(nla_opt.verbose)
-		nla_options_fprint(stdout, &nla_opt);
-	if(nla_opt.print_device_id){	//query device_id and return
-		int result = load_devicelist(nla_opt.devicelist_file, g_devicelist);
+	if(plcdn_la_opt.verbose)
+		plcdn_la_options_fprint(stdout, &plcdn_la_opt);
+	if(plcdn_la_opt.print_device_id){	//query device_id and return
+		int result = load_devicelist(plcdn_la_opt.devicelist_file, g_devicelist);
 		int id = result == 0? get_device_id(g_devicelist) : 0;
 		fprintf(stdout, "%d\n", id);
 		return result == 0? 0 : 1;
 	}
 
-	g_start_time = time(NULL);
-	result = load_devicelist(nla_opt.devicelist_file, g_devicelist);
+	g_plcdn_la_start_time = time(NULL);
+	result = load_devicelist(plcdn_la_opt.devicelist_file, g_devicelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);
 		return 1;
 	}
-	result = load_sitelist(nla_opt.siteuidlist_file, g_sitelist);
+	result = load_sitelist(plcdn_la_opt.siteuidlist_file, g_sitelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_sitelist() failed\n", __FUNCTION__);
 		return 1;
 	}
 #ifdef ENABLE_IPMAP
-	if(nla_opt.output_file_ip_source && 0 != locisp_group::load_ipmap_file(nla_opt.ipmap_file))  {
-		fprintf(stderr, "%s: ipmap_load(%s) failed\n", __FUNCTION__, nla_opt.ipmap_file);
+	if(plcdn_la_opt.output_file_ip_source && 0 != locisp_group::load_ipmap_file(plcdn_la_opt.ipmap_file))  {
+		fprintf(stderr, "%s: ipmap_load(%s) failed\n", __FUNCTION__, plcdn_la_opt.ipmap_file);
 		return 1;
 	}
 #else
 	fprintf(stdout, "%s: ipmap DISABLED on this platform\n", __FUNCTION__);
 #endif //ENABLE_IPMAP
 
-	auto nginx_log_file = fopen(nla_opt.log_file, "r");
+	auto nginx_log_file = fopen(plcdn_la_opt.nginx_log_file, "r");
 	if(!nginx_log_file) {
-		fprintf(stderr, "fopen file %s failed\n", nla_opt.log_file);
+		fprintf(stderr, "fopen file %s failed\n", plcdn_la_opt.nginx_log_file);
 		return 1;
 	}
 
-	int interval = nla_opt.interval;
+	int interval = plcdn_la_opt.interval;
 	if(interval < 300 || interval > 3600){
 		fprintf(stdout, "%s: WARNING, interval(%d) too %s\n", __FUNCTION__, interval, interval < 300? "small" : "large");
 	}
 	time_group::_sec = interval;
-	g_device_id = nla_opt.device_id > 0? nla_opt.device_id : get_device_id(g_devicelist);
+
+	g_plcdn_la_device_id = plcdn_la_opt.device_id > 0? plcdn_la_opt.device_id : get_device_id(g_devicelist);
 	/*parse logs*/
 	std::unordered_map<std::string, domain_stat> logstats;	/*[domain: domain_stat]*/
 	parallel_parse_nginx_log(nginx_log_file, logstats);

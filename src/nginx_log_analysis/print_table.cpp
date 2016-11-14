@@ -18,6 +18,8 @@
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
 
+/*nginx_log_analysis/option.cpp*/
+extern struct nla_options nla_opt;
 /*main.cpp*/
 extern time_t g_start_time;
 extern int g_device_id;
