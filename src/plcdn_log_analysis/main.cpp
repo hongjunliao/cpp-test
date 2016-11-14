@@ -1,8 +1,10 @@
 /*!
  * This file is PART of plcdn_log_analysis
- * parse logs and print results, currently support: nginx, srs
+ * parse logs and print results, currently support: nginx, srs logfiles
  * @author hongjun.liao <docici@126.com>
  * @date 2016/11
+ * @NOTES:
+ * 1.merge srs(bytes) results  to nginx_log_analyis results currently, @see nginx_domainstat_append_bytes, @date 2016/11/14
  */
 
 #include <stdio.h>
@@ -24,9 +26,13 @@
 #include "bd_test.h"		/*test_nginx_log_stats_main*/
 #include "test_options.h"	/*nla_options**/
 #include "nginx_log_analysis.h"	/*log_stats, ...*/
+#include "srs_log_analysis.h"	/*srs_log_context*/
 #include "string_util.h"	/*md5sum*/
 #include "net_util.h"	/*get_if_addrs, ...*/
 #include <algorithm>	/*std::min*/
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*for nginx log*/
 
 /*tests, @see nginx_log_analysis/test.cpp*/
 extern int test_nginx_log_analysis_main(int argc, char ** argv);
@@ -80,10 +86,14 @@ static char const * find_domain(char const * nginx_log_file);
  */
 static char const * str_find(char const *str, int len = -1);
 
-/*nginx_log_analysis/print_table.cpp*/
-extern int print_stats(std::unordered_map<std::string, domain_stat> const& logstats);
-//////////////////////////////////////////////////////////////////////////////////
+/*plcdn_log_analysis/print_table.cpp*/
+extern int print_plcdn_log_stats(std::unordered_map<std::string, domain_stat> const& logstats);
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*for srs log*/
 
+/*srs_log_analysis/main.cpp*/
+extern void parse_srs_log(FILE * stream, srs_log_stats & ct);
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 /*GLOBAL vars*/
 /*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;
@@ -547,6 +557,22 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, do
 	return 0;
 }
 
+static void nginx_domain_stat_append_bytes(
+		std::unordered_map<std::string, domain_stat> & nginx_stats, srs_log_stats const& srs_stats)
+{
+	for(auto srs_item : srs_stats.tstats){
+		for(auto & it : srs_stats.cstats){
+//			auto & stat = nginx_stats[it.domain]._stats;
+//			if(srs_item.sid == it.sid){
+//				size_t ibytes = 0, obytes = 0;
+//				stat[srs_item.]._url_stats[it.url]._bytes
+//			}
+	//		auto find_by_sid = [&item](srs_connect const& c){ return item.sid == c.sid; };
+	//		auto iter = std::find_if(cstats.begin(), cstats.end(), find_by_sid);
+		}
+
+	}
+}
 int test_plcdn_log_analysis_main(int argc, char ** argv)
 {
 	int result = plcdn_la_parse_options(argc, argv);
@@ -570,6 +596,8 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);
 		return 1;
 	}
+	g_plcdn_la_device_id = plcdn_la_opt.device_id > 0? plcdn_la_opt.device_id : get_device_id(g_devicelist);
+
 	result = load_sitelist(plcdn_la_opt.siteuidlist_file, g_sitelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_sitelist() failed\n", __FUNCTION__);
@@ -583,26 +611,47 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 #else
 	fprintf(stdout, "%s: ipmap DISABLED on this platform\n", __FUNCTION__);
 #endif //ENABLE_IPMAP
-
-	auto nginx_log_file = fopen(plcdn_la_opt.nginx_log_file, "r");
-	if(!nginx_log_file) {
-		fprintf(stderr, "fopen file %s failed\n", plcdn_la_opt.nginx_log_file);
-		return 1;
-	}
-
 	int interval = plcdn_la_opt.interval;
-	if(interval < 300 || interval > 3600){
+	if(plcdn_la_opt.verbose && (interval < 300 || interval > 3600)){
 		fprintf(stdout, "%s: WARNING, interval(%d) too %s\n", __FUNCTION__, interval, interval < 300? "small" : "large");
 	}
 	time_group::_sec = interval;
 
-	g_plcdn_la_device_id = plcdn_la_opt.device_id > 0? plcdn_la_opt.device_id : get_device_id(g_devicelist);
 	/*parse logs*/
-	std::unordered_map<std::string, domain_stat> logstats;	/*[domain: domain_stat]*/
-	parallel_parse_nginx_log(nginx_log_file, logstats);
+	std::unordered_map<std::string, domain_stat> nginx_logstats;	/*[domain: domain_stat]*/
+	srs_log_stats srs_logstats;
+	FILE * nginx_log_file = NULL, * srs_log_file = NULL;
+	if(plcdn_la_opt.nginx_log_file){
+		nginx_log_file = fopen(plcdn_la_opt.nginx_log_file, "r");
+		if(!nginx_log_file) {
+			fprintf(stderr, "fopen file %s failed\n", plcdn_la_opt.nginx_log_file);
+			return 1;
+		}
+		auto status = parallel_parse_nginx_log(nginx_log_file, nginx_logstats);
+		if(status != 0){
+			fprintf(stderr, "%s: parallel_parse_nginx_log failed, exit\n", __FUNCTION__);
+			return 1;
+		}
+	}
+	if(plcdn_la_opt.srs_log_file){
+		srs_log_file = fopen(plcdn_la_opt.srs_log_file, "r");
+		if(!srs_log_file) {
+			fprintf(stderr, "fopen file %s failed\n", plcdn_la_opt.srs_log_file);
+			return 1;
+		}
+		parse_srs_log(srs_log_file, srs_logstats);
+	}
+	if(!nginx_log_file && !srs_log_file){
+		fprintf(stderr, "none of nginx, srs log file specified or can be read, exit\n");
+		return 1;
+	}
+
+	/*FIXME: to be continued*/
+//	nginx_domain_stat_append_bytes(nginx_logstats, srs_logstats);
+
 
 	/*output results*/
-	print_stats(logstats);
+	print_plcdn_log_stats(nginx_logstats);
 
 	return 0;
 }

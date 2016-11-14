@@ -28,7 +28,9 @@
  *
  * log sample:
  * 1.connect:
- * [2016-11-03 11:27:32.736][trace][21373][105] RTMP client ip=127.0.0.1
+ * format_1: [2016-11-03 11:27:32.736][trace][21373][105] RTMP client ip=127.0.0.1
+ * format_2: [2016-10-20 17:13:08.058][trace][20009][114] connect app, tcUrl=rtmp://192.168.212.164:1935/live, pageUrl=, \
+ * swfUrl=, schema=rtmp, vhost=__defaultVhost__, port=1935, app=live, args=null
  * 2.trans
  * [2016-11-03 11:31:52.824][trace][21373][105] <- CPB time=240002, obytes=4.09 KB, ibytes=14.29 MB, okbps=0,0,0, ikbps=461,547,0, \
  * mr=0/350, p1stpt=20000, pnt=20000
@@ -83,15 +85,21 @@ static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 	static auto s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
 				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
 	static auto s3 = "client disconnect peer\\. ret=[0-9]+";
-	static boost::regex r1{s1}, r2{s2}, r3{s3};
+	static auto s4 = "connect app, tcUrl=(.+), pageUrl=";
+	static boost::regex r1{s1}, r2{s2}, r3{s3}, r4{s4};
 
 	boost::cmatch m;
 	if(boost::regex_search(lbuff, m, r1)) {
 		log_type = 1;
-		memset(&logitem.conn, 0, sizeof(logitem.conn));
 		logitem.conn.time_stamp = time_tamp;
 		logitem.conn.sid = sid;
 		logitem.conn.ip = netutil_get_ip_from_str(m[1].str().c_str());
+	}
+	/*FIXME: test me!!!*/
+	if(boost::regex_search(lbuff, m, r4)) {
+		log_type = 1;
+		/*FIXME: dangerous!! local char **/
+		logitem.conn.url = m[1].str().c_str();
 	}
 	else if(boost::regex_search(lbuff, m, r2)) {
 		log_type = 2;
@@ -114,6 +122,35 @@ static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 	return time_tamp == 0? -1 : 0;
 }
 
+void parse_srs_log(FILE * stream, srs_log_stats & ct)
+{
+	char data[8192];
+	for(char * result; ( result = fgets(data, sizeof(data), stream)) != NULL; ){
+		++ct.linecount;
+		if(sla_opt.verbose && ct.linecount % 1000 == 0)
+			fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, ct.linecount);
+		auto len = strlen(result);
+		if(sla_opt.verbose && result[len - 1] != '\n'){
+			fprintf(stderr, "\n%s: WARNING, length > %zu bytes, skip:\n%s\n", __FUNCTION__, sizeof(data), data);
+			continue;
+		}
+		data[len - 1] = '\0';
+		srs_log_item logitem;
+		int log_type;
+		auto status = parse_srs_log_item(data, logitem, log_type);
+		if(status != 0) {
+			++ct.failed_count;
+			continue;
+		}
+		if(log_type == 2)
+			ct.tstats.push_back(logitem.trans);
+		else if(log_type == 1)
+			ct.cstats.push_back(logitem.conn);
+		else if(log_type == 0)
+			++ct.skip_count;
+	}
+}
+
 int test_srs_log_stats_main(int argc, char ** argv)
 {
 	auto satus = srs_log_stats_parse_options(argc, argv);
@@ -130,40 +167,14 @@ int test_srs_log_stats_main(int argc, char ** argv)
 		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, sla_opt.log_file);
 		return 1;
 	}
-	size_t linecount = 0, failed_count = 0, skip_count = 0;
-	char data[8192];
-	char const * result = 0;
-	std::vector<srs_trans> tstats;
-	std::vector<srs_connect> cstats;
-	while((result = fgets(data, sizeof(data), log_file)) != NULL){
-		++linecount;
-		if(sla_opt.verbose && linecount % 1000 == 0)
-			fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, linecount);
-		auto len = strlen(result);
-		if(result[len - 1] != '\n'){
-			fprintf(stderr, "\n%s: WARNING, length > %zu bytes, skip:\n%s\n", __FUNCTION__, sizeof(data), data);
-			continue;
-		}
-		data[len - 1] = '\0';
-		srs_log_item logitem;
-		int log_type;
-		auto result = parse_srs_log_item(data, logitem, log_type);
-		if(result != 0) {
-			++failed_count;
-			continue;
-		}
 
-		if(log_type == 2)
-			tstats.push_back(logitem.trans);
-		else if(log_type == 1)
-			cstats.push_back(logitem.conn);
-		else if(log_type == 0)
-			++skip_count;
-	}
+	srs_log_stats ct;
+	parse_srs_log(log_file, ct);
+
 	if(sla_opt.verbose)
-		fprintf(stdout, "\r%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
-				, linecount, failed_count, skip_count);
+		fprintf(stdout, "%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
+				, ct.linecount, ct.failed_count, ct.skip_count);
 
-	fprint_srs_log_stats(stdout, tstats, cstats);
+	fprint_srs_log_stats(stdout, ct.tstats, ct.cstats);
 	return 0;
 }

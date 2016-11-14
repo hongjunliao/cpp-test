@@ -24,6 +24,7 @@ void fprint_srs_log_stats(FILE * stream, std::vector<srs_trans> const& trans_sta
 		auto iter = std::find_if(cstats.begin(), cstats.end(), find_by_sid);
 		if(iter != cstats.end())
 			ip = iter->ip;
+		/*"time_stamp", "client_ip", "obytes", "ibytes", "okbps", "ikbps"*/
 		fprintf(stream, "%-21s%-16s%-14zu%-14zu%-14zu%-14zu\n",
 				buf1, netutil_get_ip_str(ip, buf2, sizeof(buf2))
 				, item.obytes, item.ibytes

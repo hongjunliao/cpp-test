@@ -87,7 +87,7 @@ static char const * find_domain(char const * nginx_log_file);
 static char const * str_find(char const *str, int len = -1);
 
 /*nginx_log_analysis/print_table.cpp*/
-extern int print_stats(std::unordered_map<std::string, domain_stat> const& logstats);
+extern int print_nginx_log_stats(std::unordered_map<std::string, domain_stat> const& logstats);
 //////////////////////////////////////////////////////////////////////////////////
 
 /*GLOBAL vars*/
@@ -609,7 +609,7 @@ int test_nginx_log_stats_main(int argc, char ** argv)
 	parallel_parse_nginx_log(nginx_log_file, logstats);
 
 	/*output results*/
-	print_stats(logstats);
+	print_nginx_log_stats(logstats);
 
 	return 0;
 }

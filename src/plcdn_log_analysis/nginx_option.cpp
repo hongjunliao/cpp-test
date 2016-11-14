@@ -63,6 +63,8 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"interval",                'i',  POPT_ARG_INT,      0, 'i', "interval in seconds, default: 300", 0 },
 
+	{"srs-log-file",            'n',  POPT_ARG_STRING,   0, 'n', "srs_log_file default: srs.log", 0 },
+
 	{"output-file-flow",        'o',  POPT_ARG_STRING,   0, 'o', "output folder for flow_table, disabled if NULL", 0 },
 	{"format-flow",             'O',  POPT_ARG_STRING,   0, 'O', "filename format for flow_table, default '" DEF_FORMAT_FLOW "', see NOTES for details", 0 },
 
@@ -104,6 +106,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 	for(int opt; (opt = poptGetNextOpt(pc)) != -1; ){
 		switch(opt){
 		case 'l': plcdn_la_opt.nginx_log_file = poptGetOptArg(pc); break;
+		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
 		case 'i': plcdn_la_opt.interval = atoi(poptGetOptArg(pc)); break;
 		case 'e': plcdn_la_opt.device_id = atoi(poptGetOptArg(pc)); break;
 		case 'd': plcdn_la_opt.devicelist_file = poptGetOptArg(pc); break;
@@ -180,7 +183,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt)
 	return true;
 }
 
-void plcdn_la_fprint(FILE * stream, plcdn_la_options const * popt)
+void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 {
 	if(!popt) return;
 	auto& opt = *popt;
