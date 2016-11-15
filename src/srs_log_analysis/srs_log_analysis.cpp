@@ -107,6 +107,7 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 	if(it_url == url_items.end())
 		return -1;
 
+	/*sample: 'rtmp://127.0.0.1:1359/'*/
 	boost::cmatch cm;
 	auto f = boost::regex_search(it_url->url, cm, boost::regex("://([^/:]+)(?::[0-9]+)?/"));
 	if(!f) return -1;
@@ -122,18 +123,11 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 
 	auto find_ip_by_sid = [&logitem](srs_connect_ip const& item){ return item.sid == logitem.trans.sid;  };
 	auto it_ip = std::find_if(ip_items.cbegin(), ip_items.cend(), find_ip_by_sid);
-	if(it_ip == ip_items.end())
-		return -1;
+	if(it_ip == ip_items.end()) return -1;
+
 	stat.ip = it_ip->ip;
 
-	if(!stat.is_start){
-		stat.is_start = 1;
-		stat.beg_ibytes = logitem.trans.ibytes;
-		stat.beg_obytes = logitem.trans.obytes;
-	}
-	else{
-		stat.end_ibytes = logitem.trans.ibytes;
-		stat.end_obytes = logitem.trans.obytes;
-	}
+	stat.ibytes += logitem.trans.ibytes;
+	stat.obytes += logitem.trans.obytes;
 	return 0;
 }

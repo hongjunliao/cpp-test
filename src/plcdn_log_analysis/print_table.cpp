@@ -195,37 +195,51 @@ int print_plcdn_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			if(plcdn_la_opt.output_file_flow){
 				auto outname = std::string(plcdn_la_opt.output_file_flow) +
 						parse_fmt_filename(plcdn_la_opt.format_flow, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
-				print_flow_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_flow_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_url_popular){
 				auto outname = std::string(plcdn_la_opt.output_file_url_popular) +
 						parse_fmt_filename(plcdn_la_opt.format_url_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
-				print_url_popular_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_url_popular_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_ip_popular){
 				auto outname = std::string(plcdn_la_opt.output_file_ip_popular) +
 						parse_fmt_filename(plcdn_la_opt.format_ip_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
-				print_ip_popular_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_ip_popular_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_http_stats){
 				auto outname = std::string(plcdn_la_opt.output_file_http_stats) +
 						parse_fmt_filename(plcdn_la_opt.format_http_stats, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
-				print_http_stats_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_http_stats_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_ip_slowfast){
 				auto outname = std::string(plcdn_la_opt.output_file_ip_slowfast) +
 						parse_fmt_filename(plcdn_la_opt.format_ip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
-				print_ip_slowfast_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_ip_slowfast_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_cutip_slowfast){
 				auto outname = std::string(plcdn_la_opt.output_file_cutip_slowfast) +
 						parse_fmt_filename(plcdn_la_opt.format_cutip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
-				print_cutip_slowfast_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_cutip_slowfast_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if( plcdn_la_opt.output_file_ip_source) {
 				auto outname = std::string( plcdn_la_opt.output_file_ip_source) +
 						parse_fmt_filename(plcdn_la_opt.format_ip_source, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
-				print_ip_source_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_ip_source_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 		}
 	}

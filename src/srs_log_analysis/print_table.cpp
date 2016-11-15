@@ -18,7 +18,7 @@ void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_dom
 			char buf[32];
 			fprintf(stream, "%-8d%-13s%-16s%-40s%-14zu%-14zu\n",
 					ds.second._site_id, stat.first.c_str("%Y%m%d%H%M"), netutil_get_ip_str(s.ip, buf, sizeof(buf))
-					,s.url, s.end_obytes - s.beg_obytes, s.end_ibytes - s.beg_ibytes
+					,s.url, s.obytes, s.ibytes
 					);
 
 		}

@@ -4,7 +4,7 @@
  * @author hongjun.liao <docici@126.com>
  * @date 2016/11
  * @NOTES:
- * 1.merge srs(bytes) results  to nginx_log_analyis results currently,
+ * 1.merge srs results  to nginx results currently,
  *   see nginx_domain_stat_append_srs_bytes, @date 2016/11/14
  */
 
@@ -529,6 +529,7 @@ static int parse_srs_log(FILE * f, std::unordered_map<std::string, srs_domain_st
 	std::vector<srs_connect_ip> ip_items;
 	std::vector<srs_connect_url> url_items;
 
+	/*FIXME empty line!!*/
 	srs_log_item logitem;
 	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
 		if(*q == '\n'){

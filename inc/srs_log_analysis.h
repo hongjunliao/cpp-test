@@ -73,10 +73,7 @@ struct srs_log_stat
 	char const * url;
 	uint32_t ip;
 
-	/*bytes = end_obytes - beg_bytes*/
-	int is_start;
-	size_t beg_obytes, beg_ibytes;
-	size_t end_obytes, end_ibytes;
+	size_t obytes, ibytes;
 };
 
 struct srs_domain_stat
