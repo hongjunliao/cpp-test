@@ -24,25 +24,23 @@ extern struct plcdn_la_options plcdn_la_opt;
 extern time_t g_plcdn_la_start_time;
 extern int g_plcdn_la_device_id;
 
-extern int find_site_id(const char* site, int & siteid, int * user_id);
-
 static std::string parse_fmt_filename(char const * fmt, char const *interval, int site_id, int user_id);
 /*flow table*/
-static void print_flow_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*hot url*/
-static void print_url_popular_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_url_popular_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*hot ip*/
-static void print_ip_popular_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*httpstatus_statistics*/
-static void print_http_stats_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_http_stats_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*ip_slowfast*/
-static void print_ip_slowfast_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*cutip_slowfast*/
-static void print_cutip_slowfast_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*url_key*/
-static void print_url_key_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*ip_source*/
-static void print_ip_source_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 
 static std::string parse_fmt_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {
@@ -62,7 +60,7 @@ static std::string parse_fmt_filename(char const * fmt, char const *interval, in
 	return outname;
 }
 
-static void print_flow_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	/*format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m */
 	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu\n",
@@ -71,7 +69,7 @@ static void print_flow_table(FILE * stream, time_group const& g, log_stat const&
 	if(sz <= 0) ++n;
 }
 
-void print_url_popular_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+void print_url_popular_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	for(auto const& url_item : stat._url_stats){
 		auto const& url = url_item.first;
@@ -97,7 +95,7 @@ void print_url_popular_table(FILE * stream, time_group const& g, log_stat const&
 	}
 }
 
-inline void print_ip_popular_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+inline void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	for(auto const& ip_item : stat._ip_stats){
 		auto const& ipstat = ip_item.second;
@@ -116,7 +114,7 @@ inline void print_ip_popular_table(FILE * stream, time_group const& g, log_stat 
 	}
 }
 
-inline void print_http_stats_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+inline void print_http_stats_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	std::unordered_map<int, size_t> st;	/*http_status_code: access_count*/
 	for(auto const& url_item : stat._url_stats){
@@ -132,7 +130,7 @@ inline void print_http_stats_table(FILE * stream, time_group const& g, log_stat 
 	}
 }
 
-inline void print_ip_slowfast_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+inline void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	return;
 	/*FIXME: print only top 10?*/
@@ -147,7 +145,7 @@ inline void print_ip_slowfast_table(FILE * stream, time_group const& g, log_stat
 	}
 }
 
-inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	for(auto const& cutip_item : stat._cuitip_stats){
 		auto const & cutipstat = cutip_item.second;
@@ -159,12 +157,12 @@ inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, log_s
 	}
 }
 
-static void print_url_key_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	//NOT implement yet
 }
 
-void print_ip_source_table(FILE * stream, time_group const& g, log_stat const& stat, int site_id, int user_id, size_t& n)
+void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	for(auto const& li_item : stat._locisp_stats){
 		auto const & li = li_item.first;
@@ -187,7 +185,7 @@ static FILE * & append_stream(std::map<std::string, FILE *> & filemap, std::stri
 	return filemap[filename];
 }
 
-int print_plcdn_log_stats(std::unordered_map<std::string, domain_stat> const& stats)
+int print_plcdn_log_stats(std::unordered_map<std::string, nginx_domain_stat> const& stats)
 {
 	std::map<std::string, FILE *> filemap; /*for output filenames*/
 	size_t n = 0;

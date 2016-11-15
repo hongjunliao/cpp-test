@@ -2,6 +2,7 @@
  * This file is PART of nginx_log_analysis
  */
 #include "nginx_log_analysis.h"
+#include <fnmatch.h>	/*fnmatch*/
 #include <stdio.h>
 #include <time.h> /*strptime*/
 #include <string.h> /*strncpy*/
@@ -196,14 +197,14 @@ std::size_t std::hash<cutip_group>::operator()(cutip_group const& val) const
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-log_stat::log_stat()
+nginx_log_stat::nginx_log_stat()
 : _bytes_m(0)
 , _access_m(0)
 {
 	//none
 }
 
-size_t log_stat::access_total() const
+size_t nginx_log_stat::access_total() const
 {
 	size_t ret = 0;
 	for(auto it = _url_stats.begin(); it !=_url_stats.end(); ++it){
@@ -212,7 +213,7 @@ size_t log_stat::access_total() const
 	return ret;
 }
 
- size_t log_stat::bytes(int code1, int code2/* = -1*/) const
+ size_t nginx_log_stat::bytes(int code1, int code2/* = -1*/) const
 {
 	size_t ret = 0;
 	for(auto it = _url_stats.begin(); it !=_url_stats.end(); ++it){
@@ -221,7 +222,7 @@ size_t log_stat::access_total() const
 	return ret;
 }
 
- size_t log_stat::bytes_total() const
+ size_t nginx_log_stat::bytes_total() const
 {
 	size_t ret = 0;
 	for(auto it = _url_stats.begin(); it !=_url_stats.end(); ++it){
@@ -230,7 +231,7 @@ size_t log_stat::access_total() const
 	return ret;
 }
 
-size_t log_stat::access(int code1, int code2/* = -1*/) const
+size_t nginx_log_stat::access(int code1, int code2/* = -1*/) const
 {
 	size_t ret = 0;
 	for(auto it = _url_stats.begin(); it !=_url_stats.end(); ++it){
@@ -239,7 +240,7 @@ size_t log_stat::access(int code1, int code2/* = -1*/) const
 	return ret;
 }
 
-log_stat& log_stat::operator+=(log_stat const& another)
+nginx_log_stat& nginx_log_stat::operator+=(nginx_log_stat const& another)
 {
 	for(auto const& item : another._url_stats){
 		_url_stats[item.first] += item.second;
@@ -249,3 +250,28 @@ log_stat& log_stat::operator+=(log_stat const& another)
 	return *this;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
+		const char* site, int & siteid, int * user_id)
+{
+	if(!site || !site[0])
+		return -1;
+	site_info  const * si = NULL;
+	if(sitelist.count(site) != 0){
+//		fprintf(stdout, "%s: FULL matched\n", __FUNCTION__);
+		si = &sitelist.at(site);
+	}
+	else{
+		for(auto const & item : sitelist){
+			if(fnmatch(item.first.c_str(), site, 0) == 0){
+	//			fprintf(stdout, "%s: WILDCARD matched, pattern=%s\n", __FUNCTION__, it->first.c_str());
+				si = &item.second;
+				break;
+			}
+		}
+	}
+	siteid = si? si->site_id : 0;
+	if(user_id)
+		*user_id = si? si->user_id : 0;
+	return 0;
+}

@@ -15,13 +15,14 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
-		.nginx_log_file = "access.log",
+		.nginx_log_file = NULL,
 		.devicelist_file = "devicelist.txt",
 		.siteuidlist_file = "siteuidlist.txt",
 		.ipmap_file = "iplocation.bin",
 		.parse_url_mode = 2,
 
-		.srs_log_file = "srs.log",
+		.srs_log_file = NULL,
+		.output_file_srs_flow = NULL,
 
 		.interval = 300,
 		.output_file_flow = NULL,
@@ -54,7 +55,7 @@ struct plcdn_la_options plcdn_la_opt = {
 static poptContext pc = 0;
 static struct poptOption plcdn_la_popt[] = {
 	  /* longName, shortName, argInfo, argPtr, value, descrip, argDesc */
-	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file default: access.log", 0 },
+	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file", 0 },
 
 	{"device-list-file",        'd',  POPT_ARG_STRING,   0, 'd', "devicelist_file default: devicelist.txt", 0 },
 	{"siteuid-list-file",       's',  POPT_ARG_STRING,   0, 's', "siteuidlist_file default: siteuidlist.txt", 0 },
@@ -63,7 +64,9 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"interval",                'i',  POPT_ARG_INT,      0, 'i', "interval in seconds, default: 300", 0 },
 
-	{"srs-log-file",            'n',  POPT_ARG_STRING,   0, 'n', "srs_log_file default: srs.log", 0 },
+	{"srs-log-file",            'n',  POPT_ARG_STRING,   0, 'n', "srs_log_file", 0 },
+	{"output-srs-flow",   'N',  POPT_ARG_STRING,   0, 'N', "filename for output_srs_flow_table, 1 for stdout", 0 },
+
 
 	{"output-file-flow",        'o',  POPT_ARG_STRING,   0, 'o', "output folder for flow_table, disabled if NULL", 0 },
 	{"format-flow",             'O',  POPT_ARG_STRING,   0, 'O', "filename format for flow_table, default '" DEF_FORMAT_FLOW "', see NOTES for details", 0 },
@@ -106,7 +109,10 @@ int plcdn_la_parse_options(int argc, char ** argv)
 	for(int opt; (opt = poptGetNextOpt(pc)) != -1; ){
 		switch(opt){
 		case 'l': plcdn_la_opt.nginx_log_file = poptGetOptArg(pc); break;
+
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
+		case 'N': plcdn_la_opt.output_file_srs_flow = poptGetOptArg(pc); break;
+
 		case 'i': plcdn_la_opt.interval = atoi(poptGetOptArg(pc)); break;
 		case 'e': plcdn_la_opt.device_id = atoi(poptGetOptArg(pc)); break;
 		case 'd': plcdn_la_opt.devicelist_file = poptGetOptArg(pc); break;
@@ -189,6 +195,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	auto& opt = *popt;
 	fprintf(stream,
 			"%-34s%-20s" "\n%-34s%-20d" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n"
@@ -202,6 +209,9 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "devicelist_file", opt.devicelist_file
 		, "siteuidlist_file", opt.siteuidlist_file
 		, "ipmap_file", opt.ipmap_file
+
+		, "srs_log_file", opt.srs_log_file
+		, "output_file_srs_flow", opt.output_file_srs_flow
 
 		, "output_file_flow", opt.output_file_flow
 

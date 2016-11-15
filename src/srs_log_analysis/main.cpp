@@ -11,144 +11,80 @@
  * 2.g++ link options: -lboost_regex
  */
 
+#include <sys/stat.h>	/*fstat*/
+#include <sys/mman.h>	/*mmap*/
 #include <stdio.h>
 #include <cstring>
 #include <vector>				/*std::vector*/
-//#include <regex>
-#include <boost/regex.hpp> 		/*regex_search*/
+#include <unordered_map> 	/*std::unordered_map*/
 #include "bd_test.h"			/*test_srs_log_stats_main*/
 #include "test_options.h" 		/*sla_options*/
 
-#include "net_util.h"			/*netutil_get_ip_from_str*/
 #include "srs_log_analysis.h"	/*srs_log_item, ...*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*!parse srs log item, currently get <timestamp>, <client_ip>, <time>, <obytes>, <ibytes>
- * format:[timestamp][log_level][srs_pid][srs_sid][errno]<text>
- * @see https://github.com/ossrs/srs/wiki/v1_CN_SrsLog for log_format details
- *
- * log sample:
- * 1.connect:
- * format_1: [2016-11-03 11:27:32.736][trace][21373][105] RTMP client ip=127.0.0.1
- * format_2: [2016-10-20 17:13:08.058][trace][20009][114] connect app, tcUrl=rtmp://192.168.212.164:1935/live, pageUrl=, \
- * swfUrl=, schema=rtmp, vhost=__defaultVhost__, port=1935, app=live, args=null
- * 2.trans
- * [2016-11-03 11:31:52.824][trace][21373][105] <- CPB time=240002, obytes=4.09 KB, ibytes=14.29 MB, okbps=0,0,0, ikbps=461,547,0, \
- * mr=0/350, p1stpt=20000, pnt=20000
- * 3.disconnect:
- * [2016-11-03 11:34:33.360][warn][21373][110][32] client disconnect peer. ret=1004
- *
- *@param log_type, 0-other; 1-connect; 2-trans; 3-disconect
- * */
-static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
+
 /*srs_log_analysis/print_table.cpp*/
-extern void fprint_srs_log_stats(FILE * stream, std::vector<srs_trans> const& trans_stats,
-		std::vector<srs_connect> const& cstats);
+extern void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
 /*GLOBAL vars*/
 extern struct sla_options sla_opt;	/*test_options.cpp*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
+
+static int parse_srs_log(FILE * f, std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
-	/*parse time_stamp, sid from '[2016-11-03 11:33:16.924][trace][21373][110] '*/
-	time_t time_tamp = 0;
-	int sid;
-	char * lbuff;
-	int index = 0;
-	bool is_arg_start = false;
-	for(auto p = buff, q = buff; ; ++q){
-		if(*q == '['){
-			is_arg_start = true;
-			continue;
-		}
-		if(*q == ']'){
-			if(!is_arg_start) return -1;
+	struct stat logfile_stat;
+	if(fstat(fileno(f), &logfile_stat) < 0){
+		fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "srs_log_file");
+		return 1;
+	}
+	/*FIXME: PAGE_SIZE?*/
+	char  * start_p = (char *)mmap(NULL, logfile_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(f), 0);
+	if(!start_p || start_p == MAP_FAILED){
+		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "srs_log_file");
+		return 1;
+	}
+
+	size_t linecount = 0, failed_count = 0, skip_count = 0;
+	std::vector<srs_connect_ip> ip_items;
+	std::vector<srs_connect_url> url_items;
+
+	srs_log_item logitem;
+	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
+		if(*q == '\n'){
 			*q = '\0';
-			if(index == 0){
-				tm my_tm;
-				char const * result = strptime(p + 1, "%Y-%m-%d %H:%M:%S", &my_tm);
-				if(!result) return -1;
-				my_tm.tm_isdst = 0;
-				time_tamp = mktime(&my_tm);
+			++linecount;
+
+			int log_type;
+			/*FIXME: srs_connect_ip and srs_connect_url always comes before srs_trans?*/
+			auto status = parse_srs_log_item(p, logitem, log_type);
+			if(status == 0) {
+				switch(log_type){
+				case 2:
+					status = do_srs_log_stats(logitem, log_type, ip_items, url_items, logstats);
+					if(status != 0)
+						++failed_count;
+					break;
+				case 1:
+					ip_items.push_back(logitem.conn_ip);
+					break;
+				case 4:
+					url_items.push_back(logitem.conn_url);
+					break;
+				case 0:
+					++skip_count;
+					break;
+				default:
+					break;
+				}
 			}
-			else if(index == 3){
-				/*FIXME: sid CAN BE 0?*/
-				sid = atoi(p + 1);
-				lbuff = q + 1;
-				break;
-			}
+			else
+				++failed_count;
 			p = q + 1;
-			++index;
-			is_arg_start = false;
 		}
 	}
-
-	static auto s1 = "RTMP client ip=([0-9.]+)";
-	static auto s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
-				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
-	static auto s3 = "client disconnect peer\\. ret=[0-9]+";
-	static auto s4 = "connect app, tcUrl=(.+), pageUrl=";
-	static boost::regex r1{s1}, r2{s2}, r3{s3}, r4{s4};
-
-	boost::cmatch m;
-	if(boost::regex_search(lbuff, m, r1)) {
-		log_type = 1;
-		logitem.conn.time_stamp = time_tamp;
-		logitem.conn.sid = sid;
-		logitem.conn.ip = netutil_get_ip_from_str(m[1].str().c_str());
-	}
-	/*FIXME: test me!!!*/
-	if(boost::regex_search(lbuff, m, r4)) {
-		log_type = 1;
-		/*FIXME: dangerous!! local char **/
-		logitem.conn.url = m[1].str().c_str();
-	}
-	else if(boost::regex_search(lbuff, m, r2)) {
-		log_type = 2;
-		memset(&logitem.trans, 0, sizeof(logitem.trans));
-		logitem.trans.time_stamp = time_tamp;
-		logitem.trans.sid = sid;
-		char * end;
-		logitem.trans.obytes = strtoul(m[1].str().c_str(), &end, 10);
-		logitem.trans.ibytes = strtoul(m[2].str().c_str(), &end, 10);
-		logitem.trans.okbps = strtoul(m[3].str().c_str(), &end, 10);
-		logitem.trans.ikbps = strtoul(m[4].str().c_str(), &end, 10);
-	}
-	else if(boost::regex_search(lbuff, m, r3)) {
-		log_type = 3;
-	}
-	else{
-		log_type = 0;
-		return 0;
-	}
-	return time_tamp == 0? -1 : 0;
-}
-
-void parse_srs_log(FILE * stream, srs_log_stats & ct)
-{
-	char data[8192];
-	for(char * result; ( result = fgets(data, sizeof(data), stream)) != NULL; ){
-		++ct.linecount;
-		if(sla_opt.verbose && ct.linecount % 1000 == 0)
-			fprintf(stdout, "\r%s: processing %8ld line ...", __FUNCTION__, ct.linecount);
-		auto len = strlen(result);
-		if(sla_opt.verbose && result[len - 1] != '\n'){
-			fprintf(stderr, "\n%s: WARNING, length > %zu bytes, skip:\n%s\n", __FUNCTION__, sizeof(data), data);
-			continue;
-		}
-		data[len - 1] = '\0';
-		srs_log_item logitem;
-		int log_type;
-		auto status = parse_srs_log_item(data, logitem, log_type);
-		if(status != 0) {
-			++ct.failed_count;
-			continue;
-		}
-		if(log_type == 2)
-			ct.tstats.push_back(logitem.trans);
-		else if(log_type == 1)
-			ct.cstats.push_back(logitem.conn);
-		else if(log_type == 0)
-			++ct.skip_count;
-	}
+	if(sla_opt.verbose)
+		fprintf(stdout, "%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
+				, linecount, failed_count, skip_count);
+	return 0;
 }
 
 int test_srs_log_stats_main(int argc, char ** argv)
@@ -168,13 +104,9 @@ int test_srs_log_stats_main(int argc, char ** argv)
 		return 1;
 	}
 
-	srs_log_stats ct;
-	parse_srs_log(log_file, ct);
+	std::unordered_map<std::string, srs_domain_stat> srs_stats;
+	parse_srs_log(log_file, srs_stats);
 
-	if(sla_opt.verbose)
-		fprintf(stdout, "%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
-				, ct.linecount, ct.failed_count, ct.skip_count);
-
-	fprint_srs_log_stats(stdout, ct.tstats, ct.cstats);
+	fprint_srs_log_stats(stdout, srs_stats);
 	return 0;
 }

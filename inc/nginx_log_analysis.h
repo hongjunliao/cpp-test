@@ -16,7 +16,7 @@ struct url_count;
 class time_group;
 class url_stat;
 struct ip_stat;
-class log_stat;
+class nginx_log_stat;
 struct locisp_stat;
 class locisp_group;
 class cutip_group;
@@ -176,7 +176,7 @@ template<> struct hash<cutip_group>
  * FIXME: bytes_total1 = sum(_ip_stats), bytes_total2 = sum(_url_stats)
  * make sure bytes_total1 == bytes_total2
  * */
-class log_stat
+class nginx_log_stat
 {
 public:
 	/*!
@@ -190,20 +190,20 @@ public:
 	size_t _bytes_m;		/*bytes for nginx 'MISS' */
 	size_t _access_m;		/*access_count for nginx 'MISS'*/
 public:
-	log_stat();
+	nginx_log_stat();
 public:
 	size_t bytes_total() const;
 	size_t bytes(int code1, int code2 = -1) const;
 	size_t access_total() const;
 	size_t access(int code1, int code2 = -1) const;
-	log_stat& operator+=(log_stat const& another);
+	nginx_log_stat& operator+=(nginx_log_stat const& another);
 };
 
 //////////////////////////////////////////////////////////////////////////////////
 /*log statistics by domain*/
-struct domain_stat
+struct nginx_domain_stat
 {
-	std::map<time_group, log_stat> _stats;
+	std::map<time_group, nginx_log_stat> _stats;
 	int _site_id;
 	int _user_id;
 };
@@ -217,9 +217,13 @@ struct parse_context
 	size_t len;
 
 /*output*/
-	std::unordered_map<std::string, domain_stat> logstats;	/*domain : domain_stat*/
+	std::unordered_map<std::string, nginx_domain_stat> logstats;	/*domain : domain_stat*/
 	size_t total_lines;
 };
 
+//////////////////////////////////////////////////////////////////////////////////
+/*find site_id by site_name/domain, return 0 on success*/
+int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
+		const char* site, int & siteid, int * user_id);
 #endif /*_NGINX_LOG_ANALYSIS_H_*/
 

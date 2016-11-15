@@ -38,7 +38,7 @@ int test_nginx_log_parse_option_main(int argc, char ** argv);
 /*all options: test_options.cpp*/
 extern struct nla_options nla_opt;
 
-static void url_top_n(std::map<time_group, log_stat> const& stats, std::vector<url_count>& urlcount)
+static void url_top_n(std::map<time_group, nginx_log_stat> const& stats, std::vector<url_count>& urlcount)
 {
 	std::unordered_map<std::string/*char const **/, url_stat> urlstats;
 	for(auto it = stats.begin(); it != stats.end(); ++it){

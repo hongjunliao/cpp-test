@@ -81,7 +81,7 @@ struct plcdn_la_options
 
 /*for srs_log_analysis*/
 	char const * srs_log_file;
-
+	char const * output_file_srs_flow;
 /*for output results*/
 	int  interval;
 

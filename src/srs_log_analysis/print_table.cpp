@@ -9,26 +9,18 @@
 #include <time.h>		/*strftime*/
 #include "net_util.h"	/*netutil_get_ip_str*/
 
-void fprint_srs_log_stats(FILE * stream, std::vector<srs_trans> const& trans_stats,
-		std::vector<srs_connect> const& cstats);
-
-void fprint_srs_log_stats(FILE * stream, std::vector<srs_trans> const& trans_stats,
-		std::vector<srs_connect> const& cstats)
+void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_domain_stat> const& srs_stats)
 {
-	fprintf(stream, "%-21s%-16s%-14s%-14s%-14s%-14s\n", "time_stamp", "client_ip", "obytes", "ibytes", "okbps", "ikbps");
-	for(auto & item : trans_stats){
-		char buf1[32], buf2[32];
-		strftime(buf1, sizeof(buf1), "%Y-%m-%d %H:%M:%S", localtime(&item.time_stamp));
-		uint32_t ip = 0;
-		auto find_by_sid = [&item](srs_connect const& c){ return item.sid == c.sid; };
-		auto iter = std::find_if(cstats.begin(), cstats.end(), find_by_sid);
-		if(iter != cstats.end())
-			ip = iter->ip;
-		/*"time_stamp", "client_ip", "obytes", "ibytes", "okbps", "ikbps"*/
-		fprintf(stream, "%-21s%-16s%-14zu%-14zu%-14zu%-14zu\n",
-				buf1, netutil_get_ip_str(ip, buf2, sizeof(buf2))
-				, item.obytes, item.ibytes
-				, item.okbps, item.ikbps
-				);
+	fprintf(stream, "%-8s%-13s%-16s%-40s%-14s%-14s\n", "site_id", "time", "client_ip", "url", "obytes", "ibytes");
+	for(auto const& ds : srs_stats){
+		for(auto const& stat : ds.second._stats){
+			auto & s = stat.second;
+			char buf[32];
+			fprintf(stream, "%-8d%-13s%-16s%-40s%-14zu%-14zu\n",
+					ds.second._site_id, stat.first.c_str("%Y%m%d%H%M"), netutil_get_ip_str(s.ip, buf, sizeof(buf))
+					,s.url, s.end_obytes - s.beg_obytes, s.end_ibytes - s.beg_ibytes
+					);
+
+		}
 	}
 }
