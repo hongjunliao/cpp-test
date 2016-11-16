@@ -195,6 +195,7 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			if(nla_opt.output_file_flow){
 				auto outname = std::string(nla_opt.output_file_flow) +
 						parse_fmt_filename(nla_opt.format_flow, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+				/*FIXME: check if append_stream returns NULL!!*/
 				print_flow_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 			if(nla_opt.output_file_url_popular){

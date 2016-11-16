@@ -42,7 +42,8 @@ int test_nginx_log_split_main(int argc, char ** argv)
 	char const * result = 0;
 	while((result = fgets(data, sizeof(data), f)) != NULL){
 		++linecount;
-		fprintf(stdout, "\rprocessing %8ld line ...", linecount);
+		if(linecount % 5000 == 0)
+			fprintf(stdout, "processing %8ld line ...\r", linecount);
 		int len = strlen(result);
 		if(result[len - 1] != '\n'){
 			fprintf(stderr, "\n%s: WARNING, length > %zu bytes, skip:\n%s\n", __FUNCTION__, sizeof(data), data);

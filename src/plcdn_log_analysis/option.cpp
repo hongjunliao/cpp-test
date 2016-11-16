@@ -12,6 +12,8 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_IP_SLOWFAST   "UASStats.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_CUTIP_SLOWFAST   "ASStats.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_IP_SOURCE   	"IPSource.${interval}.${site_id}.${device_id}"
+#define DEF_FORMAT_SPLIT_NGINX_LOG   	"${site_id}"
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
@@ -41,6 +43,9 @@ struct plcdn_la_options plcdn_la_opt = {
 		.format_cutip_slowfast = DEF_FORMAT_CUTIP_SLOWFAST,
 		.output_file_ip_source = NULL,
 		.format_ip_source = DEF_FORMAT_IP_SOURCE,
+
+		.output_split_nginx_log = NULL,
+		.format_split_nginx_log = DEF_FORMAT_SPLIT_NGINX_LOG,
 
 		.device_id = 0,
 		.print_device_id = 0,

@@ -106,6 +106,9 @@ struct plcdn_la_options
 
 	char const * output_file_ip_source;
 	char const * format_ip_source;
+/*split log by domain*/
+	char const * output_split_nginx_log;
+	char const * format_split_nginx_log;
 /**/
 	int device_id;		/*if not provided, find it in devicelist_file by local machine ip*/
 	int print_device_id;

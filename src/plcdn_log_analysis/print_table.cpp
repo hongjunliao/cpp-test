@@ -24,7 +24,7 @@ extern struct plcdn_la_options plcdn_la_opt;
 extern time_t g_plcdn_la_start_time;
 extern int g_plcdn_la_device_id;
 
-static std::string parse_fmt_filename(char const * fmt, char const *interval, int site_id, int user_id);
+static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id);
 /*flow table*/
 static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*hot url*/
@@ -42,7 +42,7 @@ static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_st
 /*ip_source*/
 static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 
-static std::string parse_fmt_filename(char const * fmt, char const *interval, int site_id, int user_id)
+static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {
 	std::unordered_map<std::string, std::string> argmap;
 	char buff[32] = "";
@@ -194,49 +194,49 @@ int print_plcdn_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
 			if(plcdn_la_opt.output_file_flow){
 				auto outname = std::string(plcdn_la_opt.output_file_flow) +
-						parse_fmt_filename(plcdn_la_opt.format_flow, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_flow, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_flow_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_url_popular){
 				auto outname = std::string(plcdn_la_opt.output_file_url_popular) +
-						parse_fmt_filename(plcdn_la_opt.format_url_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_url_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_url_popular_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_ip_popular){
 				auto outname = std::string(plcdn_la_opt.output_file_ip_popular) +
-						parse_fmt_filename(plcdn_la_opt.format_ip_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_ip_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_ip_popular_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_http_stats){
 				auto outname = std::string(plcdn_la_opt.output_file_http_stats) +
-						parse_fmt_filename(plcdn_la_opt.format_http_stats, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_http_stats, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_http_stats_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_ip_slowfast){
 				auto outname = std::string(plcdn_la_opt.output_file_ip_slowfast) +
-						parse_fmt_filename(plcdn_la_opt.format_ip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_ip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_ip_slowfast_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_cutip_slowfast){
 				auto outname = std::string(plcdn_la_opt.output_file_cutip_slowfast) +
-						parse_fmt_filename(plcdn_la_opt.format_cutip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_cutip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_cutip_slowfast_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if( plcdn_la_opt.output_file_ip_source) {
 				auto outname = std::string( plcdn_la_opt.output_file_ip_source) +
-						parse_fmt_filename(plcdn_la_opt.format_ip_source, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_ip_source, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_ip_source_table(stream, item.first, item.second, site_id, user_id, n);

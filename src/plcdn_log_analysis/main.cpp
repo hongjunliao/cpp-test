@@ -4,8 +4,7 @@
  * @author hongjun.liao <docici@126.com>
  * @date 2016/11
  * @NOTES:
- * 1.merge srs results  to nginx results currently,
- *   see nginx_domain_stat_append_srs_bytes, @date 2016/11/14
+ * 1.merge srs results  to nginx results currently, see append_flow_table, @date 2016/11/14
  */
 
 #include <stdio.h>
@@ -570,22 +569,87 @@ static int parse_srs_log(FILE * f, std::unordered_map<std::string, srs_domain_st
 	return 0;
 }
 
-//static void nginx_domain_stat_append_srs_bytes(
-//		std::unordered_map<std::string, domain_stat> & nginx_stats, srs_log_stats const& srs_stats)
-//{
-//	for(auto srs_item : srs_stats.tstats){
-//		for(auto & it : srs_stats.cstats){
-////			auto & stat = nginx_stats[it.domain]._stats;
-////			if(srs_item.sid == it.sid){
-////				size_t ibytes = 0, obytes = 0;
-////				stat[srs_item.]._url_stats[it.url]._bytes
-////			}
-//	//		auto find_by_sid = [&item](srs_connect const& c){ return item.sid == c.sid; };
-//	//		auto iter = std::find_if(cstats.begin(), cstats.end(), find_by_sid);
-//		}
-//
-//	}
-//}
+static std::string parse_nginx_split_filename(char const * fmt, int site_id, int user_id)
+{
+	/*parse_fmt.cpp*/
+	extern int parse_fmt(char const * in, std::string& out,
+			std::unordered_map<std::string, std::string> const& argmap);
+
+	std::unordered_map<std::string, std::string> argmap;
+	argmap["site_id"] = std::to_string(site_id);
+	argmap["user_id"] = std::to_string(user_id);
+
+	std::string outname;
+	parse_fmt(fmt, outname, argmap);
+	return outname;
+}
+
+static int split_nginx_log(FILE * f, char const * folder, char const * fmt)
+{
+	if(!f || !folder || folder[0] == '\0' || !fmt || fmt[0] == '\0')
+		return -1;
+	struct stat s;
+	if(fstat(fileno(f), &s) < 0)
+		return -1;
+	/*FIXME: PAGE_SIZE?*/
+	auto start_p = (char *)mmap(NULL, s.st_size, PROT_READ, MAP_PRIVATE, fileno(f), 0);
+	if(!start_p || start_p == MAP_FAILED)
+		return -1;
+
+	/*FIXME: see ulimit -n 'open files'*/
+	std::unordered_map<std::string, FILE *> dmap; /*domain : log_file*/
+	for(char const * p = start_p, * q = p; q != start_p + s.st_size; ++q){
+		if(*q == '\n' && q - p > 0){
+			auto c = strchr(p, ' ');
+			char domain[c - p + 1];
+			strncpy(domain, p, c - p);
+			domain[c - p] = '\0';
+
+			auto && sinfo = g_sitelist[domain];
+			auto && fname = parse_nginx_split_filename(fmt, sinfo.site_id, sinfo.user_id);
+			auto & file = dmap[fname];
+			if(!file)
+				file = fopen((std::string(folder) + fname).c_str(), "a");
+			if(!file)
+				return -1;
+			auto len = q - p;
+			int result = fwrite(p, sizeof(char), len, f);
+			if(result < len || ferror(f)){
+				fprintf(stderr, "%s: write error for domain: '%s'\n", __FUNCTION__, domain);
+			}
+			p = q + 1;
+		}
+	}
+	munmap(start_p, s.st_size);
+	return 0;
+}
+
+/*FIXME: to be continued*/
+static void append_flow_table(
+		std::unordered_map<std::string, nginx_domain_stat> & nginx_stats,
+		std::unordered_map<std::string, srs_domain_stat> const& srs_stats)
+{
+	for(auto srs_domain_pair : srs_stats){
+		auto & dstat = nginx_stats[srs_domain_pair.first];
+
+		auto f = (srs_domain_pair.second._site_id == dstat._site_id
+				&& srs_domain_pair.second._user_id == dstat._user_id);
+		if(!f){
+			fprintf(stderr, "%s: interval error! site_id or user_id not equal in nginx and srs log!, domain=%s\n",
+					__FUNCTION__, srs_domain_pair.first.c_str());
+			continue;
+		}
+		for(auto & srs_log_pair : srs_domain_pair.second._stats){
+			auto & nginx_stat = dstat._stats[srs_log_pair.first];
+			auto & srs_stat = srs_log_pair.second;
+
+			/*FIXME: is it OK?*/
+			char buff[strlen(srs_stat.url)];
+			sha1sum_r(srs_stat.url, sizeof(buff), buff);
+			nginx_stat._url_stats[buff]._bytes[-1] += (srs_stat.obytes + srs_stat.ibytes);
+		}
+	}
+}
 
 int test_plcdn_log_analysis_main(int argc, char ** argv)
 {
@@ -673,13 +737,13 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		fprintf(stderr, "%s: none of nginx, srs log file specified or can be read, exit\n", __FUNCTION__);
 		return 1;
 	}
+//	append_flow_table(nginx_logstats, srs_logstats);
 
-	/*FIXME: to be continued*/
-//	nginx_domain_stat_append_srs_bytes(nginx_logstats, srs_logstats);
-
-
+	/*split log*/
+	if(plcdn_la_opt.output_split_nginx_log){
+		auto status = split_nginx_log(nginx_log_file, plcdn_la_opt.output_split_nginx_log, plcdn_la_opt.format_split_nginx_log);
+	}
 	/*output results*/
 	print_plcdn_log_stats(nginx_logstats);
-
 	return 0;
 }
