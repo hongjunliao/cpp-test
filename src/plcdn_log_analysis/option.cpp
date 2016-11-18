@@ -178,6 +178,10 @@ void plcdn_la_show_help(FILE * stream)
 			"    ${user_id}    user_id\n"
 			"  2.use ulimit(or other command) to increase 'open files', or may crash!\n"
 			"  3.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
+			"  4.nginx_log_format: $host $remote_addr $request_time_msec $cache_status [$time_local] \"$request_method \
+$request_uri $server_protocol\" $status $bytes_sent \
+\"$http_referer" "$remote_user" "$http_cookie" "$http_user_agent\" \
+$scheme $request_length $upstream_response_time\n"
 	);
 }
 
