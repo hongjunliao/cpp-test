@@ -33,6 +33,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*for nginx log*/
 
+/*parse_fmt.cpp*/
+extern int parse_fmt(char const * in, std::string& out,
+		std::unordered_map<std::string, std::string> const& argmap);
+
 /*tests, @see nginx_log_analysis/test.cpp*/
 extern int test_nginx_log_analysis_main(int argc, char ** argv);
 /*!
@@ -69,8 +73,6 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 
 /*load devicelist, @param devicelist map<ip, device_id>*/
 static int load_devicelist(char const* file, std::unordered_map<std::string, int>& devicelist);
-/*load sitelist*/
-static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist);
 
 /*get device_id by ip*/
 static int get_device_id(std::unordered_map<std::string, int> const& devicelist);
@@ -208,33 +210,6 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 			listat.bytes_m += item.bytes_sent;
 			++listat.access_m;
 		}
-	}
-	return 0;
-}
-
-static int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist)
-{
-	if(!file || !file[0]) return -1;
-	FILE * f = fopen(file, "r");
-	if(!f){
-		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
-		return -1;
-	}
-	char data[1024] = "";
-	while(fgets(data, sizeof(data), f)){
-		if(data[0] == '\n') continue;
-		data[strlen(data) - 1] = '\0';
-
-		site_info sitel;
-		char const * token = strtok(data, " ");
-//		fprintf(stdout, "[%d: %s]", i, token);
-		sitel.site_id = atoi(token);
-
-		token = strtok(NULL, " ");
-		sitel.user_id = atoi(token);
-
-		token = strtok(NULL, " ");
-		sitelist[token] = sitel;
 	}
 	return 0;
 }
@@ -411,12 +386,14 @@ static void * parallel_parse_thread_func(void * varg)
 	return varg;
 }
 
+/*FIXME: nginx_domain_stat._logs*/
 static int log_stats_append(std::unordered_map<std::string, nginx_domain_stat> & a,
 		std::unordered_map<std::string, nginx_domain_stat> const& b)
 {
-//	for(auto const& item : b){
-//		a[item.first] += item.second;
-//	}
+	for(auto const& item : b){
+		for(auto const &stat : item.second._stats)
+			a[item.first]._stats[stat.first] += stat.second;
+	}
 	return 0;
 }
 
@@ -571,10 +548,6 @@ static int parse_srs_log(FILE * f, std::unordered_map<std::string, srs_domain_st
 
 static std::string parse_nginx_split_filename(char const * fmt, int site_id, int user_id)
 {
-	/*parse_fmt.cpp*/
-	extern int parse_fmt(char const * in, std::string& out,
-			std::unordered_map<std::string, std::string> const& argmap);
-
 	std::unordered_map<std::string, std::string> argmap;
 	argmap["site_id"] = std::to_string(site_id);
 	argmap["user_id"] = std::to_string(user_id);
@@ -651,6 +624,8 @@ static void append_flow_table(
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//main
 int test_plcdn_log_analysis_main(int argc, char ** argv)
 {
 	int result = plcdn_la_parse_options(argc, argv);

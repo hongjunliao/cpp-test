@@ -275,3 +275,31 @@ int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
 		*user_id = si? si->user_id : 0;
 	return 0;
 }
+
+
+int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist)
+{
+	if(!file || !file[0]) return -1;
+	FILE * f = fopen(file, "r");
+	if(!f){
+		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
+		return -1;
+	}
+	char data[1024] = "";
+	while(fgets(data, sizeof(data), f)){
+		if(data[0] == '\n') continue;
+		data[strlen(data) - 1] = '\0';
+
+		site_info sitel;
+		char const * token = strtok(data, " ");
+//		fprintf(stdout, "[%d: %s]", i, token);
+		sitel.site_id = atoi(token);
+
+		token = strtok(NULL, " ");
+		sitel.user_id = atoi(token);
+
+		token = strtok(NULL, " ");
+		sitelist[token] = sitel;
+	}
+	return 0;
+}

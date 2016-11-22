@@ -7,6 +7,7 @@
 extern "C"{
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 /*nla: nginx_log_analysis*/
 struct nla_options
 {
@@ -53,7 +54,7 @@ int nginx_log_stats_parse_options(int argc, char ** argv);
 void nginx_log_stats_show_help(FILE * stream);
 void nginx_log_stats_show_usage(FILE * stream);
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 /*sla: srs_log_analysis*/
 struct sla_options
 {
@@ -128,6 +129,30 @@ int plcdn_la_parse_options(int argc, char ** argv);
 void plcdn_la_show_help(FILE * stream);
 void plcdn_la_show_usage(FILE * stream);
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*plcdn_ls: plcdn_log_split*/
+struct plcdn_ls_options
+{
+	char const * nginx_log_file;
+	char const * siteuidlist_file;
+	int  interval;
+
+	char const * output_split_nginx_log;
+	char const * format_split_nginx_log;
+/*version and help*/
+	int show_help;
+	int show_version;
+/*debug*/
+	int verbose;
+};
+
+/*plcdn_log_split/option.cpp*/
+void plcdn_ls_options_fprint(FILE * stream, plcdn_ls_options const * opt);
+int plcdn_ls_parse_options(int argc, char ** argv);
+void plcdn_ls_show_help(FILE * stream);
+void plcdn_ls_show_usage(FILE * stream);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef __cplusplus
 }
 #endif	//__cplusplus

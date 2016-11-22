@@ -200,12 +200,14 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////////
+typedef std::pair<char *, char *> origin_logitem_t;
 /*log statistics by domain*/
 struct nginx_domain_stat
 {
 	std::map<time_group, nginx_log_stat> _stats;
 	int _site_id;
 	int _user_id;
+//	std::vector<origin_logitem_t> _logs;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -222,6 +224,12 @@ struct parse_context
 };
 
 //////////////////////////////////////////////////////////////////////////////////
+/* load sitelist, @param file:
+ * format: '<site_id> <user_id> <domain> ? ...'
+ * sample:
+ * '377 57 zuzhou.zqgame.com 0 119.147.215.106:80 58.254.169.106:80'
+ */
+int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist);
 /*find site_id by site_name/domain, return 0 on success*/
 int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
 		const char* site, int & siteid, int * user_id);
