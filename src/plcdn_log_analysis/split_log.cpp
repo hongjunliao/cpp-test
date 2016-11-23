@@ -49,6 +49,7 @@ static std::string parse_nginx_split_filename(char const * fmt,
 	return outname;
 }
 
+//FIXME: lost '-' at end of each log, @date 2016/11/23
 static void fwrite_nginx_raw_log(FILE * f, std::vector<nginx_raw_log_t> const& logs, size_t & n)
 {
 	for(auto & item : logs){
