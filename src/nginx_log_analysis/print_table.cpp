@@ -63,8 +63,9 @@ static std::string parse_fmt_filename(char const * fmt, char const *interval, in
 static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	/*format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m */
+	char buft[32];
 	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu\n",
-			site_id, g.c_str("%Y%m%d%H%M"), g_device_id, stat.access_total()
+			site_id, g.c_str_r(buft, sizeof(buft)), g_device_id, stat.access_total()
 			, stat.bytes_total(), user_id, stat._access_m, stat._bytes_m);
 	if(sz <= 0) ++n;
 }
@@ -85,8 +86,9 @@ void print_url_popular_table(FILE * stream, time_group const& g, nginx_log_stat 
 		 *datetime, url_key, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
 		 *, num_403, num_404, num_416, num_499, num_500, num_502, num_other*/
 //			char sha1buf[33];
+		char buft[32];
 		auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
-					g.c_str("%Y%m%d%H%M"), url.c_str()/*sha1sum_r(url.c_str(), url.size(), sha1buf)*/
+					g.c_str_r(buft, sizeof(buft)), url.c_str()/*sha1sum_r(url.c_str(), url.size(), sha1buf)*/
 					, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
 					, num_403, num_404, num_416, num_499, num_500, num_502
 					, num_other
@@ -107,8 +109,9 @@ inline void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log
 		char ipbuff[20] = "0.0.0.0";
 		/*format: site_id, device_id, ip, datetime, num*/
 		/*FIXME: ip is string format?*/
+		char buft[32];
 		auto sz = fprintf(stream, "%d %d %s %s %zu\n",
-						site_id, g_device_id, g.c_str("%Y%m%d%H%M"),
+						site_id, g_device_id, g.c_str_r(buft, sizeof(buft)),
 						netutil_get_ip_str(ip_item.first, ipbuff, sizeof(ipbuff)), ipstat.access);
 		if(sz <= 0) ++n;
 	}
@@ -124,8 +127,9 @@ inline void print_http_stats_table(FILE * stream, time_group const& g, nginx_log
 	}
 	for(auto const& st_item : st){
 		/*format: site_id, device_id, httpstatus, datetime, num*/
+		char buft[32];
 		auto sz = fprintf(stream, "%d %d %d %s %zu\n",
-				site_id, g_device_id, st_item.first, g.c_str("%Y%m%d%H%M"), st_item.second);
+				site_id, g_device_id, st_item.first, g.c_str_r(buft, sizeof(buft)), st_item.second);
 		if(sz <= 0) ++n;
 	}
 }
@@ -139,8 +143,9 @@ inline void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_lo
 		double speed = (ipstat.sec != 0? (double)ipstat.bytes / ipstat.sec : (double)ipstat.bytes * 1000000.0);
 		/*format: device_id, ip, datetime, speed, type(MISS,HIT)*/
 		/*FIXME: type?*/
+		char buft[32];
 		auto sz = fprintf(stream, "%d %u %s %.0f %d\n",
-				g_device_id, ip_item.first, g.c_str("%Y%m%d%H%M"), speed, 0);
+				g_device_id, ip_item.first, g.c_str_r(buft, sizeof(buft)), speed, 0);
 		if(sz <= 0) ++n;
 	}
 }
@@ -151,8 +156,9 @@ inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx
 		auto const & cutipstat = cutip_item.second;
 		double speed = cutipstat.sec > 0? (double)cutipstat.bytes / cutipstat.sec : cutipstat.bytes * 1000000.0;
 		/*format: device_id, datetime, ip, speed*/
+		char buft[32];
 		auto sz = fprintf(stream, "%d %s %s %.0f\n",
-				g_device_id, g.c_str("%Y%m%d%H%M"), cutip_item.first.c_str(), speed);
+				g_device_id, g.c_str_r(buft, sizeof(buft)), cutip_item.first.c_str(), speed);
 		if(sz <= 0) ++n;
 	}
 }
@@ -169,8 +175,9 @@ void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat co
 		auto const & listat = li_item.second;
 		char loc_isp[7 + 1 + 3 + 1 + 20]; /*<loc><blank><isp><NULL><?>*/
 		/*format: bw_time, local_id, isp_id, pvs, tx, pvs_m, tx_m, device_id*/
+		char buft[32];
 		auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %d\n",
-						g.c_str("%Y%m%d%H%M"),
+						g.c_str_r(buft, sizeof(buft)),
 						li.loc_isp_c_str(loc_isp, sizeof(loc_isp)),
 						listat.access, listat.bytes,
 						listat.access_m, listat.bytes_m, g_device_id);
@@ -192,40 +199,41 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 	for(auto const& dstat : stats){
 		for(auto const& item : dstat.second._stats){
 			auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
+			char buft[32];
 			if(nla_opt.output_file_flow){
 				auto outname = std::string(nla_opt.output_file_flow) +
-						parse_fmt_filename(nla_opt.format_flow, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_fmt_filename(nla_opt.format_flow, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				/*FIXME: check if append_stream returns NULL!!*/
 				print_flow_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 			if(nla_opt.output_file_url_popular){
 				auto outname = std::string(nla_opt.output_file_url_popular) +
-						parse_fmt_filename(nla_opt.format_url_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_fmt_filename(nla_opt.format_url_popular, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				print_url_popular_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 			if(nla_opt.output_file_ip_popular){
 				auto outname = std::string(nla_opt.output_file_ip_popular) +
-						parse_fmt_filename(nla_opt.format_ip_popular, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_fmt_filename(nla_opt.format_ip_popular, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				print_ip_popular_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 			if(nla_opt.output_file_http_stats){
 				auto outname = std::string(nla_opt.output_file_http_stats) +
-						parse_fmt_filename(nla_opt.format_http_stats, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_fmt_filename(nla_opt.format_http_stats, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				print_http_stats_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 			if(nla_opt.output_file_ip_slowfast){
 				auto outname = std::string(nla_opt.output_file_ip_slowfast) +
-						parse_fmt_filename(nla_opt.format_ip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_fmt_filename(nla_opt.format_ip_slowfast, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				print_ip_slowfast_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 			if(nla_opt.output_file_cutip_slowfast){
 				auto outname = std::string(nla_opt.output_file_cutip_slowfast) +
-						parse_fmt_filename(nla_opt.format_cutip_slowfast, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_fmt_filename(nla_opt.format_cutip_slowfast, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				print_cutip_slowfast_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 			if( nla_opt.output_file_ip_source) {
 				auto outname = std::string( nla_opt.output_file_ip_source) +
-						parse_fmt_filename(nla_opt.format_ip_source, item.first.c_str("%Y%m%d%H%M"), site_id, user_id);
+						parse_fmt_filename(nla_opt.format_ip_source, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				print_ip_source_table(append_stream(filemap, outname), item.first, item.second, site_id, user_id, n);
 			}
 		}

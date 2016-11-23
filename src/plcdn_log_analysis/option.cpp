@@ -12,7 +12,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_IP_SLOWFAST   "UASStats.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_CUTIP_SLOWFAST   "ASStats.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_IP_SOURCE   	"IPSource.${interval}.${site_id}.${device_id}"
-#define DEF_FORMAT_SPLIT_NGINX_LOG   	"${site_id}"
+#define DEF_FORMAT_SPLIT_NGINX_LOG   	"${site_id}/${day}"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
@@ -70,7 +70,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"interval",                'i',  POPT_ARG_INT,      0, 'i', "interval in seconds, default: 300", 0 },
 
 	{"srs-log-file",            'n',  POPT_ARG_STRING,   0, 'n', "srs_log_file", 0 },
-	{"output-srs-flow",   'N',  POPT_ARG_STRING,   0, 'N', "filename for output_srs_flow_table, 1 for stdout", 0 },
+	{"output-srs-flow",         'N',  POPT_ARG_STRING,   0, 'N', "filename for output_srs_flow_table, 1 for stdout", 0 },
 
 
 	{"output-file-flow",        'o',  POPT_ARG_STRING,   0, 'o', "output folder for flow_table, disabled if NULL", 0 },
@@ -96,6 +96,9 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output folder for ip_source table, disabled if NULL", 0 },
 	{"format-ip-source",        'R',   POPT_ARG_STRING,  0, 'R', "filename format for ip_source table, default '" DEF_FORMAT_IP_SOURCE "'", 0 },
+
+	{"output-split-nginx-log",  'g',  POPT_ARG_STRING,   0, 'g', "output folder for split_nginx_log, disabled if NULL", 0 },
+	{"format-split-nginx-log",  'G',  POPT_ARG_STRING,   0, 'G', "filename format for split_nginx_log, default '" DEF_FORMAT_SPLIT_NGINX_LOG "'", 0 },
 
 	{"device-id",                 0,  POPT_ARG_INT,      0, 'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
@@ -146,6 +149,9 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'r': { plcdn_la_opt.output_file_ip_source = poptGetOptArg(pc); }; break;
 		case 'R': { plcdn_la_opt.format_ip_source = poptGetOptArg(pc); }; break;
+
+		case 'g': plcdn_la_opt.output_split_nginx_log = poptGetOptArg(pc); break;
+		case 'G': plcdn_la_opt.format_split_nginx_log = poptGetOptArg(pc); break;
 
 		case 'c': plcdn_la_opt.print_device_id = 1; break;
 		case 'a': plcdn_la_opt.enable_multi_thread = 1; break;
@@ -205,12 +211,13 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	fprintf(stream,
 			"%-34s%-20s" "\n%-34s%-20d" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
@@ -223,6 +230,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "output_file_srs_flow", opt.output_file_srs_flow
 
 		, "output_file_flow", opt.output_file_flow
+		, "format_flow", opt.format_flow
 
 		, "output_file_url_popular", opt.output_file_url_popular
 		, "format_url_popular", opt.format_url_popular
@@ -243,6 +251,9 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "format_cutip_slowfast", opt.format_cutip_slowfast
 		, "output_file_ip_source", opt.output_file_ip_source
 		, "format_ip_source", opt.format_ip_source
+
+		, "output_split_nginx_log", opt.output_split_nginx_log
+		, "format_split_nginx_log", opt.format_split_nginx_log
 
 		, "device_id", opt.device_id
 		, "print_device_id", opt.print_device_id

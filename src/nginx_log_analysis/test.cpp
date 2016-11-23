@@ -22,7 +22,33 @@
 #include "test_options.h"	/*nla_options**/
 /*tests, @see do_test*/
 static int test_strptime_main(int argc, char ** argv);
-static int test_time_mark_main(int argc, char ** argv);
+static int test_time_mark_main(int argc, char** argv) {
+	const char* stime = "17/Sep/2016:01:19:43";
+	time_t time1 = time(NULL);
+	tm time2 = *localtime(&time1);
+	time2.tm_hour -= 1;
+	assert((time1 - 3600) == mktime(&time2));
+	fprintf(stdout, "time=%ld, difftime(0, time)=%ld\n", time1,
+			(long) difftime((time_t) 0, time1));
+	time_group timem1(stime), timem2(stime);
+	assert(timem1 == timem2);
+	assert(timem1 == time_group("17/Sep/2016:01:19:00"));
+	char buft[64], buft1[64], buft2[64];
+	fprintf(stdout, "%s: c_str=%s, c_str=%s\n", __FUNCTION__,
+			time_group("17/Sep/2016:01:19:23").c_str_r(buft1, sizeof(buft1)),
+			time_group("17/Sep/2016:01:19:23").c_str_r(buft2, sizeof(buft2),
+					"%Y%m%d"));
+	fprintf(stdout, "time=17/Sep/2016:01:19:23,mark=%s\n",
+			time_group("17/Sep/2016:01:19:23").c_str_r(buft, sizeof(buft)));
+	fprintf(stdout, "time=%s, start=%s\n", stime, timem1.c_str_r(buft, sizeof(buft)));
+	for (int i = 0; i < 5; ++i) {
+		fprintf(stdout, "next=%s\n", timem1.next().c_str_r(buft, sizeof(buft)));
+		timem1 = timem1.next();
+	}
+	time_group startm("17/Sep/2016:01:19:43"), timem3(startm);
+	assert(startm == time_group("17/Sep/2016:01:15:43"));
+	return 0;
+}
 /*nginx_log_slit/main.cpp*/
 extern int test_nginx_log_split_main(int argc, char ** argv);
 /*test_mem.cpp*/
@@ -38,46 +64,24 @@ int test_nginx_log_parse_option_main(int argc, char ** argv);
 /*all options: test_options.cpp*/
 extern struct nla_options nla_opt;
 
-static void url_top_n(std::map<time_group, nginx_log_stat> const& stats, std::vector<url_count>& urlcount)
-{
+static void url_top_n(std::map<time_group, nginx_log_stat> const& stats,
+		std::vector<url_count>& urlcount) {
 	std::unordered_map<std::string/*char const **/, url_stat> urlstats;
-	for(auto it = stats.begin(); it != stats.end(); ++it){
+	for (auto it = stats.begin(); it != stats.end(); ++it) {
 		auto const& urlstat = it->second._url_stats;
-		for(auto const& item : urlstat){
+		for (auto const& item : urlstat) {
 			urlstats[item.first] += item.second;
 		}
 	}
-	for(auto const& item : urlstats){
-		url_count c = {item.first, item.second.access_total()};
+	for (auto const& item : urlstats) {
+		url_count c = { item.first, item.second.access_total() };
 		urlcount.push_back(c);
 	}
-	auto compare_by_access_count = [](url_count const& a, url_count const& b){return a.count > b.count;};
+	auto compare_by_access_count =
+			[](url_count const& a, url_count const& b) {return a.count > b.count;};
 	std::sort(urlcount.begin(), urlcount.end(), compare_by_access_count);
 }
 
-
-static int test_time_mark_main(int argc, char ** argv)
-{
-	char const * stime = "17/Sep/2016:01:19:43";
-	time_t time1 = time(NULL);
-	tm time2 = *localtime(&time1);
-	time2.tm_hour -= 1;
-	assert((time1 - 3600) == mktime(&time2));
-	fprintf(stdout, "time=%ld, difftime(0, time)=%ld\n", time1, (long)difftime((time_t)0, time1));
-
-	time_group timem1(stime), timem2(stime);
-	assert(timem1 == timem2);
-	assert(timem1 == time_group("17/Sep/2016:01:19:00"));
-	fprintf(stdout, "time=17/Sep/2016:01:19:23,mark=%s\n", time_group("17/Sep/2016:01:19:23").c_str());
-	fprintf(stdout, "time=%s, start=%s\n", stime, timem1.c_str());
-	for(int i= 0; i < 5; ++i){
-		fprintf(stdout, "next=%s\n", timem1.next().c_str());
-		timem1 = timem1.next();
-	}
-	time_group startm("17/Sep/2016:01:19:43"), timem3(startm);
-	assert(startm == time_group("17/Sep/2016:01:15:43"));
-	return 0;
-}
 static int test_strptime_main(int argc, char ** argv)
 {
 	fprintf(stdout, "%s:\n", __FUNCTION__);
@@ -95,7 +99,7 @@ static int test_strptime_main(int argc, char ** argv)
 int test_nginx_log_analysis_main(int argc, char ** argv)
 {
 	//	test_strptime_main(argc, argv);
-	//	test_time_mark_main(argc, argv);
+		test_time_mark_main(argc, argv);
 
 		/*siteuidlist.txt www.haipin.com*/
 	//	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));

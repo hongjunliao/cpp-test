@@ -6,6 +6,7 @@
 #define _NGINX_LOG_ANALYSIS_H_
 #include <time.h>	/*time_t, strptime*/
 #include <unordered_map> /*std::unordered_map*/
+#include <vector>	/*std::vector*/
 #include <map>	/*std::map*/
 #include <string> /*std::string*/
 /*declares*/
@@ -23,6 +24,7 @@ class cutip_group;
 //////////////////////////////////////////////////////////////////////////////////
 /*a line of nginx log*/
 struct log_item{
+	char * beg, * end;	/*raw*/
 	char const * domain;
 	time_t time_local;
 	char const *request_url;
@@ -62,10 +64,9 @@ public:
 	time_group(time_t const& t);
 public:
 	time_group next() const;
-	/*use lcoal static buffer, NOT thread-safe*/
-	char const * c_str(char const * fmt = "%Y-%m-%d %H:%M:%S") const;
 	/*thread-safe version*/
-	char * c_str_r(char * buff, size_t len, char const * fmt = "%Y-%m-%d %H:%M:%S") const;
+	char * c_str_r(char * buff, size_t len, char const * fmt = "%Y%m%d%H%M") const;
+	time_t t() const;
 private:
 	void group(char const * strtime);
 	void group(time_t const& t);
@@ -171,6 +172,9 @@ template<> struct hash<cutip_group>
 }	//namespace std
 
 //////////////////////////////////////////////////////////////////////////////////
+//for nginx origin log, pair<beg, end>
+typedef std::pair<char *, char *> nginx_raw_log_t;
+
 /*!
  * log statistics
  * FIXME: bytes_total1 = sum(_ip_stats), bytes_total2 = sum(_url_stats)
@@ -190,6 +194,8 @@ public:
 	size_t _bytes_m;		/*bytes for nginx 'MISS' */
 	size_t _access_m;		/*access_count for nginx 'MISS'*/
 public:
+		std::vector<nginx_raw_log_t> _logs;
+public:
 	nginx_log_stat();
 public:
 	size_t bytes_total() const;
@@ -200,14 +206,12 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-typedef std::pair<char *, char *> origin_logitem_t;
 /*log statistics by domain*/
 struct nginx_domain_stat
 {
 	std::map<time_group, nginx_log_stat> _stats;
 	int _site_id;
 	int _user_id;
-//	std::vector<origin_logitem_t> _logs;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

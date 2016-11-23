@@ -22,19 +22,15 @@ time_group::time_group(time_t const& t)
 	group(t);
 }
 
-const char* time_group::c_str(char const * fmt) const
+time_t time_group::t() const
 {
-//	return ctime(&_t);
-	static char buff[20] = "";
-	if(!fmt) return NULL;
-	strftime(buff, 20, fmt, localtime(&_t));
-	return buff;
+	return _t;
 }
-
-char * time_group::c_str_r(char * buff, size_t len, char const * fmt /*= "%Y-%m-%d %H:%M:%S"*/) const
+char * time_group::c_str_r(char * buff, size_t len, char const * fmt /*= "%Y%m%d%H%M"*/) const
 {
 	if(!fmt || !buff) return NULL;
-	strftime(buff, len, fmt, localtime(&_t));
+	tm t;
+	strftime(buff, len, fmt, localtime_r(&_t, &t));
 	return buff;
 }
 

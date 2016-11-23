@@ -33,12 +33,12 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*for nginx log*/
 
-/*parse_fmt.cpp*/
-extern int parse_fmt(char const * in, std::string& out,
-		std::unordered_map<std::string, std::string> const& argmap);
-
 /*tests, @see nginx_log_analysis/test.cpp*/
 extern int test_nginx_log_analysis_main(int argc, char ** argv);
+
+/*split_log.cpp*/
+extern int split_nginx_log(std::unordered_map<std::string, nginx_domain_stat> const& stats,
+		char const * folder, char const * fmt);
 /*!
  * parse ' ' splitted nginx log
  * @NOTE:
@@ -59,7 +59,8 @@ static int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = 
 /*parse nginx_log buffer @apram ct, and output results*/
 static int parse_nginx_log_item_buf(parse_context& ct);
 /* split file @param f into parts, use pthread to parallel parse*/
-static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, nginx_domain_stat> & stats);
+static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_stat,
+		std::unordered_map<std::string, nginx_domain_stat> & stats);
 
 /* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
  * @param mode:
@@ -134,11 +135,13 @@ static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, cha
 static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/)
 {
 	memset(&item, 0, sizeof(log_item));
+	item.beg = logitem;
 	char *items[18];
 	int result = do_parse_nginx_log_item(items, logitem, delim);
 	if(result != 0){
 		return 1;
 	}
+	item.end = logitem;
 
 	item.domain = items[0];
 //	item.client_ip_2 = items[1];
@@ -178,15 +181,17 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 		++logsstat._access_m;
 	}
 
+	/*if NOT required, we needn't statistics it*/
 	if(plcdn_la_opt.output_file_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
-		char buff[strlen(item.request_url)];
-		sha1sum_r(item.request_url, sizeof(buff), buff);
+		//FIXME: test me! @date 2016/11
+		auto len = strlen(item.request_url);
+		char buff[64];
+		sha1sum_r(item.request_url, len, buff);
 		url_stat& urlstat = logsstat._url_stats[buff];
 		++urlstat._status[item.status];
 		urlstat._bytes[item.status] += item.bytes_sent;
 	}
 
-	/*if NOT required, we needn't statistics it*/
 	if(plcdn_la_opt.output_file_ip_popular || plcdn_la_opt.output_file_ip_slowfast){
 		ip_stat& ipstat =logsstat._ip_stats[item.client_ip];
 		ipstat.bytes += item.bytes_sent;
@@ -211,6 +216,8 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 			++listat.access_m;
 		}
 	}
+
+	logsstat._logs.push_back(std::make_pair<>(item.beg, item.end));
 	return 0;
 }
 
@@ -397,13 +404,9 @@ static int log_stats_append(std::unordered_map<std::string, nginx_domain_stat> &
 	return 0;
 }
 
-static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, nginx_domain_stat> & stats)
+static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_stat,
+		std::unordered_map<std::string, nginx_domain_stat> & stats)
 {
-	struct stat logfile_stat;
-	if(fstat(fileno(f), &logfile_stat) < 0){
-		fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "nginx_log_file");
-		return 1;
-	}
 	int parallel_count = get_nprocs() - 1;			/*parallel count, exclude main_thread, maybe 0*/
 	size_t min_bytes = 1024 * 1024 * 64; 	/*min 64MB*/
 	for(size_t c = logfile_stat.st_size / min_bytes; c < (size_t)parallel_count; --parallel_count){ /*empty*/ }
@@ -418,12 +421,6 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, ng
 		fprintf(stdout, "%s: logfile_size = %ld/%s, para_count=%d\n", __FUNCTION__
 				, logfile_stat.st_size, byte_to_mb_kb_str(logfile_stat.st_size, "%-.2f %cB"), parallel_count);
 
-	/*FIXME: PAGE_SIZE?*/
-	char  * start_p = (char *)mmap(NULL, logfile_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(f), 0);
-	if(!start_p || start_p == MAP_FAILED){
-		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
-		return 1;
-	}
 	pthread_t threads[parallel_count];
 	parse_context parse_args[parallel_count + 1];	/*include main_thread*/
 	off_t offset_p = 0;
@@ -482,7 +479,6 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, ng
 	if(plcdn_la_opt.verbose)
 		fprintf(stdout, "%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
 
-	munmap(start_p, logfile_stat.st_size);
 	return 0;
 }
 
@@ -546,57 +542,6 @@ static int parse_srs_log(FILE * f, std::unordered_map<std::string, srs_domain_st
 	return 0;
 }
 
-static std::string parse_nginx_split_filename(char const * fmt, int site_id, int user_id)
-{
-	std::unordered_map<std::string, std::string> argmap;
-	argmap["site_id"] = std::to_string(site_id);
-	argmap["user_id"] = std::to_string(user_id);
-
-	std::string outname;
-	parse_fmt(fmt, outname, argmap);
-	return outname;
-}
-
-static int split_nginx_log(FILE * f, char const * folder, char const * fmt)
-{
-	if(!f || !folder || folder[0] == '\0' || !fmt || fmt[0] == '\0')
-		return -1;
-	struct stat s;
-	if(fstat(fileno(f), &s) < 0)
-		return -1;
-	/*FIXME: PAGE_SIZE?*/
-	auto start_p = (char *)mmap(NULL, s.st_size, PROT_READ, MAP_PRIVATE, fileno(f), 0);
-	if(!start_p || start_p == MAP_FAILED)
-		return -1;
-
-	/*FIXME: see ulimit -n 'open files'*/
-	std::unordered_map<std::string, FILE *> dmap; /*domain : log_file*/
-	for(char const * p = start_p, * q = p; q != start_p + s.st_size; ++q){
-		if(*q == '\n' && q - p > 0){
-			auto c = strchr(p, ' ');
-			char domain[c - p + 1];
-			strncpy(domain, p, c - p);
-			domain[c - p] = '\0';
-
-			auto && sinfo = g_sitelist[domain];
-			auto && fname = parse_nginx_split_filename(fmt, sinfo.site_id, sinfo.user_id);
-			auto & file = dmap[fname];
-			if(!file)
-				file = fopen((std::string(folder) + fname).c_str(), "a");
-			if(!file)
-				return -1;
-			auto len = q - p;
-			int result = fwrite(p, sizeof(char), len, f);
-			if(result < len || ferror(f)){
-				fprintf(stderr, "%s: write error for domain: '%s'\n", __FUNCTION__, domain);
-			}
-			p = q + 1;
-		}
-	}
-	munmap(start_p, s.st_size);
-	return 0;
-}
-
 /*FIXME: to be continued*/
 static void append_flow_table(
 		std::unordered_map<std::string, nginx_domain_stat> & nginx_stats,
@@ -628,6 +573,8 @@ static void append_flow_table(
 //main
 int test_plcdn_log_analysis_main(int argc, char ** argv)
 {
+//	test_nginx_log_analysis_main(argc, argv);	/*for test only*/
+
 	int result = plcdn_la_parse_options(argc, argv);
 	if(result != 0 || plcdn_la_opt.show_help){
 		plcdn_la_opt.show_help? plcdn_la_show_help(stdout) :
@@ -673,13 +620,28 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	std::unordered_map<std::string, nginx_domain_stat> nginx_logstats;	/*[domain: domain_stat]*/
 	std::unordered_map<std::string, srs_domain_stat>  srs_logstats;		/*[domain: srs_domain_stat]*/
 	FILE * nginx_log_file = NULL, * srs_log_file = NULL;
+	char * nginx_file_addr = NULL;
+	struct stat nginx_file_stat;
+
 	if(plcdn_la_opt.nginx_log_file){
 		nginx_log_file = fopen(plcdn_la_opt.nginx_log_file, "r");
 		if(!nginx_log_file) {
 			fprintf(stderr, "%s: fopen file '%s' failed\n", __FUNCTION__, plcdn_la_opt.nginx_log_file);
 			return 1;
 		}
-		auto status = parallel_parse_nginx_log(nginx_log_file, nginx_logstats);
+		auto fno = fileno(nginx_log_file);
+		if(fstat(fno, &nginx_file_stat) < 0){
+			fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "nginx_log_file");
+			return 1;
+		}
+		/*FIXME: PAGE_SIZE?*/
+		nginx_file_addr = (char *)mmap(NULL, nginx_file_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fno, 0);
+		if(!nginx_file_addr || nginx_file_addr == MAP_FAILED){
+			fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
+			return 1;
+		}
+
+		auto status = parallel_parse_nginx_log(nginx_file_addr, nginx_file_stat, nginx_logstats);
 		if(status != 0){
 			fprintf(stderr, "%s: parallel_parse_nginx_log failed, exit\n", __FUNCTION__);
 			return 1;
@@ -716,9 +678,13 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 
 	/*split log*/
 	if(plcdn_la_opt.output_split_nginx_log){
-		auto status = split_nginx_log(nginx_log_file, plcdn_la_opt.output_split_nginx_log, plcdn_la_opt.format_split_nginx_log);
+		auto status = split_nginx_log(nginx_logstats,
+				plcdn_la_opt.output_split_nginx_log, plcdn_la_opt.format_split_nginx_log);
 	}
 	/*output results*/
 	print_plcdn_log_stats(nginx_logstats);
+
+	if(nginx_file_addr)
+		munmap(nginx_file_addr, nginx_file_stat.st_size);
 	return 0;
 }
