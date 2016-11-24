@@ -178,10 +178,12 @@ void plcdn_la_show_help(FILE * stream)
 	poptPrintHelp(pc, stream, 0);
 	fprintf(stream, "NOTES:\n  1.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
 	        "    ${datetime}   current date time, format YYYYmmDDHHMM\n"
-			"    ${interval}   according to option --interval, format YYYYmmDDHHMM\n"
+			"    ${interval}   according to option --interval, in minute, format YYYYmmDDHHMM\n"
+			"    ${day}        $time_local in log, in day, format YYYYmmDD\n"
 			"    ${device_id}  device_id\n"
 			"    ${site_id}    site_id/domain id\n"
 			"    ${user_id}    user_id\n"
+			"    ${domain}     domain\n"
 			"  2.use ulimit(or other command) to increase 'open files', or may crash!\n"
 			"  3.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
 			"  4.nginx_log_format: $host $remote_addr $request_time_msec $cache_status [$time_local] \"$request_method \

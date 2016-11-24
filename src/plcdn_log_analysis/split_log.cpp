@@ -12,37 +12,19 @@
 #include <unordered_map> 		/*std::unordered_map*/
 #include <boost/filesystem.hpp> /*create_directories*/
 
-//#include "bd_test.h"			/*test_srs_log_stats_main*/
-//#include "test_options.h" 		/*sla_options*/
-//
-//#include <stdio.h>
-//#include <string.h> 	/*strncpy*/
-//#include <sys/sysinfo.h>	/*get_nprocs*/
-//#include <sys/stat.h>	/*fstat*/
-////#include <locale.h> 	/*setlocale*/
-//#include <pthread.h> 	/*pthread_create*/
-//#include <map>				/*std::map*/
-////#include <thread>		/*std::thread*/
-////#include <atomic>		/*std::atomic*/
-//#include "bd_test.h"		/*test_nginx_log_stats_main*/
-//#include "test_options.h"	/*nla_options**/
-//#include "srs_log_analysis.h"	/*srs_log_context*/
-//#include "string_util.h"	/*md5sum*/
-//#include "net_util.h"	/*get_if_addrs, ...*/
-//#include <algorithm>	/*std::min*/
-
 /*parse_fmt.cpp*/
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
 
 static std::string parse_nginx_split_filename(char const * fmt,
-		char const *interval, char const *day, int site_id, int user_id)
+		char const *interval, char const *day, int site_id, int user_id, std::string const& domain)
 {
 	std::unordered_map<std::string, std::string> argmap;
 	argmap["interval"] = interval;
 	argmap["day"] = day;
 	argmap["site_id"] = std::to_string(site_id);
 	argmap["user_id"] = std::to_string(user_id);
+	argmap["domain"] = domain;
 
 	std::string outname;
 	parse_fmt(fmt, outname, argmap);
@@ -94,7 +76,9 @@ int split_nginx_log(std::unordered_map<std::string, nginx_domain_stat> const& st
 			auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
 			char buft1[32], buft2[32];
 			auto && fname = parse_nginx_split_filename(fmt,
-					item.first.c_str_r(buft1, sizeof(buft1)), item.first.c_str_r(buft2, sizeof(buft2), "%Y%m%d"), site_id, user_id);
+					item.first.c_str_r(buft1, sizeof(buft1)), item.first.c_str_r(buft2, sizeof(buft2), "%Y%m%d")
+					, site_id, user_id
+					, dstat.first);
 			auto && fullname = (std::string(folder) + fname);
 
 			char dirname[fullname.size() + 1];

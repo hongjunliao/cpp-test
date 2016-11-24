@@ -654,6 +654,13 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			fprintf(stderr, "%s: parallel_parse_nginx_log failed, exit\n", __FUNCTION__);
 			return 1;
 		}
+		/*split log*/
+		if(plcdn_la_opt.output_split_nginx_log){
+			if(plcdn_la_opt.verbose)
+				fprintf(stdout, "%s: splitting log file: '%s'...\n", __FUNCTION__, plcdn_la_opt.nginx_log_file);
+			auto status = split_nginx_log(nginx_logstats,
+					plcdn_la_opt.output_split_nginx_log, plcdn_la_opt.format_split_nginx_log);
+		}
 	}
 	if(plcdn_la_opt.srs_log_file){
 		srs_log_file = fopen(plcdn_la_opt.srs_log_file, "r");
@@ -684,11 +691,6 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	}
 //	append_flow_table(nginx_logstats, srs_logstats);
 
-	/*split log*/
-	if(plcdn_la_opt.output_split_nginx_log){
-		auto status = split_nginx_log(nginx_logstats,
-				plcdn_la_opt.output_split_nginx_log, plcdn_la_opt.format_split_nginx_log);
-	}
 	/*output results*/
 	print_plcdn_log_stats(nginx_logstats);
 
