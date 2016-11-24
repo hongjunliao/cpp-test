@@ -217,7 +217,8 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 		}
 	}
 
-	logsstat._logs.push_back(std::make_pair<>(item.beg, item.end));
+	if(item.beg && item.end)
+		logsstat._logs.push_back(std::make_pair<>(item.beg, item.end));
 	return 0;
 }
 
@@ -370,7 +371,14 @@ int parse_nginx_log_item_buf(parse_context& ct)
 
 	log_item item;
 	for(char * p = buf; p != buf + len; ++p){
+//		printf(">_____");
+//		for(auto p1 = buf; p1 != buf + len; ++p1){
+//			printf("%c", *p1);
+//		}
+//		printf("_____|\n");
+
 		int result = parse_log_item(item, p, '\n');
+
 		if(result == 0){
 			do_nginx_log_stats(item, logstats);
 		}

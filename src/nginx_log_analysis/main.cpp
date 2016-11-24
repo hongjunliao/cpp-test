@@ -479,7 +479,7 @@ static int parallel_parse_nginx_log(FILE * f, std::unordered_map<std::string, ng
 
 int test_nginx_log_stats_main(int argc, char ** argv)
 {
-	test_nginx_log_analysis_main(argc, argv);	/*for test only*/
+//	test_nginx_log_analysis_main(argc, argv);	/*for test only*/
 
 	int result = nginx_log_stats_parse_options(argc, argv);
 	if(result != 0 || nla_opt.show_help){
