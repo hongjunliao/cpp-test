@@ -75,8 +75,8 @@ static void fwrite_nginx_raw_log(FILE * f, std::vector<nginx_raw_log_t> const& l
 		buff[len] = '\n';
 		std::replace(buff, buff + len, '\0', ' ');
 
-		auto result = fwrite(buff, sizeof(char), len, f);
-		if(result < (size_t)len || ferror(f))
+		auto result = fwrite(buff, sizeof(char), sizeof(buff), f);
+		if(result < sizeof(buff) || ferror(f))
 			++n;
 	}
 }
