@@ -83,6 +83,8 @@ struct srs_domain_stat
 	int _user_id;
 };
 
+//for srs raw log, pair<beg, end>
+typedef std::pair<char *, char *> srs_raw_log_t;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*!parse srs log item, currently get <timestamp>, <client_ip>, <time>, <obytes>, <ibytes>
  * format:[timestamp][log_level][srs_pid][srs_sid][errno]<text>
@@ -108,6 +110,11 @@ int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
  * @NOTES: move @param buff after parsed
  * */
 int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid);
+
+/* parse sid from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110] '
+ * return sid(>=0), or -1 on failure
+ * */
+int parse_srs_log_header_sid(char const * buff);
 
 /* statistics for srs log
  * @param log_type @see parse_srs_log_item

@@ -3,6 +3,7 @@
  */
 
 #include "srs_log_analysis.h"
+#include <string>				/*std::string*/
 #include <unordered_map>		/*std::unordered_map*/
 #include <boost/regex.hpp> 		/*regex_search*/
 #include "net_util.h"			/*netutil_get_ip_from_str*/
@@ -11,6 +12,15 @@
 
 /*plcdn_log_analysis/main.cpp*/
 extern std::unordered_map<std::string, site_info> g_sitelist;
+
+int parse_srs_log_header_sid(char const * buff)
+{
+	auto p = strchr(buff, ']');
+	for(int i = 3; p && i > 0; --i) { p = strchr(++p, '['); }
+	auto end = p? strchr(p + 1, ']') : NULL;
+	if(!p || !end) return -1;
+	return stoi(std::string(p, end));
+}
 
 int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid)
 {

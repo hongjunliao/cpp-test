@@ -88,7 +88,8 @@ static char const * str_find(char const *str, int len = -1);
 extern int print_plcdn_log_stats(std::unordered_map<std::string, nginx_domain_stat> const& logstats);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*for srs log*/
-static int parse_srs_log(FILE * stream, std::unordered_map<std::string, srs_domain_stat> & logstats);
+static int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
+		std::unordered_map<std::string, srs_domain_stat> & logstats);
 /*srs_log_analysis/print_table.cpp*/
 extern void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -491,19 +492,58 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static int parse_srs_log(FILE * f, std::unordered_map<std::string, srs_domain_stat> & logstats)
+//for srs log analysis
+
+static std::unordered_map<int, std::vector<srs_raw_log_t>>
+	split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat)
 {
-	struct stat logfile_stat;
-	if(fstat(fileno(f), &logfile_stat) < 0){
-		fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "srs_log_file");
-		return 1;
+	std::unordered_map<int, std::vector<srs_raw_log_t>> ret;
+
+	srs_raw_log_t rlog;
+	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
+		if(*q == '\n'){
+			rlog.first = p;
+			rlog.second = q;
+			auto sid = parse_srs_log_header_sid(p);
+			if(sid < 0)
+				continue;
+
+			ret[sid].push_back(rlog);
+
+			p = q + 1;
+		}
 	}
-	/*FIXME: PAGE_SIZE?*/
-	char  * start_p = (char *)mmap(NULL, logfile_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(f), 0);
-	if(!start_p || start_p == MAP_FAILED){
-		fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "srs_log_file");
-		return 1;
+	return ret;
+}
+
+static int parse_srs_log(char * start_p, struct stat const & logfile_stat,
+		std::unordered_map<std::string, srs_domain_stat> & logstats)
+{
+	auto && slogs = split_srs_log_by_sid(start_p, logfile_stat);
+
+	size_t linecount = 0, failed_count = 0, skip_count = 0;
+	std::vector<srs_connect_ip> ip_items;
+	std::vector<srs_connect_url> url_items;
+
+	/*FIXME empty line!!*/
+	srs_log_item logitem;
+	for(auto & item : slogs){
+		auto status = parse_srs_log_item(p, logitem, log_type);
+		if(status != 0)
+			++failed_count;
+		break;
 	}
+	if(plcdn_la_opt.verbose)
+		fprintf(stdout, "%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
+				, linecount, failed_count, skip_count);
+	return 0;
+}
+
+/*extract useful log items and parse*/
+static int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
+		std::unordered_map<std::string, srs_domain_stat> & logstats)
+{
+	auto && slogs = split_srs_log_by_sid(start_p, logfile_stat);
 
 	size_t linecount = 0, failed_count = 0, skip_count = 0;
 	std::vector<srs_connect_ip> ip_items;
@@ -549,6 +589,9 @@ static int parse_srs_log(FILE * f, std::unordered_map<std::string, srs_domain_st
 				, linecount, failed_count, skip_count);
 	return 0;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*merge*/
 
 /*FIXME: to be continued*/
 static void append_flow_table(
@@ -625,12 +668,16 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	time_group::_sec = interval;
 
 	/*parse logs*/
+
+	/*inputs*/
+	FILE * nginx_log_file = NULL, * srs_log_file = NULL;
+	char * nginx_file_addr = NULL, * srs_file_addr = NULL ;
+	struct stat nginx_file_stat, srs_file_stat;
+	/*outputs*/
 	std::unordered_map<std::string, nginx_domain_stat> nginx_logstats;	/*[domain: domain_stat]*/
 	std::unordered_map<std::string, srs_domain_stat>  srs_logstats;		/*[domain: srs_domain_stat]*/
-	FILE * nginx_log_file = NULL, * srs_log_file = NULL;
-	char * nginx_file_addr = NULL;
-	struct stat nginx_file_stat;
 
+	/*for nginx_log*/
 	if(plcdn_la_opt.nginx_log_file){
 		nginx_log_file = fopen(plcdn_la_opt.nginx_log_file, "r");
 		if(!nginx_log_file) {
@@ -662,13 +709,27 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 					plcdn_la_opt.output_split_nginx_log, plcdn_la_opt.format_split_nginx_log);
 		}
 	}
+
+	/*for srs_log*/
 	if(plcdn_la_opt.srs_log_file){
 		srs_log_file = fopen(plcdn_la_opt.srs_log_file, "r");
 		if(!srs_log_file) {
 			fprintf(stderr, "%s: fopen file '%s' failed\n", __FUNCTION__, plcdn_la_opt.srs_log_file);
 			return 1;
 		}
-		auto status = parse_srs_log(srs_log_file, srs_logstats);
+		auto fno = fileno(srs_log_file);
+		if(fstat(fno, &srs_file_stat) < 0){
+			fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "srs_log_file");
+			return 1;
+		}
+		/*FIXME: PAGE_SIZE?*/
+		srs_file_addr = (char *)mmap(NULL, srs_file_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fno, 0);
+		if(!srs_file_addr || srs_file_addr == MAP_FAILED){
+			fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "srs_log_file");
+			return 1;
+		}
+
+		auto status = extract_and_parse_srs_log(srs_file_addr, srs_file_stat, srs_logstats);
 		if(status != 0){
 			fprintf(stderr, "%s: parse_srs_log failed, exit\n", __FUNCTION__);
 			return 1;
@@ -694,7 +755,10 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	/*output results*/
 	print_plcdn_log_stats(nginx_logstats);
 
+	/*uinit*/
 	if(nginx_file_addr)
 		munmap(nginx_file_addr, nginx_file_stat.st_size);
+	if(srs_file_addr)
+		munmap(srs_file_addr, srs_file_stat.st_size);
 	return 0;
 }
