@@ -494,10 +494,20 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //for srs log analysis
 
-static std::unordered_map<int, std::vector<srs_raw_log_t>>
+srs_sid::srs_sid(int sid)
+:	_sid(sid)
+, _site_id(0)
+, _ip(0)
+, _bytes(0)
+{
+	//none
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static std::unordered_map<srs_sid, std::vector<srs_raw_log_t>>
 	split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat)
 {
-	std::unordered_map<int, std::vector<srs_raw_log_t>> ret;
+	std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> slogs;
 
 	srs_raw_log_t rlog;
 	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
@@ -508,34 +518,95 @@ static std::unordered_map<int, std::vector<srs_raw_log_t>>
 			if(sid < 0)
 				continue;
 
-			ret[sid].push_back(rlog);
+			srs_sid k(sid);
+			srs_connect_ip ip;
+			srs_connect_url url;
+			int t = 0;
+			auto ret = parse_srs_log_item_conn(rlog.first, rlog.second, ip, url, t);
+			if(ret == 0){
+				if(t == 1) k._ip == ip.ip;
+				else if(t == 2) {
+					char domain[128];
+					auto r = parse_domain_from_url(url.url, domain, sizeof(domain));
+					if(r == 0){
+						int site_id, user_id;
+						find_site_id(g_sitelist, domain, site_id, &user_id)();
+						k._site_id == site_id;
+					}
+				}
+			}
+			slogs[k].push_back(rlog);
 
 			p = q + 1;
 		}
 	}
-	return ret;
+	/*extract ip and url from*/
+	for(auto& slog : slogs){
+		auto& sid = slog.first;
+
+		int t = 0, f = 0;
+		for(auto & log : slog.second){
+			if(f)
+				break;
+			auto ret = parse_srs_log_item_conn(log.first, log.second, ip, url, t);
+			if(ret != 0)
+				continue;
+			t == 1? sid.
+		}
+	}
+	return slogs;
 }
 
+/*!
+ * append logs from @param slog to dir @param logdir, by sid
+ * because of append, connection log preserved
+ */
+void append_srs_log_by_sid(std::unordered_map<int, std::vector<srs_raw_log_t>> const& slog,
+		std::string const& logdir, size_t& n)
+{
+	/*sid : log_file*/
+	std::unordered_map<int, FILE *> filemap;
+	for(auto & it : slog){
+		auto && dir = logdir + std::to_string(it.first);
+		auto & f = filemap[it.first];
+		if(!f)
+			f = fopen(dir.c_str(), "a");
+		if(!f) {
+			fprintf(stdout, "%s: can't open srs_sid_log_file '%s' for append\n", __FUNCTION__, dir.c_str());
+			continue;
+		}
+		for(auto& item : it.second){
+			auto len = item.second - item.first;
+			auto result = fwrite(item.first, sizeof(char), len, f);
+			if(result < len || ferror(f))
+				++n;
+		}
+	}
+	for(auto & it : filemap) {
+		if(it.second)
+			fclose(it.second);
+	}
+}
+
+/*parse srs log file, from start addr @param start_p and fileinfo @param logfile_stat*/
 static int parse_srs_log(char * start_p, struct stat const & logfile_stat,
 		std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
-	auto && slogs = split_srs_log_by_sid(start_p, logfile_stat);
+	auto && slog = split_srs_log_by_sid(start_p, logfile_stat);
 
-	size_t linecount = 0, failed_count = 0, skip_count = 0;
-	std::vector<srs_connect_ip> ip_items;
-	std::vector<srs_connect_url> url_items;
+	char const * logdir = "./srs_log_by_id/";
+	size_t failed_lines = 0;
+//	append_srs_log_by_sid(slog, logdir, failed_lines);
+//
+//	for(auto & it : slog){
+//		auto && dir = logdir + std::to_string(it.first);
+//		auto f = fopen(dir.c_str(), "r");
+//		if(!f) {
+//			fprintf(stdout, "%s: can't open srs_sid_log_file '%s' for read\n", __FUNCTION__, dir.c_str());
+//			continue;
+//		}
+//	}
 
-	/*FIXME empty line!!*/
-	srs_log_item logitem;
-	for(auto & item : slogs){
-		auto status = parse_srs_log_item(p, logitem, log_type);
-		if(status != 0)
-			++failed_count;
-		break;
-	}
-	if(plcdn_la_opt.verbose)
-		fprintf(stdout, "%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
-				, linecount, failed_count, skip_count);
 	return 0;
 }
 
@@ -543,8 +614,6 @@ static int parse_srs_log(char * start_p, struct stat const & logfile_stat,
 static int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
 		std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
-	auto && slogs = split_srs_log_by_sid(start_p, logfile_stat);
-
 	size_t linecount = 0, failed_count = 0, skip_count = 0;
 	std::vector<srs_connect_ip> ip_items;
 	std::vector<srs_connect_url> url_items;

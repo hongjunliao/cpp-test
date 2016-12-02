@@ -83,8 +83,34 @@ struct srs_domain_stat
 	int _user_id;
 };
 
+/*srs logs by sid*/
+class srs_sid
+{
+	int _sid;
+	int _site_id;
+	uint32_t _ip;
+	size_t _bytes;	/*bytes total by this sid, in this log file*/
+private:
+	friend bool operator ==(const srs_sid& one, const srs_sid& another);
+public:
+	srs_sid(int sid = 0);
+};
+
+//////////////////////////////////////////////////////////////////////////////////
+//required by std::unordered_map's key, @see http://en.cppreference.com/w/cpp/utility/hash
+namespace std{
+template<> struct hash<srs_sid>
+{
+	typedef srs_sid argument_type;
+	typedef std::size_t result_type;
+	result_type operator()(argument_type const& s) const;
+};
+
+}	//namespace std
+
 //for srs raw log, pair<beg, end>
 typedef std::pair<char *, char *> srs_raw_log_t;
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*!parse srs log item, currently get <timestamp>, <client_ip>, <time>, <obytes>, <ibytes>
  * format:[timestamp][log_level][srs_pid][srs_sid][errno]<text>
@@ -104,6 +130,12 @@ typedef std::pair<char *, char *> srs_raw_log_t;
  *@param log_type, 0-other; 1: srs_connect_ip; 2: srs_trans; 3: srs_disconnect; 4: srs_connect_url
  * */
 int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
+
+/**
+ * @param t, 1: ip; 2: url;
+ * return 0 on success
+ * */
+int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_url & url, int& t);
 
 /* parse time_stamp, sid from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110] '
  * return 0 on success
@@ -125,5 +157,6 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 		std::vector<srs_connect_url> const& url_items,
 		std::unordered_map<std::string, srs_domain_stat> & logstats);
 
+int parse_domain_from_url(char const * url, char * domain, int len);
 #endif /*_SRS_LOG_ANALYSIS_H_*/
 
