@@ -86,14 +86,19 @@ struct srs_domain_stat
 /*srs logs by sid*/
 class srs_sid
 {
+public:
 	int _sid;
 	int _site_id;
+	int _user_id;
+	time_t _time;
 	uint32_t _ip;
 	size_t _bytes;	/*bytes total by this sid, in this log file*/
 private:
 	friend bool operator ==(const srs_sid& one, const srs_sid& another);
 public:
 	srs_sid(int sid = 0);
+public:
+	operator bool() const;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -135,7 +140,8 @@ int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
  * @param t, 1: ip; 2: url;
  * return 0 on success
  * */
-int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_url & url, int& t);
+int parse_srs_log_item_conn(char const * buff, char const * end, srs_connect_ip& ip, srs_connect_url & url, int& t);
+int parse_srs_log_item_conn(char const * buff, char delim, srs_connect_ip& ip, srs_connect_url & url, int& t);
 
 /* parse time_stamp, sid from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110] '
  * return 0 on success
@@ -158,5 +164,6 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 		std::unordered_map<std::string, srs_domain_stat> & logstats);
 
 int parse_domain_from_url(char const * url, char * domain, int len);
+
 #endif /*_SRS_LOG_ANALYSIS_H_*/
 

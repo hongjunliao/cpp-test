@@ -192,7 +192,7 @@ static FILE * & append_stream(std::map<std::string, FILE *> & filemap, std::stri
 	return filemap[filename];
 }
 
-int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> const& stats)
+static int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> const& stats)
 {
 	std::map<std::string, FILE *> filemap; /*for output filenames*/
 	size_t n = 0;

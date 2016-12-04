@@ -13,6 +13,17 @@
 /*plcdn_log_analysis/main.cpp*/
 extern std::unordered_map<std::string, site_info> g_sitelist;
 
+//////////////////////////////////////////////////////////////////////////////////
+srs_sid::srs_sid(int sid)
+:	_sid(sid)
+, _site_id(0)
+, _ip(0)
+, _bytes(0)
+{
+	//none
+}
+
+//////////////////////////////////////////////////////////////////////////////////
 int parse_srs_log_header_sid(char const * buff)
 {
 	auto p = strchr(buff, ']');
@@ -140,4 +151,29 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 	stat.ibytes += logitem.trans.ibytes;
 	stat.obytes += logitem.trans.obytes;
 	return 0;
+}
+
+int parse_srs_log_item_conn(const char* buff, const char* end,
+		srs_connect_ip& ip, srs_connect_url& url, int& t)
+{
+	return 1;
+}
+
+int parse_domain_from_url(const char* url, char* domain, int len)
+{
+	return 1;
+}
+
+bool operator ==(const srs_sid& one, const srs_sid& another)
+{
+	if(one._sid == another._sid)
+		return true;
+	return false;
+}
+
+std::size_t std::hash<srs_sid>::operator()(srs_sid const& val) const
+{
+	/*FIXME: */
+	std::size_t const h1 ( std::hash<int>{}(val._sid) );	// or use boost::hash_combine
+	return h1;
 }
