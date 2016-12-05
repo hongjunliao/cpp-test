@@ -34,93 +34,151 @@ static std::string parse_srs_split_filename(char const * fmt,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*get srs_sids from directory @param srs_sid_dir*/
-static void get_srs_sids_from_dir(std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> & slogs,
-		char const * srs_sid_dir)
+static void fwrite_srs_sid_log(FILE * f,
+		std::vector<srs_raw_log_t> const & logs, size_t & n)
 {
-	for(auto it = slogs.begin(); it != slogs.end(); ++it){
-		auto sid = it->first;
-		if(sid)
-			continue;
-		auto dir = std::string(srs_sid_dir) + std::to_string(sid._sid);
-		auto * f = fopen(dir.c_str(), "r");
-		if(!f){
-			fprintf(stderr, "%s: connection info for sid '%d' in '%s' NOT found, skip\n",
-					__FUNCTION__, sid._sid, dir.c_str());
-			continue;
-		}
-		srs_connect_ip ip;
-		srs_connect_url url;
-		bool is_ip_found = false, is_url_found = false;
-		char buff[6000];
-		while(fgets(buff, sizeof(buff), f)){
-			if(is_ip_found && is_url_found)
-				break;
-			int t = 0;
-			auto ret = parse_srs_log_item_conn(buff, '\n', ip, url, t);
-			if(ret != 0)
-				continue;
-			if(t == 1){
-				sid._ip = ip.ip;
-				is_ip_found = true;
-			}
-			else if(t == 2) {
-				char domain[128];
-				auto r = parse_domain_from_url(url.url, domain, sizeof(domain));
-				if(r != 0)
-					break;	/*FIXME: impossible?*/
-				is_url_found = true;
-				int site_id, user_id;
-				find_site_id(g_sitelist, domain, site_id, &user_id);
-				sid._site_id = site_id;
-				sid._user_id = user_id;
-			}
+//	printf("%s: size = %zu____\n", __FUNCTION__, logs.size());
+	for(auto & log : logs){
+//		printf("%s: type = %d\n", __FUNCTION__, log.type);
+		if(log.type == 1 || log.type == 4){
+			auto buff = log.first;
+			auto len = log.second - log.first;
+//			printf("%s: connection info = %s, len = %ld\n", __FUNCTION__, buff, len);
+			auto result = fwrite(log.first, sizeof(char), len, f);
+			/*FIXME*/
+			fwrite("\n", sizeof(char), 1, f);
+
+			if(result < sizeof(buff) || ferror(f))
+				++n;
 		}
 	}
 }
 
-/* FIXME: std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> order by srs_sid::_time
- * @date 2016/12/03
- *
+/*get srs_sids from directory @param srs_sid_dir, or write to it*/
+void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
+		char const * srs_sid_dir)
+{
+//	fprintf(stdout, "%s: ___size = %zu, dir = %s____\n", __FUNCTION__, slogs.size(), srs_sid_dir);
+
+	if(!srs_sid_dir || srs_sid_dir[0] == '\0')
+		return;
+	for(auto & item : slogs){
+		auto sid = item.first;
+		auto & slog = item.second;
+
+		auto && fullname = std::string(srs_sid_dir) + std::to_string(sid);
+//		fprintf(stdout, "%s: dir = %s____\n", __FUNCTION__, fullname.c_str());
+		if(slog){
+//			fprintf(stdout, "%s: write : dir = %s____\n", __FUNCTION__, fullname.c_str());
+			/*sid exist, write to file*/
+			auto f = fopen(fullname.c_str(), "a");	/*append mode*/
+			if(!f){
+				fprintf(stderr, "%s: write connection info for sid '%d' in '%s' failed, skip\n",
+									__FUNCTION__, sid, fullname.c_str());
+				continue;
+			}
+			size_t n = 0;
+			fwrite_srs_sid_log(f, slog._logs, n);
+			if(n != 0)
+				fprintf(stderr, "%s: write connection info for sid '%d', skiped lines = %zu\n",
+								__FUNCTION__, sid, n);
+			fclose(f);
+			continue;
+		}
+		/*sid NOT exist, read from file*/
+		auto f = fopen(fullname.c_str(), "r");
+		if(!f){
+			fprintf(stderr, "%s: connection info looking up from '%s' NOT found, skip\n",
+								__FUNCTION__, fullname.c_str());
+			continue;
+		}
+
+		srs_connect_ip ip;
+		srs_connect_url url;
+		char buff[6000];
+		while(fgets(buff, sizeof(buff), f)){
+			int t = 0;
+			auto ret = parse_srs_log_item_conn(buff, ip, url, t);
+			if(ret != 0)
+				continue;
+			if(t == 1){
+				slog._ip = ip.ip;
+			}
+			else if(t == 2) {
+				char domain[128];
+				auto r = parse_domain_from_url(url.url, domain);
+				if(r != 0)
+					break;	/*FIXME: impossible?*/
+				int site_id, user_id;
+				find_site_id(g_sitelist, domain, site_id, &user_id);
+				slog._site_id = site_id;
+				slog._user_id = user_id;
+			}
+		}
+		fclose(f);
+	}
+}
+
+/*
  * @param srs_sid_dir: log_dir by srs_sid
  */
-void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat, char const * srs_sid_dir,
-		std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> & slogs)
+void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
+		std::unordered_map<int, srs_sid_log> & slogs)
 {
-	srs_raw_log_t rlog;
 	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
-		if(*q == '\n'){
-			rlog.first = p;
-			rlog.second = q;
-			auto sid = parse_srs_log_header_sid(p);
-			if(sid < 0)
-				continue;
+		if(*q != '\n')
+			continue;
+		*q = '\0';
 
-			srs_sid k(sid);
-			srs_connect_ip ip;
-			srs_connect_url url;
-			int t = 0;
-			auto ret = parse_srs_log_item_conn(rlog.first, rlog.second, ip, url, t);
-			if(ret == 0){
-				if(t == 1)
-					k._ip = ip.ip;
-				else if(t == 2) {
-					char domain[128];
-					auto r = parse_domain_from_url(url.url, domain, sizeof(domain));
-					if(r == 0){
-						int site_id, user_id;
-						find_site_id(g_sitelist, domain, site_id, &user_id);
-						k._site_id = site_id;
-						k._user_id = user_id;
-					}
-				}
-			}
-			slogs[k].push_back(rlog);
+		srs_raw_log_t rlog;
+		rlog.type = 0;
+		rlog.first = p;
+		rlog.second = q;
+//		printf("___%s____\n", rlog.first);
 
-			p = q + 1;
+		p = q + 1;
+
+		auto sid = parse_srs_log_header_sid(rlog.first);
+		if(sid < 0)
+			continue;
+
+		auto & slog = slogs[sid];
+		if(slog){
+//			printf("%s: ___sid ok: site_id = %d, ip = %u____\n", __FUNCTION__, slog._site_id, slog._ip);
+			continue;
 		}
+		/*try to get connection info, it's OK if not found*/
+		srs_connect_ip ip;
+		srs_connect_url url;
+		int t = 0;
+		auto ret = parse_srs_log_item_conn(rlog.first, ip, url, t);
+		if(ret != 0 || t == 0) continue;
+
+		if(t == 1){
+//			printf("%s: ___[%s], found connection info: %d, type=%d, ip = %u____\n",
+//					__FUNCTION__, rlog.first, sid, t, ip.ip);
+			rlog.type = 1;
+			slog._ip = ip.ip;
+		}
+		else if(t == 2) {
+//			printf("%s: ___[%s], found connection info: %d, type=%d, url = %s____\n",
+//					__FUNCTION__, rlog.first, sid, t, url.url);
+			rlog.type = 4;
+			char domain[128];
+			auto r = parse_domain_from_url(url.url, domain);
+			if(r == 0){
+//				printf("%s: ___url = %s, domain = %s____\n", __FUNCTION__, url.url, domain);
+
+				int site_id, user_id;
+				find_site_id(g_sitelist, domain, site_id, &user_id);
+				slog._site_id = site_id;
+				slog._user_id = user_id;
+				slog._url = url.url;
+				slog._domain = domain;
+			}
+		}
+		slog._logs.push_back(rlog);
 	}
-	get_srs_sids_from_dir(slogs, srs_sid_dir);
 }
 
 static void fwrite_srs_raw_log(FILE * f, std::vector<srs_raw_log_t> const& logs, size_t & n)
@@ -155,69 +213,58 @@ static void fwrite_srs_raw_log(FILE * f, std::vector<srs_raw_log_t> const& logs,
 	}
 }
 
-/*!
- * append logs from @param slog to dir @param logdir, by sid
- * because of append, connection log preserved
- */
-static void append_srs_log_by_sid(std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> const& slog,
-		char const * folder, char const * fmt, size_t& n)
-{
-	/*sid : log_file*/
-	std::unordered_map<std::string, FILE *> filemap;
-	for(auto & it : slog){
-		auto sid = it.first;
-		char buft1[32], buft2[32];
-		time_group t(sid._time);
-		auto && fname = parse_srs_split_filename(fmt,
-				t.c_str_r(buft1, sizeof(buft1)), t.c_str_r(buft2, sizeof(buft2), "%Y%m%d")
-				, sid._site_id, sid._user_id);
-		auto && fullname = (std::string(folder) + fname);
-
-		char dirname[fullname.size() + 1];
-		strncpy(dirname, fullname.c_str(), sizeof(dirname));
-
-		auto c = strrchr(dirname, '/');
-		if(c){
-			*c = '\0';
-			auto ret = boost::filesystem::create_directories(dirname);
-		}
-		auto & file = filemap[fname];
-		if(!file)
-			file = fopen(fullname.c_str(), "a");
-		if(!file){
-			fprintf(stderr, "%s: fopen failed: '%s', skip\n", __FUNCTION__, fullname.c_str());
-			/*FIXME n++?*/
-			continue;
-		}
-		fwrite_srs_raw_log(file, it.second, n);
-	}
-	for(auto & it : filemap) {
-		if(it.second)
-			fclose(it.second);
-	}
-}
-
-int parse_srs_log(std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> const & slogs,
+int parse_srs_log(std::unordered_map<int, srs_sid_log>  const & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
-	size_t failed_lines = 0;
-//	append_srs_log_by_sid(slogs, logdir, fmt, failed_lines);
-//
-//	for(auto & it : slog){
-//		auto && dir = logdir + std::to_string(it.first);
-//		auto f = fopen(dir.c_str(), "r");
-//		if(!f) {
-//			fprintf(stdout, "%s: can't open srs_sid_log_file '%s' for read\n", __FUNCTION__, dir.c_str());
-//			continue;
-//		}
-//	}
-
+	for(auto & item : slogs){
+		srs_sid_log const & slog = item.second;
+		if(!slog){
+			continue;
+		}
+		srs_domain_stat & dstat = logstats[slog._domain];
+		do_srs_log_sid_stats(item.first, slog, dstat);
+	}
 	return 0;
 }
 
 int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logstats,
 		char const * folder, char const * fmt)
 {
+	size_t n = 0;
+	/*srs_log_dir: log_file*/
+	std::unordered_map<std::string, FILE *> filemap;
+	for(auto & dstat : logstats){
+		for(auto const& item : dstat.second._stats){
+			auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
+			char buft1[32], buft2[32];
+			auto && fname = parse_srs_split_filename(fmt,
+					item.first.c_str_r(buft1, sizeof(buft1)), item.first.c_str_r(buft2, sizeof(buft2), "%Y%m%d")
+					, site_id, user_id);
+			auto && fullname = (std::string(folder) + fname);
+
+			char dirname[fullname.size() + 1];
+			strncpy(dirname, fullname.c_str(), sizeof(dirname));
+
+			auto c = strrchr(dirname, '/');
+			if(c){
+				*c = '\0';
+				auto ret = boost::filesystem::create_directories(dirname);
+			}
+			auto & file = filemap[fname];
+			if(!file)
+				file = fopen(fullname.c_str(), "a");
+			if(!file){
+				fprintf(stderr, "%s: fopen failed: '%s', skip\n", __FUNCTION__, fullname.c_str());
+				/*FIXME n++?*/
+				continue;
+			}
+			fwrite_srs_raw_log(file, item.second._logs, n);
+		}
+		for(auto & it : filemap) {
+			if(it.second)
+				fclose(it.second);
+		}
+	}
 	return 0;
 }
 

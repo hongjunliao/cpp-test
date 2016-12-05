@@ -14,6 +14,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_IP_SOURCE   	"IPSource.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_SPLIT_NGINX_LOG   	"${site_id}/${day}"
 #define DEF_FORMAT_SPLIT_SRS_LOG   	"${site_id}/${day}"
+#define DEF_SRS_SID_DIR			"srs_log_analysis/by_sid/"
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
@@ -25,6 +26,8 @@ struct plcdn_la_options plcdn_la_opt = {
 
 		.srs_log_file = NULL,
 		.output_file_srs_flow = NULL,
+		.srs_sid_dir = DEF_SRS_SID_DIR,
+
 
 		.interval = 300,
 		.output_file_flow = NULL,
@@ -73,8 +76,8 @@ static struct poptOption plcdn_la_popt[] = {
 	{"interval",                'i',  POPT_ARG_INT,      0, 'i', "interval in seconds, default: 300", 0 },
 
 	{"srs-log-file",            'n',  POPT_ARG_STRING,   0, 'n', "srs_log_file", 0 },
+	{"output-srs-sid",          'k',  POPT_ARG_STRING,   0, 'k', "folder for srs_log_by_sid, default '" DEF_SRS_SID_DIR "'", 0 },
 	{"output-srs-flow",         'N',  POPT_ARG_STRING,   0, 'N', "filename for output_srs_flow_table, 1 for stdout", 0 },
-
 
 	{"output-file-flow",        'o',  POPT_ARG_STRING,   0, 'o', "output folder for flow_table, disabled if NULL", 0 },
 	{"format-flow",             'O',  POPT_ARG_STRING,   0, 'O', "filename format for flow_table, default '" DEF_FORMAT_FLOW "', see NOTES for details", 0 },
@@ -103,6 +106,9 @@ static struct poptOption plcdn_la_popt[] = {
 	{"output-split-nginx-log",  'g',  POPT_ARG_STRING,   0, 'g', "output folder for split_nginx_log, disabled if NULL", 0 },
 	{"format-split-nginx-log",  'G',  POPT_ARG_STRING,   0, 'G', "filename format for split_nginx_log, default '" DEF_FORMAT_SPLIT_NGINX_LOG "'", 0 },
 
+	{"output-split-srs-log",    'j',  POPT_ARG_STRING,   0, 'j', "output folder for split_srs_log, disabled if NULL", 0 },
+	{"format-split-srs-log",    'J',  POPT_ARG_STRING,   0, 'J', "filename format for split_srs_log, default '" DEF_FORMAT_SPLIT_SRS_LOG "'", 0 },
+
 	{"device-id",                 0,  POPT_ARG_INT,      0, 'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
 	{"enable-multi-thread",     0,  POPT_ARG_NONE,       0, 'a', "enable_multi_thread", 0 },
@@ -122,6 +128,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'l': plcdn_la_opt.nginx_log_file = poptGetOptArg(pc); break;
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
+		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
 		case 'N': plcdn_la_opt.output_file_srs_flow = poptGetOptArg(pc); break;
 
 		case 'i': plcdn_la_opt.interval = atoi(poptGetOptArg(pc)); break;
@@ -155,6 +162,9 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'g': plcdn_la_opt.output_split_nginx_log = poptGetOptArg(pc); break;
 		case 'G': plcdn_la_opt.format_split_nginx_log = poptGetOptArg(pc); break;
+
+		case 'j': plcdn_la_opt.output_split_srs_log = poptGetOptArg(pc); break;
+		case 'J': plcdn_la_opt.format_split_srs_log = poptGetOptArg(pc); break;
 
 		case 'c': plcdn_la_opt.print_device_id = 1; break;
 		case 'a': plcdn_la_opt.enable_multi_thread = 1; break;
@@ -215,13 +225,14 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	auto& opt = *popt;
 	fprintf(stream,
 			"%-34s%-20s" "\n%-34s%-20d" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
@@ -232,7 +243,9 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "ipmap_file", opt.ipmap_file
 
 		, "srs_log_file", opt.srs_log_file
+		, "srs_sid_dir", opt.srs_sid_dir
 		, "output_file_srs_flow", opt.output_file_srs_flow
+
 
 		, "output_file_flow", opt.output_file_flow
 		, "format_flow", opt.format_flow
@@ -259,6 +272,9 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "output_split_nginx_log", opt.output_split_nginx_log
 		, "format_split_nginx_log", opt.format_split_nginx_log
+
+		, "output_split_srs_log", opt.output_split_srs_log
+		, "format_split_srs_log", opt.format_split_srs_log
 
 		, "device_id", opt.device_id
 		, "print_device_id", opt.print_device_id

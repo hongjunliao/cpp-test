@@ -103,9 +103,11 @@ static int extract_and_parse_srs_log(char * start_p, struct stat const & logfile
 /*print_table.cpp*/
 extern void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
 /*split_log.cpp*/
-extern void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat, char const * srs_sid_dir,
-		std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> & slogs);
-extern int parse_srs_log(std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> const & slogs,
+extern void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
+		std::unordered_map<int, srs_sid_log> & slogs);
+extern void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
+		char const * srs_sid_dir);
+extern int parse_srs_log(std::unordered_map<int, srs_sid_log> const & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats);
 extern int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logstats,
 		char const * folder, char const * fmt);
@@ -700,10 +702,9 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			return 1;
 		}
 
-		char const * srs_sid_dir = "./srs_log/";	/*TODO: mv to plcdn_la_opt*/
-		std::unordered_map<srs_sid, std::vector<srs_raw_log_t>> slogs;
-		split_srs_log_by_sid(srs_file_addr, srs_file_stat, srs_sid_dir, slogs);
-
+		std::unordered_map<int, srs_sid_log> slogs;
+		split_srs_log_by_sid(srs_file_addr, srs_file_stat, slogs);
+		sync_srs_sids_dir(slogs, plcdn_la_opt.srs_sid_dir);
 		auto status = parse_srs_log(slogs, srs_logstats);
 		if(status != 0){
 			fprintf(stderr, "%s: parse_srs_log failed, exit\n", __FUNCTION__);
@@ -715,19 +716,6 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			auto status = split_srs_log(srs_logstats,
 					plcdn_la_opt.output_split_srs_log, plcdn_la_opt.format_split_srs_log);
 		}
-		/*
-		FILE * srs_flow = NULL;
-		auto srs_f = plcdn_la_opt.output_file_srs_flow;
-		if(srs_f){
-			srs_flow = stdout;
-			if(strcmp(srs_f, "1") != 0)
-				srs_flow = fopen(srs_f, "a");
-			if(!srs_flow)
-				fprintf(stderr, "%s: fopen file '%s' failed\n", __FUNCTION__, srs_f);
-		}
-		if(srs_flow)
-			fprint_srs_log_stats(srs_flow, srs_logstats);
-		*/
 	}
 	if(!nginx_log_file && !srs_log_file){
 		fprintf(stderr, "%s: none of nginx, srs log file specified or can be read, exit\n", __FUNCTION__);

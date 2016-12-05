@@ -14,23 +14,35 @@
 extern std::unordered_map<std::string, site_info> g_sitelist;
 
 //////////////////////////////////////////////////////////////////////////////////
-srs_sid::srs_sid(int sid)
-:	_sid(sid)
-, _site_id(0)
+srs_sid_log::srs_sid_log(int sid)
+: _site_id(0)
 , _ip(0)
 , _bytes(0)
 {
 	//none
 }
 
+srs_sid_log::operator bool() const
+{
+	return _site_id != 0 && _ip != 0;
+}
 //////////////////////////////////////////////////////////////////////////////////
 int parse_srs_log_header_sid(char const * buff)
 {
 	auto p = strchr(buff, ']');
 	for(int i = 3; p && i > 0; --i) { p = strchr(++p, '['); }
-	auto end = p? strchr(p + 1, ']') : NULL;
+	auto end = p? strchr(p, ']') : NULL;
 	if(!p || !end) return -1;
-	return stoi(std::string(p, end));
+	return stoi(std::string(p + 1, end));
+}
+
+int parse_srs_log_header_time(char const * buff, time_t & t)
+{
+//	auto p = strchr(buff, ']');
+//	auto end = p? strchr(p, ']') : NULL;
+//	if(!p || !end) return -1;
+//	return stoi(std::string(p + 1, end));
+	return 1;
 }
 
 int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid)
@@ -153,27 +165,94 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 	return 0;
 }
 
-int parse_srs_log_item_conn(const char* buff, const char* end,
-		srs_connect_ip& ip, srs_connect_url& url, int& t)
+int do_srs_log_sid_stats(int sid, srs_sid_log const & slog, srs_domain_stat & dstat)
 {
-	return 1;
+	for(auto & log : slog._logs){
+		srs_trans trans;
+		auto buff = log.first;
+		auto r = parse_srs_log_item_trans(buff, trans);
+		if(r != 0)
+			continue;
+		/*TODO: change srs_sid_log.type*/
+//		log.type = 2;
+
+		dstat._site_id = slog._site_id;
+		dstat._user_id = slog._user_id;
+		auto & stat = dstat._stats[trans.time_stamp];
+
+		stat.sid = sid;
+		stat.url = slog._url;
+		stat.ip = slog._ip;
+
+		stat.ibytes += trans.ibytes;
+		stat.obytes += trans.obytes;
+
+		stat._logs.push_back(log);
+	}
+	return 0;
 }
 
-int parse_domain_from_url(const char* url, char* domain, int len)
+int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & url, int& t)
 {
-	return 1;
+//	printf("%s: ___%s____\n", __FUNCTION__, buff);
+//	time_t time_stamp;
+//	int sid;
+//	auto status = parse_srs_log_header(buff, time_stamp, sid);
+//	if(status != 0) return -1;
+
+	static auto s1 = "RTMP client ip=([0-9.]+)";
+	static auto s4 = "connect app, tcUrl=(.+), pageUrl=";
+	static boost::regex r1{s1}, r4{s4};
+
+	boost::cmatch cm1, cm4;
+	if(boost::regex_search(buff, cm1, r1)) {
+		t = 1;
+//		ip.time_stamp = time_stamp;
+//		ip.sid = sid;
+		ip.ip = netutil_get_ip_from_str(cm1[1].str().c_str());
+	}
+	else if(boost::regex_search(buff, cm4, r4)) {
+		t = 2;
+//		url.time_stamp = time_stamp;
+//		url.sid = sid;
+		url.url = cm4[1].first;
+		buff[cm4[1].second - buff]  = '\0';
+//		fprintf(stdout, "%s: ______conn_url.url=%s___________\n", __FUNCTION__, logitem.conn_url.url);
+	}
+	else
+		t = 0;
+	return 0;
 }
 
-bool operator ==(const srs_sid& one, const srs_sid& another)
+int parse_srs_log_item_trans(char * buff, srs_trans & trans)
 {
-	if(one._sid == another._sid)
-		return true;
-	return false;
-}
+	time_t time_stamp;
+	auto status = parse_srs_log_header_time(buff, time_stamp);
+	if(status != 0) return -1;
 
-std::size_t std::hash<srs_sid>::operator()(srs_sid const& val) const
+	static auto s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
+				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
+	static boost::regex r2{s2};
+	boost::cmatch cm2;
+	if(boost::regex_search(buff, cm2, r2)) {
+		trans.time_stamp = time_stamp;
+		char * end;
+		trans.obytes = strtoul(cm2[1].str().c_str(), &end, 10);
+		trans.ibytes = strtoul(cm2[2].str().c_str(), &end, 10);
+		trans.okbps = strtoul(cm2[3].str().c_str(), &end, 10);
+		trans.ikbps = strtoul(cm2[4].str().c_str(), &end, 10);
+	}
+	return 0;
+}
+int parse_domain_from_url(const char* url, char* domain)
 {
-	/*FIXME: */
-	std::size_t const h1 ( std::hash<int>{}(val._sid) );	// or use boost::hash_combine
-	return h1;
+	/*sample: 'rtmp://127.0.0.1:1359/'*/
+	boost::cmatch cm;
+	auto f = boost::regex_search(url, cm, boost::regex("://([^/:]+)(?::[0-9]+)?/"));
+	if(!f) return -1;
+
+	auto length = cm.length(1);
+	strncpy(domain, cm[1].first, length);
+	domain[length] = '\0';
+	return 0;
 }

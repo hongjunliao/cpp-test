@@ -66,6 +66,16 @@ union srs_log_item
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//for srs raw log, pair<beg, end>
+struct srs_raw_log: public std::pair<char *, char *>
+{
+	/*raw log type, @see parse_srs_log_item*/
+	/*0-other; 1: srs_connect_ip; 2: srs_trans; 3: srs_disconnect; 4: srs_connect_url*/
+	int type;
+};
+
+typedef srs_raw_log srs_raw_log_t;
+
 struct srs_log_stat
 {
 	int sid;
@@ -74,6 +84,8 @@ struct srs_log_stat
 	uint32_t ip;
 
 	size_t obytes, ibytes;
+
+	std::vector<srs_raw_log_t> _logs;
 };
 
 struct srs_domain_stat
@@ -83,38 +95,28 @@ struct srs_domain_stat
 	int _user_id;
 };
 
-/*srs logs by sid*/
-class srs_sid
+/*!
+ * srs logs by session id
+ * srs log format is different from nginx log, which all fields in every log_item
+ * while srs log comes with: connect, ..., transform(trans), ..., disconnect
+ *
+ * so, we first split srs log by sid(srs session id), such like std::unordered_map<int, srs_sid_log>
+ * */
+class srs_sid_log
 {
 public:
-	int _sid;
 	int _site_id;
 	int _user_id;
-	time_t _time;
 	uint32_t _ip;
 	size_t _bytes;	/*bytes total by this sid, in this log file*/
-private:
-	friend bool operator ==(const srs_sid& one, const srs_sid& another);
+	std::vector<srs_raw_log_t> _logs;
+	char const * _url;
+	std::string _domain;
 public:
-	srs_sid(int sid = 0);
+	srs_sid_log(int sid = 0);
 public:
 	operator bool() const;
 };
-
-//////////////////////////////////////////////////////////////////////////////////
-//required by std::unordered_map's key, @see http://en.cppreference.com/w/cpp/utility/hash
-namespace std{
-template<> struct hash<srs_sid>
-{
-	typedef srs_sid argument_type;
-	typedef std::size_t result_type;
-	result_type operator()(argument_type const& s) const;
-};
-
-}	//namespace std
-
-//for srs raw log, pair<beg, end>
-typedef std::pair<char *, char *> srs_raw_log_t;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*!parse srs log item, currently get <timestamp>, <client_ip>, <time>, <obytes>, <ibytes>
@@ -140,8 +142,12 @@ int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
  * @param t, 1: ip; 2: url;
  * return 0 on success
  * */
-int parse_srs_log_item_conn(char const * buff, char const * end, srs_connect_ip& ip, srs_connect_url & url, int& t);
-int parse_srs_log_item_conn(char const * buff, char delim, srs_connect_ip& ip, srs_connect_url & url, int& t);
+int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & url, int& t);
+/**
+ * parse srs trans log
+ * return 0 on success
+ */
+int parse_srs_log_item_trans(char * buff, srs_trans & trans);
 
 /* parse time_stamp, sid from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110] '
  * return 0 on success
@@ -153,7 +159,8 @@ int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid);
  * return sid(>=0), or -1 on failure
  * */
 int parse_srs_log_header_sid(char const * buff);
-
+/* parse time from srs_log_header*/
+int parse_srs_log_header_time(char const * buff, time_t & t);
 /* statistics for srs log
  * @param log_type @see parse_srs_log_item
  * @return 0 on success
@@ -163,7 +170,18 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 		std::vector<srs_connect_url> const& url_items,
 		std::unordered_map<std::string, srs_domain_stat> & logstats);
 
-int parse_domain_from_url(char const * url, char * domain, int len);
+/*!
+ * do srs log statistics
+ * this function change srs log from 'by id ' to 'by datetime'
+ * return 0 on success
+ */
+int do_srs_log_sid_stats(int sid, srs_sid_log const & slog, srs_domain_stat & dstat);
+
+/* get domain from url, 
+ * sample get '127.0.0.1' from 'rtmp://127.0.0.1:1359/'
+ * return 0 on success
+ */
+int parse_domain_from_url(char const * url, char * domain);
 
 #endif /*_SRS_LOG_ANALYSIS_H_*/
 
