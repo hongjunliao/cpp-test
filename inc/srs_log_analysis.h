@@ -10,7 +10,7 @@
 #include <string>	/*std::string*/
 #include <vector>	/*std::vector*/
 #include <map>	/*std::map*/
-
+#include <set>	/*std::set*/
 /*declares*/
 struct srs_connect_ip;
 struct srs_connect_url;
@@ -76,16 +76,21 @@ struct srs_raw_log: public std::pair<char *, char *>
 
 typedef srs_raw_log srs_raw_log_t;
 
+/*!
+ * log statistics for srs log
+ */
 struct srs_log_stat
 {
-	int sid;
-	/*FIXME: change to std::string?*/
-	char const * url;
-	uint32_t ip;
+	std::unordered_map<int, std::string> urls;	/*sid : url*/
+	std::unordered_map<int, uint32_t> ips;		/*sid : ip*/
+	std::unordered_map<int, size_t>	obytes;		/*sid : bytes out*/
+	std::unordered_map<int, size_t>	ibytes;		/*sid : bytes in*/
 
-	size_t obytes, ibytes;
-
-	std::vector<srs_raw_log_t> _logs;
+	std::vector<srs_raw_log_t> _logs;			/*raw logs*/
+	std::string sids;							/*@see srs_sid_log*/
+public:
+	size_t obytes_total() const;
+	size_t ibytes_total() const;
 };
 
 struct srs_domain_stat
@@ -110,8 +115,9 @@ public:
 	uint32_t _ip;
 	size_t _bytes;	/*bytes total by this sid, in this log file*/
 	std::vector<srs_raw_log_t> _logs;
-	char const * _url;
-	std::string _domain;
+	std::string _url;
+	std::string _domain;	/*FIXME: change to char[]?*/
+	std::string _sid_log;		/*raw sids log from file(srs_sid_dir)*/
 public:
 	srs_sid_log(int sid = 0);
 public:
@@ -125,32 +131,39 @@ public:
  *
  * log sample:
  * 1.connect:
- * connect_ip: [2016-11-03 11:27:32.736][trace][21373][105] RTMP client ip=127.0.0.1
- * connect_url: [2016-10-20 17:13:08.058][trace][20009][114] connect app, tcUrl=rtmp://192.168.212.164:1935/live, pageUrl=, \
- * swfUrl=, schema=rtmp, vhost=__defaultVhost__, port=1935, app=live, args=null
+ * connect_ip: '[2016-11-03 11:27:32.736][trace][21373][105] RTMP client ip=127.0.0.1'
+ * connect_url: '[2016-10-20 17:13:08.058][trace][20009][114] connect app, tcUrl=rtmp://192.168.212.164:1935/live, pageUrl=, \
+ * swfUrl=, schema=rtmp, vhost=__defaultVhost__, port=1935, app=live, args=null'
  * 2.trans
- * [2016-11-03 11:31:52.824][trace][21373][105] <- CPB time=240002, obytes=4.09 KB, ibytes=14.29 MB, okbps=0,0,0, ikbps=461,547,0, \
- * mr=0/350, p1stpt=20000, pnt=20000
+ * '[2016-11-03 11:31:52.824][trace][21373][105] <- CPB time=240002, obytes=4.09 KB, ibytes=14.29 MB, okbps=0,0,0, ikbps=461,547,0, \
+ * mr=0/350, p1stpt=20000, pnt=20000'
  * 3.disconnect:
- * [2016-11-03 11:34:33.360][warn][21373][110][32] client disconnect peer. ret=1004
+ * '[2016-11-03 11:34:33.360][warn][21373][110][32] client disconnect peer. ret=1004'
  *
  *@param log_type, 0-other; 1: srs_connect_ip; 2: srs_trans; 3: srs_disconnect; 4: srs_connect_url
  * */
 int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
 
 /**
+ * parse srs cnnect log
  * @param t, 1: ip; 2: url;
  * return 0 on success
+ * @note: add '\0'  to @param buff if needed(url)
+ * @see parse_srs_log_item
  * */
 int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & url, int& t);
+
 /**
  * parse srs trans log
- * return 0 on success
+ * @note: change srs_raw_log_t.type(@param rlog) if needed
+ * @return:  <0 parse failed; =0 parse ok and is trans; 1 parse ok but not trans
  */
-int parse_srs_log_item_trans(char * buff, srs_trans & trans);
+int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans);
 
 /* parse time_stamp, sid from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110] '
  * return 0 on success
+ * @note: move @param buff to header end
+ * @note: add '\0'  to @param buff if needed(time_stamp)
  * @NOTES: move @param buff after parsed
  * */
 int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid);
@@ -159,8 +172,13 @@ int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid);
  * return sid(>=0), or -1 on failure
  * */
 int parse_srs_log_header_sid(char const * buff);
-/* parse time from srs_log_header*/
-int parse_srs_log_header_time(char const * buff, time_t & t);
+
+/* parse time from srs_log_header, sample: [2016-11-03 11:33:16.924][trace][21373][110]
+ * @note: add '\0'  to @param buff if needed(time_stamp)
+ * return 0 on success
+ * */
+int parse_srs_log_header_time(char * buff, time_t & t);
+
 /* statistics for srs log
  * @param log_type @see parse_srs_log_item
  * @return 0 on success
@@ -172,14 +190,17 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 
 /*!
  * do srs log statistics
- * this function change srs log from 'by id ' to 'by datetime'
+ * this function change srs log from 'by id ' to 'by time_group'
+ * @see time_group
+ * @note: change srs_raw_log_t.type if needed
  * return 0 on success
  */
-int do_srs_log_sid_stats(int sid, srs_sid_log const & slog, srs_domain_stat & dstat);
+int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat);
 
 /* get domain from url, 
  * sample get '127.0.0.1' from 'rtmp://127.0.0.1:1359/'
  * return 0 on success
+ * @notes: @param domain big enough
  */
 int parse_domain_from_url(char const * url, char * domain);
 

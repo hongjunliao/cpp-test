@@ -107,7 +107,7 @@ extern void split_srs_log_by_sid(char * start_p, struct stat const & logfile_sta
 		std::unordered_map<int, srs_sid_log> & slogs);
 extern void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 		char const * srs_sid_dir);
-extern int parse_srs_log(std::unordered_map<int, srs_sid_log> const & slogs,
+extern int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats);
 extern int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logstats,
 		char const * folder, char const * fmt);
@@ -446,7 +446,7 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 	if(!plcdn_la_opt.enable_multi_thread)
 		parallel_count = 0;
 	if(plcdn_la_opt.verbose)
-		fprintf(stdout, "%s: logfile_size = %lld/%s, para_count=%d\n", __FUNCTION__
+		fprintf(stdout, "%s: logfile_size = %zd/%s, para_count=%d\n", __FUNCTION__
 				, logfile_stat.st_size, byte_to_mb_kb_str(logfile_stat.st_size, "%-.2f %cB"), parallel_count);
 
 	pthread_t threads[parallel_count];
@@ -586,9 +586,13 @@ static void append_flow_table(
 			auto & srs_stat = srs_log_pair.second;
 
 			/*FIXME: is it OK?*/
-			char buff[strlen(srs_stat.url)];
-			sha1sum_r(srs_stat.url, sizeof(buff), buff);
-			nginx_stat._url_stats[buff]._bytes[-1] += (srs_stat.obytes + srs_stat.ibytes);
+			for(auto & urlitem : srs_stat.urls){
+				auto & sid = urlitem.first;
+				char buff[64];
+				sha1sum_r(urlitem.second.c_str(), urlitem.second.size(), buff);
+				nginx_stat._url_stats[buff]._bytes[-1] += (srs_stat.obytes[sid] + srs_stat.ibytes[sid]);
+
+			}
 		}
 	}
 }
@@ -712,7 +716,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		}
 		if(plcdn_la_opt.output_split_srs_log){
 			if(plcdn_la_opt.verbose)
-				fprintf(stdout, "%s: splitting srs log file: '%s'...\n", __FUNCTION__, plcdn_la_opt.srs_log_file);
+				fprintf(stdout, "%s: splitting srs log file '%s'...\n", __FUNCTION__, plcdn_la_opt.srs_log_file);
 			auto status = split_srs_log(srs_logstats,
 					plcdn_la_opt.output_split_srs_log, plcdn_la_opt.format_split_srs_log);
 		}

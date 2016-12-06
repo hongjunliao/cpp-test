@@ -15,13 +15,20 @@ void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_dom
 	for(auto const& ds : srs_stats){
 		for(auto const& stat : ds.second._stats){
 			auto & s = stat.second;
-			char buf[32], buft[32];
-			fprintf(stream, "%-8d%-13s%-16s%-40s%-14zu%-14zu\n",
-					ds.second._site_id
-					, stat.first.c_str_r(buft, sizeof(buft))
-					, netutil_get_ip_str(s.ip, buf, sizeof(buf))
-					,s.url, s.obytes, s.ibytes
-					);
+
+			for(auto & url : s.urls){
+				/*TODO*/
+				char buf[32], buft[32];
+//				stat.first.c_str_r(buft, sizeof(buft));
+//				netutil_get_ip_str(s.ips[url.first], buf, sizeof(buf));
+//				fprintf(stream, "%-8d%-13s%-16s%-40s%-14zu%-14zu\n",
+//						ds.second._site_id
+//						, buft
+//						, buf
+//						, url.second.c_str(), s.obytes[url.first], s.ibytes[url.first]
+//						);
+
+			}
 
 		}
 	}

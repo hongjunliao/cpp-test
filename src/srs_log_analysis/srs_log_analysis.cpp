@@ -26,6 +26,16 @@ srs_sid_log::operator bool() const
 {
 	return _site_id != 0 && _ip != 0;
 }
+
+//std::set<int> srs_log_stat::sids() const
+//{
+//	std::set<int> ret;
+//	for(auto & item : urls){ ret.insert(item.first); };
+//	for(auto & item : ips){ ret.insert(item.first); };
+//	for(auto & item : obytes){ ret.insert(item.first); };
+//	for(auto & item : ibytes){ ret.insert(item.first); };
+//	return ret;
+//}
 //////////////////////////////////////////////////////////////////////////////////
 int parse_srs_log_header_sid(char const * buff)
 {
@@ -36,13 +46,30 @@ int parse_srs_log_header_sid(char const * buff)
 	return stoi(std::string(p + 1, end));
 }
 
-int parse_srs_log_header_time(char const * buff, time_t & t)
+int parse_srs_log_header_time(char * buff, time_t & t)
 {
-//	auto p = strchr(buff, ']');
-//	auto end = p? strchr(p, ']') : NULL;
-//	if(!p || !end) return -1;
-//	return stoi(std::string(p + 1, end));
-	return 1;
+	//'[2016-11-15 18:05:02.665]'
+	auto p = strchr(buff, '[');
+	auto end = p? strchr(p, ']') : NULL;
+	if(!p || !end)
+		return -1;
+	auto c = strchr(p, '.');
+	if(c && c >= end)
+		return -1;
+	if(c)
+		*c = '\0';
+
+	tm my_tm;
+	auto result = strptime(p + 1, "%Y-%m-%d %H:%M:%S", &my_tm);
+	if(!result)
+		return -1;
+	my_tm.tm_isdst = 0;
+	t = mktime(&my_tm);
+
+//	char buft1[32];
+//	fprintf(stdout, "%s: _____%s_____\n", __FUNCTION__,
+//			time_group(t).c_str_r(buft1, sizeof(buft1)));
+	return 0;
 }
 
 int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid)
@@ -148,8 +175,7 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 	auto && domain = cm[1].str();
 	auto & dstat = logstats[domain];
 	auto & stat = dstat._stats[logitem.trans.time_stamp];
-	stat.sid = logitem.conn_url.sid;
-	stat.url = it_url->url;
+	stat.urls[logitem.trans.sid] = it_url->url;
 
 	if(dstat._site_id == 0)
 		find_site_id(g_sitelist, domain.c_str(), dstat._site_id, &dstat._user_id);
@@ -158,36 +184,39 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 	auto it_ip = std::find_if(ip_items.cbegin(), ip_items.cend(), find_ip_by_sid);
 	if(it_ip == ip_items.end()) return -1;
 
-	stat.ip = it_ip->ip;
+	stat.ips[logitem.trans.sid] = it_ip->ip;
 
-	stat.ibytes += logitem.trans.ibytes;
-	stat.obytes += logitem.trans.obytes;
+	stat.ibytes[logitem.trans.sid] += logitem.trans.ibytes;
+	stat.obytes[logitem.trans.sid] += logitem.trans.obytes;
 	return 0;
 }
 
-int do_srs_log_sid_stats(int sid, srs_sid_log const & slog, srs_domain_stat & dstat)
+int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat)
 {
+//	fprintf(stdout, "%s: _____sid = %d, size = %zu, site_id = %d______\n", __FUNCTION__,
+//			sid, slog._logs.size(), slog._site_id);
+	dstat._site_id = slog._site_id;
+	dstat._user_id = slog._user_id;
 	for(auto & log : slog._logs){
 		srs_trans trans;
-		auto buff = log.first;
-		auto r = parse_srs_log_item_trans(buff, trans);
-		if(r != 0)
-			continue;
-		/*TODO: change srs_sid_log.type*/
-//		log.type = 2;
-
-		dstat._site_id = slog._site_id;
-		dstat._user_id = slog._user_id;
+		auto r = parse_srs_log_item_trans(sid, log, trans);
+		if(r < 0){
+			continue;	/*parse faield*/
+		}
 		auto & stat = dstat._stats[trans.time_stamp];
-
-		stat.sid = sid;
-		stat.url = slog._url;
-		stat.ip = slog._ip;
-
-		stat.ibytes += trans.ibytes;
-		stat.obytes += trans.obytes;
-
+		/**
+		 * FIXME: connection logs are also be put into stat._logs[time]
+		 * if 'plcdn_la_options.format_split_srs_log' contains 'interval',
+		 * then connection logs are lost for most of the split log files, @date 2016/12/05
+		 */
 		stat._logs.push_back(log);
+
+		if(r == 0){
+			stat.urls[sid] = slog._url;
+			stat.ips[sid] = slog._ip;
+			stat.ibytes[sid] += trans.ibytes;
+			stat.obytes[sid] += trans.obytes;
+		}
 	}
 	return 0;
 }
@@ -224,25 +253,31 @@ int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & u
 	return 0;
 }
 
-int parse_srs_log_item_trans(char * buff, srs_trans & trans)
+int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 {
 	time_t time_stamp;
-	auto status = parse_srs_log_header_time(buff, time_stamp);
-	if(status != 0) return -1;
+	auto status = parse_srs_log_header_time(rlog.first, time_stamp);
+	if(status != 0) {
+		//fprintf(stderr, "%s: _____parse time_stamp failed for buff = %s______\n", __FUNCTION__, buff);
+		return -1;
+	}
+	trans.time_stamp = time_stamp;
 
 	static auto s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
 				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
 	static boost::regex r2{s2};
 	boost::cmatch cm2;
-	if(boost::regex_search(buff, cm2, r2)) {
-		trans.time_stamp = time_stamp;
+	if(boost::regex_search(rlog.first, cm2, r2)) {
+		rlog.type = 2;	/*FIXME: u may found a better way*/
+		trans.sid = sid;
 		char * end;
 		trans.obytes = strtoul(cm2[1].str().c_str(), &end, 10);
 		trans.ibytes = strtoul(cm2[2].str().c_str(), &end, 10);
 		trans.okbps = strtoul(cm2[3].str().c_str(), &end, 10);
 		trans.ikbps = strtoul(cm2[4].str().c_str(), &end, 10);
+		return 0;
 	}
-	return 0;
+	return 1;
 }
 int parse_domain_from_url(const char* url, char* domain)
 {
@@ -256,3 +291,4 @@ int parse_domain_from_url(const char* url, char* domain)
 	domain[length] = '\0';
 	return 0;
 }
+
