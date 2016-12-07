@@ -132,26 +132,24 @@ static void parse_srs_sid_from_raw_logs(srs_sid_log & slog)
 		if(ret != 0 || t == 0)
 			continue;
 		if(t == 1){
-	//			printf("%s: ___[%s], found connection info: %d, type=%d, ip = %u____\n",
-	//					__FUNCTION__, rlog.first, sid, t, ip.ip);
+//				printf("%s: ___ip = %u____\n", __FUNCTION__, ip.ip);
 			rlog.type = 1;
 			slog._ip = ip.ip;
 		}
 		else if(t == 2) {
-	//			printf("%s: ___[%s], found connection info: %d, type=%d, url = %s____\n",
-	//					__FUNCTION__, rlog.first, sid, t, url.url);
 			rlog.type = 4;
+			std::string surl(url.url, url.end);
 			char domain[128];
-			auto r = parse_domain_from_url(url.url, domain);
+//			printf("%s: ___url = %s____\n", __FUNCTION__, surl.c_str());
+			auto r = parse_domain_from_url(surl.c_str(), domain);
 			if(r == 0){
-	//				printf("%s: ___url = %s, domain = %s____\n", __FUNCTION__, url.url, domain);
-
+//				printf("%s: ___url = %s, domain = %s____\n", __FUNCTION__, surl.c_str(), domain);
 				int site_id, user_id;
 				find_site_id(g_sitelist, domain, site_id, &user_id);
 				slog._site_id = site_id;
 				slog._user_id = user_id;
 
-				slog._url = std::string(url.url, url.end);
+				slog._url = surl;
 				slog._domain = domain;
 			}
 		}
@@ -234,7 +232,7 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 		/*else find sid from file*/
 		parse_srs_sid_from_file(slog, fullname.c_str());
 		if(!slog){
-			fprintf(stderr, "%s: sid = '%d', sid NOT found\n", __FUNCTION__, sid);
+			fprintf(stderr, "%s: sid '%d' NOT found\n", __FUNCTION__, sid);
 		}
 	}
 }

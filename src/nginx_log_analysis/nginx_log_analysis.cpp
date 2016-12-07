@@ -266,6 +266,9 @@ int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
 			}
 		}
 	}
+	if(!si){
+		fprintf(stderr, "%s: site_id NOT found for '%s'\n", __FUNCTION__, site);
+	}
 	siteid = si? si->site_id : 0;
 	if(user_id)
 		*user_id = si? si->user_id : 0;
