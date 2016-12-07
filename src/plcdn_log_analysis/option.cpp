@@ -14,7 +14,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_IP_SOURCE   	"IPSource.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_SPLIT_NGINX_LOG   	"${site_id}/${day}"
 #define DEF_FORMAT_SPLIT_SRS_LOG   	"${site_id}/${day}"
-#define DEF_SRS_SID_DIR			"srs_log_analysis/by_sid/"
+#define DEF_SRS_SID_DIR			"srs_sid_log/"
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
@@ -203,6 +203,7 @@ void plcdn_la_show_help(FILE * stream)
 $request_uri $server_protocol\" $status $bytes_sent \
 \"$http_referer" "$remote_user" "$http_cookie" "$http_user_agent\" \
 $scheme $request_length $upstream_response_time\n"
+			"  5.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
 	);
 }
 

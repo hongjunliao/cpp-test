@@ -197,7 +197,12 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat)
 //			sid, slog._logs.size(), slog._site_id);
 	dstat._site_id = slog._site_id;
 	dstat._user_id = slog._user_id;
+
+	auto & dslog = dstat._sid_log[sid];
 	for(auto & log : slog._logs){
+		if(!log.buff.empty())
+			dslog += log.buff;
+
 		srs_trans trans;
 		auto r = parse_srs_log_item_trans(sid, log, trans);
 		if(r < 0){
@@ -209,7 +214,7 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat)
 		 * if 'plcdn_la_options.format_split_srs_log' contains 'interval',
 		 * then connection logs are lost for most of the split log files, @date 2016/12/05
 		 */
-		stat._logs.push_back(log);
+		stat.logs.push_back(log);
 
 		if(r == 0){
 			stat.urls[sid] = slog._url;
@@ -246,7 +251,7 @@ int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & u
 //		url.sid = sid;
 		url.url = cm4[1].first;
 		buff[cm4[1].second - buff]  = '\0';
-//		fprintf(stdout, "%s: ______conn_url.url=%s___________\n", __FUNCTION__, logitem.conn_url.url);
+//		fprintf(stdout, "%s: ______url.url=%s___________\n", __FUNCTION__, url.url);
 	}
 	else
 		t = 0;

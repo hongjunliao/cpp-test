@@ -39,7 +39,7 @@
 #include "string_util.h"	/*md5sum*/
 #include "net_util.h"	/*get_if_addrs, ...*/
 #include <algorithm>	/*std::min*/
-
+#include <boost/filesystem.hpp> /*create_directories*/
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*for nginx log*/
 
@@ -705,6 +705,9 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "srs_log_file");
 			return 1;
 		}
+
+		/*FIXME: the return value is wired, we NOT use it yet*/
+		boost::filesystem::create_directories(plcdn_la_opt.srs_sid_dir);
 
 		std::unordered_map<int, srs_sid_log> slogs;
 		split_srs_log_by_sid(srs_file_addr, srs_file_stat, slogs);

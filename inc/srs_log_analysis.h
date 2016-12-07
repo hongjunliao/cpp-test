@@ -72,6 +72,11 @@ struct srs_raw_log: public std::pair<char *, char *>
 	/*raw log type, @see parse_srs_log_item*/
 	/*0-other; 1: srs_connect_ip; 2: srs_trans; 3: srs_disconnect; 4: srs_connect_url*/
 	int type;
+	/*
+	 * a srs_raw_log is either a std::pair<char *, char *>, which from mmap call
+	 * or a buff(std::string),  which from getline call
+	 * */
+	std::string buff;
 };
 
 typedef srs_raw_log srs_raw_log_t;
@@ -86,8 +91,7 @@ struct srs_log_stat
 	std::unordered_map<int, size_t>	obytes;		/*sid : bytes out*/
 	std::unordered_map<int, size_t>	ibytes;		/*sid : bytes in*/
 
-	std::vector<srs_raw_log_t> _logs;			/*raw logs*/
-	std::string sids;							/*@see srs_sid_log*/
+	std::vector<srs_raw_log_t> logs;			/*raw logs*/
 public:
 	size_t obytes_total() const;
 	size_t ibytes_total() const;
@@ -98,6 +102,7 @@ struct srs_domain_stat
 	std::map<time_group, srs_log_stat> _stats;
 	int _site_id;
 	int _user_id;
+	std::unordered_map<int, std::string>  _sid_log; /*sid : sid_raw_log, @see srs_sid_log*/
 };
 
 /*!
@@ -117,7 +122,7 @@ public:
 	std::vector<srs_raw_log_t> _logs;
 	std::string _url;
 	std::string _domain;	/*FIXME: change to char[]?*/
-	std::string _sid_log;		/*raw sids log from file(srs_sid_dir)*/
+//	std::string _sid_log;		/*raw sids log from file(srs_sid_dir)*/
 public:
 	srs_sid_log(int sid = 0);
 public:

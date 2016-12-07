@@ -38,6 +38,19 @@ static std::string parse_srs_split_filename(char const * fmt,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static void fwrite_srs_sid_log(FILE * f, std::unordered_map<int, std::string> const& sid_log, size_t & n)
+{
+	for(auto & item : sid_log){
+		if(item.second.empty())
+			continue;
+		auto result = fwrite(item.second.c_str(), sizeof(char), item.second.size(), f);
+		if(result < sizeof(item.second.size()) || ferror(f)){
+//			fprintf(stderr, "%s: fwrite failed for '%s'\n", __FUNCTION__, item.second.c_str());
+			++n;
+		}
+	}
+}
+
 static void fwrite_srs_raw_log(FILE * f, std::vector<srs_raw_log_t> const& logs, size_t & n)
 {
 	for(auto & item : logs){
@@ -59,9 +72,19 @@ static void fwrite_srs_raw_log(FILE * f, std::vector<srs_raw_log_t> const& logs,
 		buff[len] = '\n';
 		std::replace(buff, buff + len, '\0', ' ');
 
+//		if(item.type == 4){
+//			fprintf(stdout, "%s: _________", __FUNCTION__);
+//			for(auto & c : buff)
+//				fprintf(stdout, "%c", c);
+//			fprintf(stdout, "_________\n");
+//		}
+
 		auto result = fwrite(buff, sizeof(char), sizeof(buff), f);
-		if(result < sizeof(buff) || ferror(f))
+		if(result < sizeof(buff) || ferror(f)){
+//			fprintf(stderr, "%s: fwrite failed, result = %zu, len = %zu\n", __FUNCTION__,
+//					result, sizeof(buff));
 			++n;
+		}
 	}
 }
 
@@ -84,12 +107,14 @@ static void fwrite_srs_sid_to_file(srs_sid_log const & slog, char const * file, 
 			auto len = log.second - log.first;
 			if(len <= 0)
 				continue;
-//			printf("%s: connection info = %s, len = %ld\n", __FUNCTION__, buff, len);
-			auto result = fwrite(log.first, sizeof(char), len, f);
-			/*FIXME*/
-			fwrite("\n", sizeof(char), 1, f);
 
-			if(result < (size_t)len || ferror(f))
+			char buff[len + 1];	/*endwith \n*/
+			memcpy(buff, log.first, len);	/*@note: NOT strcpy*/
+			buff[len] = '\n';
+			std::replace(buff, buff + len, '\0', ' ');
+//			printf("%s: connection info = %s, len = %ld\n", __FUNCTION__, buff, len);
+			auto result = fwrite(buff, sizeof(char), sizeof(buff), f);
+			if(result < sizeof(buff) || ferror(f))
 				++n;
 		}
 	}
@@ -151,7 +176,13 @@ static void parse_srs_sid_from_file(srs_sid_log & slog, char const * file)
 			continue;
 		if(t == 1){
 			slog._ip = ip.ip;
-			slog._sid_log += buff;
+
+			/*@see fwrite_srs_sid_log*/
+			srs_raw_log_t rlog;
+			rlog.type = 1;
+			rlog.first = rlog.second = NULL;
+			rlog.buff = buff;
+			slog._logs.push_back(rlog);	/*TODO: emplace_back?*/
 		}
 		else if(t == 2) {
 			char domain[128];
@@ -164,7 +195,13 @@ static void parse_srs_sid_from_file(srs_sid_log & slog, char const * file)
 			slog._user_id = user_id;
 			slog._url = url.url;
 			slog._domain = domain;
-			slog._sid_log += buff;
+
+			/*@see fwrite_srs_sid_log*/
+			srs_raw_log_t rlog;
+			rlog.type = 4;
+			rlog.first = rlog.second = NULL;
+			rlog.buff = buff;
+			slog._logs.push_back(rlog);	/*TODO: emplace_back?*/
 		}
 	}
 	fclose(f);
@@ -196,7 +233,7 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 		/*else find sid from file*/
 		parse_srs_sid_from_file(slog, fullname.c_str());
 		if(!slog){
-			fprintf(stderr, "%s: sid = '%d', connection info NOT found, skip\n", __FUNCTION__, sid);
+			fprintf(stderr, "%s: sid = '%d', sid NOT found\n", __FUNCTION__, sid);
 		}
 	}
 }
@@ -263,8 +300,9 @@ int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logst
 	size_t n = 0;
 	std::unordered_map<std::string, FILE *> filemap; /*srs_log_dir: log_file*/
 	for(auto & dstat : logstats){
+		auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
+		auto & sid_log = dstat.second._sid_log;
 		for(auto & item : dstat.second._stats){
-			auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
 			char buft1[32], buft2[32];
 			auto && fname = parse_srs_split_filename(fmt,
 					item.first.c_str_r(buft1, sizeof(buft1)), item.first.c_str_r(buft2, sizeof(buft2), "%Y%m%d")
@@ -280,8 +318,6 @@ int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logst
 				*c = '\0';
 				auto ret = boost::filesystem::create_directories(dirname);
 			}
-//			fprintf(stdout, "%s: site_id = %d, fmt = %s, fname = %s, dirname = %s, fullname=%s____\n", __FUNCTION__,
-//					site_id, fmt, fname.c_str(), dirname, fullname.c_str());
 			auto & file = filemap[fname];
 			if(!file){
 				file = fopen(fullname.c_str(), "a");
@@ -291,18 +327,10 @@ int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logst
 					/*FIXME n++?*/
 					continue;
 				}
-				/*if this file is first open, append connection info first*/
-				/*!
-				 * FIXME: @see do_srs_log_sid_stats
-				 * */
-				/*FIXME: to be continueed*/
-//				auto &sids = item.second._sids;
-//				if(!sids.empty()){
-//					fwrite(sids.c_str(), sizeof(char), sids.size(), file);
-//				}
-
+				/*if this file is first open, append sid_log first*/
+				fwrite_srs_sid_log(file, sid_log, n);
 			}
-			fwrite_srs_raw_log(file, item.second._logs, n);
+			fwrite_srs_raw_log(file, item.second.logs, n);
 		}
 	}
 	if(n != 0)
