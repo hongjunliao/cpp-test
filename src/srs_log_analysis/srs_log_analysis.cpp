@@ -226,7 +226,7 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat)
 	return 0;
 }
 
-int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & url, int& t)
+int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_url & url, int& t)
 {
 //	printf("%s: ___%s____\n", __FUNCTION__, buff);
 //	time_t time_stamp;
@@ -250,7 +250,8 @@ int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & u
 //		url.time_stamp = time_stamp;
 //		url.sid = sid;
 		url.url = cm4[1].first;
-		buff[cm4[1].second - buff]  = '\0';
+		url.end = cm4[1].second;
+//		buff[cm4[1].second - buff]  = '\0';
 //		fprintf(stdout, "%s: ______url.url=%s___________\n", __FUNCTION__, url.url);
 	}
 	else

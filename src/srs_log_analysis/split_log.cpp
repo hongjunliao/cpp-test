@@ -150,7 +150,8 @@ static void parse_srs_sid_from_raw_logs(srs_sid_log & slog)
 				find_site_id(g_sitelist, domain, site_id, &user_id);
 				slog._site_id = site_id;
 				slog._user_id = user_id;
-				slog._url = url.url;
+
+				slog._url = std::string(url.url, url.end);
 				slog._domain = domain;
 			}
 		}

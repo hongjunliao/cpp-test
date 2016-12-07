@@ -37,6 +37,7 @@ struct srs_connect_url
 	int sid;
 	/*FIXME: change to std::string?*/
 	char const * url;
+	char const * end;	/*',' yet*/
 };
 
 /*srs log_type transform*/
@@ -153,10 +154,9 @@ int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
  * parse srs cnnect log
  * @param t, 1: ip; 2: url;
  * return 0 on success
- * @note: add '\0'  to @param buff if needed(url)
  * @see parse_srs_log_item
  * */
-int parse_srs_log_item_conn(char * buff, srs_connect_ip& ip, srs_connect_url & url, int& t);
+int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_url & url, int& t);
 
 /**
  * parse srs trans log
