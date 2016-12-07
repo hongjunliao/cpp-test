@@ -46,7 +46,7 @@ int parse_srs_log_header_sid(char const * buff)
 	return stoi(std::string(p + 1, end));
 }
 
-int parse_srs_log_header_time(char * buff, time_t & t)
+int parse_srs_log_header_time(char const * buff, time_t & t)
 {
 	//'[2016-11-15 18:05:02.665]'
 	auto p = strchr(buff, '[');
@@ -56,11 +56,9 @@ int parse_srs_log_header_time(char * buff, time_t & t)
 	auto c = strchr(p, '.');
 	if(c && c >= end)
 		return -1;
-	if(c)
-		*c = '\0';
 
 	tm my_tm;
-	auto result = strptime(p + 1, "%Y-%m-%d %H:%M:%S", &my_tm);
+	auto result = strptime(std::string(p + 1, c).c_str(), "%Y-%m-%d %H:%M:%S", &my_tm);
 	if(!result)
 		return -1;
 	my_tm.tm_isdst = 0;

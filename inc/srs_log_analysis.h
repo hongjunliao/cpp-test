@@ -147,6 +147,8 @@ public:
  * '[2016-11-03 11:34:33.360][warn][21373][110][32] client disconnect peer. ret=1004'
  *
  *@param log_type, 0-other; 1: srs_connect_ip; 2: srs_trans; 3: srs_disconnect; 4: srs_connect_url
+ * NOTES:
+ * 1.this function is obsolete and may be incorrect
  * */
 int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type);
 
@@ -169,7 +171,9 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans);
  * return 0 on success
  * @note: move @param buff to header end
  * @note: add '\0'  to @param buff if needed(time_stamp)
- * @NOTES: move @param buff after parsed
+ * @NOTES:
+ * 1.move @param buff after parsed
+ * 2.this function is obsolete and may be incorrect
  * */
 int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid);
 
@@ -178,15 +182,16 @@ int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid);
  * */
 int parse_srs_log_header_sid(char const * buff);
 
-/* parse time from srs_log_header, sample: [2016-11-03 11:33:16.924][trace][21373][110]
- * @note: add '\0'  to @param buff if needed(time_stamp)
+/* parse time from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110]'
  * return 0 on success
  * */
-int parse_srs_log_header_time(char * buff, time_t & t);
+int parse_srs_log_header_time(char const * buff, time_t & t);
 
 /* statistics for srs log
  * @param log_type @see parse_srs_log_item
  * @return 0 on success
+ * @NOTES:
+ * 2.this function is obsolete and may be incorrect
  * */
 int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 		std::vector<srs_connect_ip> const& ip_items,
