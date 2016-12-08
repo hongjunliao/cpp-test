@@ -252,16 +252,21 @@ void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
 		rlog.type = 0;
 		rlog.first = p;
 		rlog.second = q;
-//		printf("___%s____\n", rlog.first);
+		p = q + 1;
 
-		auto sid = parse_srs_log_header_sid(rlog.first);
+//		fprintf(stdout, "%s: ____", __FUNCTION__);
+//		for(auto p = rlog.first; p != rlog.second; ++p){
+//			fprintf(stdout, "%c", *p);
+//		}
+//		fprintf(stdout, "____\n");
+
+		auto sid = parse_srs_log_header_sid(rlog.first, rlog.second);
 		if(sid < 0){
 			if(plcdn_la_opt.verbose)
-				fprintf(stderr, "%s: parse sid failed from '%s', skip", __FUNCTION__, rlog.first);
+				fprintf(stderr, "%s: parse sid failed from '%s', skip\n", __FUNCTION__, rlog.first);
 			continue;
 		}
 		slogs[sid]._logs.push_back(rlog);
-		p = q + 1;
 	}
 //	for(auto & item : slogs){
 //		fprintf(stdout, "%s: ___sid = %d, size = %zu____\n", __FUNCTION__, item.first, item.second._logs.size());
@@ -281,8 +286,8 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 	for(auto & item : slogs){
 		auto & slog = item.second;
 		if(!slog){
-//			if(plcdn_la_opt.verbose)
-//				fprintf(stderr, "%s: 'if(srs_sid_log)' failed for sid '%d', skip\n", __FUNCTION__, item.first);
+			if(plcdn_la_opt.verbose)
+				fprintf(stderr, "%s: sid = '%d', skipped\n", __FUNCTION__, item.first);
 			continue;
 		}
 		auto & dstat = logstats[slog._domain];

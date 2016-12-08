@@ -180,12 +180,12 @@ int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid);
 /* parse sid from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110] '
  * return sid(>=0), or -1 on failure
  * */
-int parse_srs_log_header_sid(char const * buff);
+int parse_srs_log_header_sid(char const * buff, char const * end);
 
 /* parse time from srs_log_header, sample: '[2016-11-03 11:33:16.924][trace][21373][110]'
  * return 0 on success
  * */
-int parse_srs_log_header_time(char const * buff, time_t & t);
+int parse_srs_log_header_time(char const * buff, char const * end, time_t & t);
 
 /* statistics for srs log
  * @param log_type @see parse_srs_log_item

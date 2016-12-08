@@ -37,36 +37,44 @@ srs_sid_log::operator bool() const
 //	return ret;
 //}
 //////////////////////////////////////////////////////////////////////////////////
-int parse_srs_log_header_sid(char const * buff)
+int parse_srs_log_header_sid(char const * buff, char const * end)
 {
-	auto p = strchr(buff, ']');
-	for(int i = 3; p && i > 0; --i) { p = strchr(++p, '['); }
-	auto end = p? strchr(p, ']') : NULL;
-	if(!p || !end) return -1;
-	return stoi(std::string(p + 1, end));
+	if(!buff || !end || end - buff < 1 || *buff != '[')
+		return -1;
+	auto p = strchr(buff + 1, '[');
+	for(int i = 2; p && i > 0; --i) {
+		p = strchr(++p, '[');
+	}
+	if(!p || p >= end)
+		return -1;
+
+	auto e = strchr(p + 1, ']');
+	if(!e || e >= end || p + 1 >= e)
+		return -1;
+
+	return stoi(std::string(p + 1, e));
 }
 
-int parse_srs_log_header_time(char const * buff, time_t & t)
+int parse_srs_log_header_time(char const * buff, char const * end, time_t & t)
 {
 	//'[2016-11-15 18:05:02.665]'
-	auto p = strchr(buff, '[');
-	auto end = p? strchr(p, ']') : NULL;
-	if(!p || !end)
+	if(!buff || !end || end - buff - 1 < 19 || *buff != '[')	/*'2016-11-15 18:05:02'*/
 		return -1;
-	auto c = strchr(p, '.');
-	if(c && c >= end)
-		return -1;
-
+//	fprintf(stdout, "%s: __len=%ld__", __FUNCTION__, end - buff);
+//	for(auto p = buff; p != end; ++p){
+//		fprintf(stdout, "%c", *p);
+//	}
+//	fprintf(stdout, "____\n");
 	tm my_tm;
-	auto result = strptime(std::string(p + 1, c).c_str(), "%Y-%m-%d %H:%M:%S", &my_tm);
+	auto && timestr = std::string(buff + 1, buff + 1 + 19 + 1);
+	auto result = strptime(timestr.c_str(), "%Y-%m-%d %H:%M:%S", &my_tm);
 	if(!result)
 		return -1;
 	my_tm.tm_isdst = 0;
 	t = mktime(&my_tm);
 
-//	char buft1[32];
-//	fprintf(stdout, "%s: _____%s_____\n", __FUNCTION__,
-//			time_group(t).c_str_r(buft1, sizeof(buft1)));
+	char buft1[32];
+//	fprintf(stdout, "%s: _____%s_____\n", __FUNCTION__, time_group(t).c_str_r(buft1, sizeof(buft1)));
 	return 0;
 }
 
@@ -260,7 +268,7 @@ int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_u
 int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 {
 	time_t time_stamp;
-	auto status = parse_srs_log_header_time(rlog.first, time_stamp);
+	auto status = parse_srs_log_header_time(rlog.first, rlog.second, time_stamp);
 	if(status != 0) {
 		//fprintf(stderr, "%s: _____parse time_stamp failed for buff = %s______\n", __FUNCTION__, buff);
 		return -1;
