@@ -174,6 +174,16 @@ cutip_group::cutip_group(uint32_t ip)
 	if(c) *c = '\0';
 }
 
+cutip_group::cutip_group(char const * cutip/* = NULL*/)
+{
+	if(!cutip)
+		return;
+	strncpy(_cutip, cutip, sizeof(_cutip));
+	auto len = strlen(cutip);
+	if(len < 12){
+		_cutip[len] = '\0';
+	}
+}
 char const * cutip_group::c_str() const
 {
 	return _cutip;

@@ -10,7 +10,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_IP_POPULAR   "UANStats.${datetime}.${device_id}"
 #define DEF_FORMAT_HTTP_STATS   "DASStats.${datetime}.${device_id}"
 #define DEF_FORMAT_IP_SLOWFAST   "UASStats.${interval}.${site_id}.${device_id}"
-#define DEF_FORMAT_CUTIP_SLOWFAST   "ASStats.${interval}.${site_id}.${device_id}"
+#define DEF_FORMAT_CUTIP_SLOWFAST   "ASStats.${datetime}.${device_id}"
 #define DEF_FORMAT_IP_SOURCE   	"IPSource.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_SPLIT_NGINX_LOG   	"${site_id}/${day}"
 #define DEF_FORMAT_SPLIT_SRS_LOG   	"${site_id}/${day}"

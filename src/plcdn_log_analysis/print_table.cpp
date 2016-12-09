@@ -13,7 +13,7 @@
 #include "test_options.h"		/*plcdn_la_options**/
 #include "string_util.h"		/*sha1sum*/
 #include "net_util.h"	/*netutil_get_ip_str*/
-
+#include <algorithm>	/*std::sort*/
 /*parse_fmt.cpp*/
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
@@ -33,10 +33,14 @@ static void print_url_popular_table(FILE * stream, time_group const& g, nginx_lo
 static void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*httpstatus_statistics*/
 static void print_http_stats_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
-/*ip_slowfast*/
-static void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
+/*ip_slowfast, @param topn, print ONLY top n*/
+static void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n, int topn = 20);
 /*cutip_slowfast*/
 static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n, int topn);
+
 /*url_key*/
 static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*ip_source*/
@@ -133,22 +137,120 @@ inline void print_http_stats_table(FILE * stream, time_group const& g, nginx_log
 	}
 }
 
-inline void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
+//////////////////////////////////////////////////////////////////////////////////
+/*@see ip_stat, print_ip_slowfast_table*/
+struct ip_speed
 {
-	return;
-	/*FIXME: print only top 10?*/
-	for(auto const& ip_item : stat._ip_stats){
-		auto const & ipstat = ip_item.second;
-		double speed = (ipstat.sec != 0? (double)ipstat.bytes / ipstat.sec : (double)ipstat.bytes * 1000000.0);
+	uint32_t ip;
+	size_t bytes; 	/*bytes total*/
+	size_t sec;		/*time total, in seconds*/
+	double speed;
+};
+
+/*@see print_ip_slowfast_table*/
+static ip_speed calc_ip_speed(std::unordered_map<uint32_t, ip_stat>::value_type const& item)
+{
+	auto & stat = item.second;
+
+	ip_speed ret;
+	ret.ip = item.first;
+	ret.bytes = stat.bytes;
+	ret.sec = stat.sec;
+	ret.speed = (stat.sec != 0? (double)stat.bytes / stat.sec : 0.0);
+
+	return ret;
+}
+
+/* FIXME: how to compare?, 2016/12/09 */
+static bool sort_by_speed(ip_speed const& a, ip_speed const& b)
+{
+	if(a.sec != 0 && b.sec != 0)
+		return a.speed > b.speed;
+	if(a.sec != 0 || b.sec != 0)
+		return a.sec != 0;
+	return a.bytes > b.bytes;
+};
+
+inline void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n, int topn/* = 20*/)
+{
+//	printf("%s: ______size=%zu, topn=%d_____________\n", __FUNCTION__, stat._ip_stats.size(), topn);
+	/* FIXME: print only top 20?, 2016/12/09
+	 * ~/yong.lu/nginx/path/UASStats$ wc -l *
+	 */
+	std::vector<ip_speed> vec(stat._ip_stats.size());	/*must set init size*/
+	std::transform(stat._ip_stats.cbegin(), stat._ip_stats.cend(), vec.begin(), calc_ip_speed);
+	std::sort(vec.begin(), vec.end(), sort_by_speed);
+
+	for(auto const& item : vec){
 		/*format: device_id, ip, datetime, speed, type(MISS,HIT)*/
 		/*FIXME: type?*/
 		char buft[32];
+		auto speed = (item.sec != 0? item.speed : (double)item.bytes * 1000000.0);
 		auto sz = fprintf(stream, "%d %u %s %.0f %d\n",
-				g_plcdn_la_device_id, ip_item.first, g.c_str_r(buft, sizeof(buft)), speed, 0);
+				g_plcdn_la_device_id, item.ip, g.c_str_r(buft, sizeof(buft)), speed, 0);
 		if(sz <= 0) ++n;
+
+		if(--topn < 1)
+			break;
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////////////
+/*@see ip_stat, print_cutip_slowfast_table*/
+struct cutip_speed
+{
+	char cutip[16];
+	size_t bytes; 	/*bytes total*/
+	size_t sec;		/*time total, in seconds*/
+	double speed;
+};
+
+/*@see print_cutip_slowfast_table*/
+static cutip_speed calc_cutip_speed(std::unordered_map<cutip_group, ip_stat>::value_type const& item)
+{
+	auto & stat = item.second;
+
+	cutip_speed ret;
+	strncpy(ret.cutip, item.first.c_str(), sizeof(ret.cutip));
+	ret.bytes = stat.bytes;
+	ret.sec = stat.sec;
+	ret.speed = (stat.sec != 0? (double)stat.bytes / stat.sec : 0.0);
+
+	return ret;
+}
+
+/* FIXME: how to compare?, 2016/12/09 */
+static bool cutip_sort_by_speed(cutip_speed const& a, cutip_speed const& b)
+{
+	if(a.sec != 0 && b.sec != 0)
+		return a.speed > b.speed;
+	if(a.sec != 0 || b.sec != 0)
+		return a.sec != 0;
+	return a.bytes > b.bytes;
+};
+
+inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n, int topn)
+{
+	std::vector<cutip_speed> vec(stat._cuitip_stats.size());	/*must set init size*/
+	std::transform(stat._cuitip_stats.cbegin(), stat._cuitip_stats.cend(), vec.begin(), calc_cutip_speed);
+	std::sort(vec.begin(), vec.end(), cutip_sort_by_speed);
+
+	for(auto const& item : vec){
+		auto speed = (item.sec != 0? item.speed : (double)item.bytes * 1000000.0);
+		/*format: device_id, datetime, ip, speed*/
+		char buft[32];
+		cutip_group cutip(item.cutip);
+		auto sz = fprintf(stream, "%d %s %s %.0f\n",
+				g_plcdn_la_device_id, g.c_str_r(buft, sizeof(buft)), cutip.c_str(), speed);
+		if(sz <= 0) ++n;
+		if(--topn < 1)
+			break;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////
 inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
 	for(auto const& cutip_item : stat._cuitip_stats){

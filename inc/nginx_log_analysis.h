@@ -149,6 +149,9 @@ class cutip_group
 	friend struct std::hash<cutip_group>;
 public:
 	cutip_group(uint32_t ip = 0);
+	/*@param cutip, ip with first 3 fields*/
+	cutip_group(char const * cutip = NULL);
+public:
 	/*@param buff[12] as lest, sample output: 192.168.212*/
 	char const * c_str() const;
 };
