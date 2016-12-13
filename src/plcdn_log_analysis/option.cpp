@@ -27,7 +27,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.srs_log_file = NULL,
 		.output_file_srs_flow = NULL,
 		.srs_sid_dir = DEF_SRS_SID_DIR,
-
+		.output_split_srs_log_by_sid = "/tmp/srs_log_by_sid/",
 
 		.interval = 300,
 		.output_file_flow = NULL,
@@ -226,7 +226,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	auto& opt = *popt;
 	fprintf(stream,
 			"%-34s%-20s" "\n%-34s%-20d" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n"
@@ -245,6 +245,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "srs_log_file", opt.srs_log_file
 		, "srs_sid_dir", opt.srs_sid_dir
+		, "output_split_srs_log_by_sid", opt.output_split_srs_log_by_sid
 		, "output_file_srs_flow", opt.output_file_srs_flow
 
 

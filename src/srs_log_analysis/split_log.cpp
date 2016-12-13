@@ -243,9 +243,11 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
 		std::unordered_map<int, srs_sid_log> & slogs)
 {
+	size_t total_line = 0, failed_line = 0;
 	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
 		if(*q != '\n')
 			continue;
+		++total_line;
 		*q = '\0';
 
 		srs_raw_log_t rlog;
@@ -262,11 +264,15 @@ void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
 
 		auto sid = parse_srs_log_header_sid(rlog.first, rlog.second);
 		if(sid < 0){
+			++failed_line;
 			if(plcdn_la_opt.verbose)
 				fprintf(stderr, "%s: parse sid failed from '%s', skip\n", __FUNCTION__, rlog.first);
 			continue;
 		}
 		slogs[sid]._logs.push_back(rlog);
+	}
+	if(plcdn_la_opt.verbose){
+		fprintf(stdout, "%s: processed total = %zu, failed = %zu\n", __FUNCTION__, total_line, failed_line);
 	}
 //	for(auto & item : slogs){
 //		fprintf(stdout, "%s: ___sid = %d, size = %zu____\n", __FUNCTION__, item.first, item.second._logs.size());
@@ -283,6 +289,7 @@ void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
 int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
+	size_t total_line = 0, failed_line = 0, trans_line = 0;
 	for(auto & item : slogs){
 		auto & slog = item.second;
 		if(!slog){
@@ -290,8 +297,13 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 				fprintf(stderr, "%s: sid = '%d', skipped\n", __FUNCTION__, item.first);
 			continue;
 		}
+		total_line += slog._logs.size();
 		auto & dstat = logstats[slog._domain];
-		do_srs_log_sid_stats(item.first, slog, dstat);
+		do_srs_log_sid_stats(item.first, slog, dstat, failed_line, trans_line);
+	}
+	if(plcdn_la_opt.verbose){
+		fprintf(stdout, "%s: processed total = %zu, failed = %zu, trans = %zu, \n", __FUNCTION__,
+				total_line, failed_line, trans_line);
 	}
 	return 0;
 }
@@ -346,4 +358,45 @@ int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logst
 	return 0;
 }
 
+/*write srs log by sid, usually for debug*/
+int fwrite_srs_log_by_sid(std::unordered_map<int, srs_sid_log> & slogs, char const * folder)
+{
+	if(!folder || folder[0] == '\0')
+		return -1;
+	size_t n = 0;
+	for(auto & item : slogs){
+		auto & sid = item.first;
+		auto & slog = item.second;
+
+		char buff[strlen(folder) + 20 + 1];
+		snprintf(buff, sizeof(buff) - 1, "%s/%d", folder, sid);
+		buff[sizeof(buff) - 1] = '\0';
+
+		auto f = fopen(buff, "a");
+		if(!f){
+			fprintf(stderr, "%s: append sid log for sid '%d' failed\n", __FUNCTION__, sid);
+			continue;
+		}
+		for(auto & rlog : slog._logs){
+			auto len = rlog.second - rlog.first + 1;
+			if(len <= 0) continue;
+
+			/*FIXME: ugly but worked*/
+			auto & c = rlog.second;
+			auto old_c = *c;
+			*c = '\n';
+
+			auto result = fwrite(rlog.first, sizeof(char), len, f);
+			*c = old_c;
+
+			if(result < (size_t)len || ferror(f)){
+				++n;
+			}
+		}
+		fclose(f);
+	}
+	if(n != 0)
+		fprintf(stderr, "%s: failed lines = %zu\n", __FUNCTION__, n);
+	return 0;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////

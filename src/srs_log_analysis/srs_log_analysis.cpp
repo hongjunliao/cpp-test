@@ -197,7 +197,8 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 	return 0;
 }
 
-int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat)
+int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
+		size_t & failed_line, size_t & trans_line)
 {
 //	fprintf(stdout, "%s: _____sid = %d, size = %zu, site_id = %d______\n", __FUNCTION__,
 //			sid, slog._logs.size(), slog._site_id);
@@ -212,6 +213,7 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat)
 		srs_trans trans;
 		auto r = parse_srs_log_item_trans(sid, log, trans);
 		if(r < 0){
+			++failed_line;
 			continue;	/*parse faield*/
 		}
 		auto & stat = dstat._stats[trans.time_stamp];
@@ -227,6 +229,7 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat)
 			stat.ips[sid] = slog._ip;
 			stat.ibytes[sid] += trans.ibytes;
 			stat.obytes[sid] += trans.obytes;
+			++trans_line;
 		}
 	}
 	return 0;

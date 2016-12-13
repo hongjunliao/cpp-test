@@ -122,8 +122,7 @@ public:
 	size_t _bytes;	/*bytes total by this sid, in this log file*/
 	std::vector<srs_raw_log_t> _logs;
 	std::string _url;
-	std::string _domain;	/*FIXME: change to char[]?*/
-//	std::string _sid_log;		/*raw sids log from file(srs_sid_dir)*/
+	std::string _domain;	/*TODO: change to char[]?*/
 public:
 	srs_sid_log(int sid = 0);
 public:
@@ -201,11 +200,13 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 /*!
  * do srs log statistics
  * this function change srs log from 'by id ' to 'by time_group'
+ * @param failed, lines parse failed; @param trans, total lines for trans
  * @see time_group
  * @note: change srs_raw_log_t.type if needed
  * return 0 on success
  */
-int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat);
+int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
+		size_t & failed_line, size_t & trans_line);
 
 /* get domain from url, 
  * sample get '127.0.0.1' from 'rtmp://127.0.0.1:1359/'

@@ -104,9 +104,9 @@ inline void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log
 {
 	for(auto const& ip_item : stat._ip_stats){
 		auto const& ipstat = ip_item.second;
-		if(plcdn_la_opt.min_ip_popular > 0 && ipstat.access < plcdn_la_opt.min_ip_popular)
+		if(plcdn_la_opt.min_ip_popular > 0 && ipstat.access < (size_t)plcdn_la_opt.min_ip_popular)
 			continue;
-		if(plcdn_la_opt.max_ip_popular >= 0 && ipstat.access > plcdn_la_opt.max_ip_popular)
+		if(plcdn_la_opt.max_ip_popular >= 0 && ipstat.access > (size_t)plcdn_la_opt.max_ip_popular)
 			continue;
 
 		char ipbuff[20] = "0.0.0.0";

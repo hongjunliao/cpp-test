@@ -111,6 +111,7 @@ extern int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats);
 extern int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logstats,
 		char const * folder, char const * fmt);
+extern int fwrite_srs_log_by_sid(std::unordered_map<int, srs_sid_log> & slogs, char const * folder);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*GLOBAL vars*/
 /*plcdn_log_analysis/option.cpp*/
@@ -562,8 +563,7 @@ int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
 	return 0;
 }
 
-
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*merge*/
 
 /*FIXME: to be continued*/
@@ -577,7 +577,7 @@ static void append_flow_table(
 		auto f = (srs_domain_pair.second._site_id == dstat._site_id
 				&& srs_domain_pair.second._user_id == dstat._user_id);
 		if(!f){
-			fprintf(stderr, "%s: interval error! site_id or user_id not equal in nginx and srs log!, domain=%s\n",
+			fprintf(stderr, "%s: interval error! site_id or user_id not equal in nginx and srs log! domain=%s\n",
 					__FUNCTION__, srs_domain_pair.first.c_str());
 			continue;
 		}
@@ -712,6 +712,10 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		std::unordered_map<int, srs_sid_log> slogs;
 		split_srs_log_by_sid(srs_file_addr, srs_file_stat, slogs);
 		sync_srs_sids_dir(slogs, plcdn_la_opt.srs_sid_dir);
+		if(plcdn_la_opt.output_split_srs_log_by_sid){
+			boost::filesystem::create_directories(plcdn_la_opt.output_split_srs_log_by_sid);
+			fwrite_srs_log_by_sid(slogs, plcdn_la_opt.output_split_srs_log_by_sid);
+		}
 		auto status = parse_srs_log(slogs, srs_logstats);
 		if(status != 0){
 			fprintf(stderr, "%s: parse_srs_log failed, exit\n", __FUNCTION__);
