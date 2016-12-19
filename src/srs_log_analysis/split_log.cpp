@@ -144,7 +144,7 @@ static void parse_srs_sid_from_raw_logs(srs_sid_log & slog)
 			auto r = parse_domain_from_url(surl.c_str(), domain);
 			if(r == 0){
 //				printf("%s: ___url = %s, domain = %s____\n", __FUNCTION__, surl.c_str(), domain);
-				int site_id, user_id;
+				int site_id = 0, user_id = 0;
 				find_site_id(g_sitelist, domain, site_id, &user_id);
 				slog._site_id = site_id;
 				slog._user_id = user_id;
