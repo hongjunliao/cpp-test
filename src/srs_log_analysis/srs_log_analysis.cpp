@@ -279,20 +279,32 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 	trans.time_stamp = time_stamp;
 
 	/* TODO: parse official format, @date 2016/12/13
-	/* @NOTES: obytes and ibytes are NOT exist in official format
+	 * @NOTES: obytes and ibytes are NOT exist in official format
 	 */
-	static auto s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
-				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
+	/* FIXME: there are 3 okbps/ikbps, use which one? @see srs log official format,
+	 * @date 2016/12/20 @author hongjun.liao <docici@126.com>
+	 * */
+	/*'(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?'*/
+	static auto s2 = "(obytes=([0-9]+), ibytes=([0-9]+), )?okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
 	static boost::regex r2{s2};
 	boost::cmatch cm2;
 	if(boost::regex_search(rlog.first, cm2, r2)) {
 		rlog.type = 2;	/*FIXME: u may found a better way*/
 		trans.sid = sid;
+
 		char * end;
-		trans.obytes = strtoul(cm2[1].str().c_str(), &end, 10);
-		trans.ibytes = strtoul(cm2[2].str().c_str(), &end, 10);
-		trans.okbps = strtoul(cm2[3].str().c_str(), &end, 10);
-		trans.ikbps = strtoul(cm2[4].str().c_str(), &end, 10);
+		if(cm2.size() == 5) {	/*custom format*/
+			trans.obytes = strtoul(cm2[1].str().c_str(), &end, 10);
+			trans.ibytes = strtoul(cm2[2].str().c_str(), &end, 10);
+			trans.okbps = strtoul(cm2[3].str().c_str(), &end, 10);
+			trans.ikbps = strtoul(cm2[4].str().c_str(), &end, 10);
+		}
+		else if(cm2.size() == 3){	/*official format*/
+			trans.obytes = 0;
+			trans.ibytes = 0;
+			trans.okbps = strtoul(cm2[1].str().c_str(), &end, 10);
+			trans.ikbps = strtoul(cm2[2].str().c_str(), &end, 10);
+		}
 		return 0;
 	}
 	return 1;
