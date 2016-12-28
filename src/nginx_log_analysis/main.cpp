@@ -169,7 +169,7 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 	auto & logsstat = dstat._stats[item.time_local];
 	if(!item.is_hit){
 		logsstat._bytes_m += item.bytes_sent;
-		++logsstat._access_m;
+		++logsstat._access_m[item.status];
 	}
 
 	if(nla_opt.output_file_flow || nla_opt.output_file_url_popular || nla_opt.output_file_http_stats){

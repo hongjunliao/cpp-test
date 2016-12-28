@@ -205,7 +205,6 @@ std::size_t std::hash<cutip_group>::operator()(cutip_group const& val) const
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 nginx_log_stat::nginx_log_stat()
 : _bytes_m(0)
-, _access_m(0)
 {
 	//none
 }
@@ -246,12 +245,22 @@ size_t nginx_log_stat::access(int code1, int code2/* = -1*/) const
 	return ret;
 }
 
+size_t nginx_log_stat::access_m() const
+{
+	size_t ret = 0;
+	for(auto & item : _access_m){
+		ret += item.second;
+	}
+	return ret;
+}
+
 nginx_log_stat& nginx_log_stat::operator+=(nginx_log_stat const& another)
 {
 	for(auto const& item : another._url_stats){
 		_url_stats[item.first] += item.second;
 	}
-	_access_m += another._access_m;
+	for(auto & item : another._access_m)
+		_access_m[item.first] += item.second;
 	_bytes_m += another._bytes_m;
 	return *this;
 }

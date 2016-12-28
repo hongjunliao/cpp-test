@@ -66,7 +66,7 @@ static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat 
 	char buft[32];
 	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu\n",
 			site_id, g.c_str_r(buft, sizeof(buft)), g_device_id, stat.access_total()
-			, stat.bytes_total(), user_id, stat._access_m, stat._bytes_m);
+			, stat.bytes_total(), user_id, stat.access_m(), stat._bytes_m);
 	if(sz <= 0) ++n;
 }
 
@@ -101,9 +101,9 @@ inline void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log
 {
 	for(auto const& ip_item : stat._ip_stats){
 		auto const& ipstat = ip_item.second;
-		if(nla_opt.min_ip_popular > 0 && ipstat.access < nla_opt.min_ip_popular)
+		if(nla_opt.min_ip_popular > 0 && ipstat.access < (size_t)nla_opt.min_ip_popular)
 			continue;
-		if(nla_opt.max_ip_popular >= 0 && ipstat.access > nla_opt.max_ip_popular)
+		if(nla_opt.max_ip_popular >= 0 && ipstat.access > (size_t)nla_opt.max_ip_popular)
 			continue;
 
 		char ipbuff[20] = "0.0.0.0";

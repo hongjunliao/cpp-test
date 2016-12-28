@@ -195,7 +195,9 @@ public:
 	std::unordered_map<cutip_group, ip_stat> _cuitip_stats;			/*cutip: ip_stat*/
 	std::unordered_map<locisp_group, locisp_stat> _locisp_stats;	/*locisp:locisp_stat*/
 	size_t _bytes_m;		/*bytes for nginx 'MISS' */
-	size_t _access_m;		/*access_count for nginx 'MISS'*/
+	/* http_status_code: access_count,
+	 * access_count for nginx 'MISS', grouped by http_status_code*/
+	std::unordered_map<int, size_t> _access_m;
 public:
 		std::vector<nginx_raw_log_t> _logs;
 public:
@@ -204,6 +206,7 @@ public:
 	size_t bytes_total() const;
 	size_t bytes(int code1, int code2 = -1) const;
 	size_t access_total() const;
+	size_t access_m() const;
 	size_t access(int code1, int code2 = -1) const;
 	nginx_log_stat& operator+=(nginx_log_stat const& another);
 };

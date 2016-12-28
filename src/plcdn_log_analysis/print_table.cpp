@@ -70,7 +70,7 @@ static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat 
 	/*format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m */
 	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu\n",
 			site_id, g.c_str_r(buft, sizeof(buft)), g_plcdn_la_device_id, stat.access_total()
-			, stat.bytes_total(), user_id, stat._access_m, stat._bytes_m);
+			, stat.bytes_total(), user_id, stat.access_m(), stat._bytes_m);
 	if(sz <= 0) ++n;
 }
 
@@ -130,9 +130,12 @@ inline void print_http_stats_table(FILE * stream, time_group const& g, nginx_log
 	}
 	char buft[32];
 	for(auto const& st_item : st){
-		/*format: site_id, device_id, httpstatus, datetime, num*/
-		auto sz = fprintf(stream, "%d %d %d %s %zu\n",
-				site_id, g_plcdn_la_device_id, st_item.first, g.c_str_r(buft, sizeof(buft)), st_item.second);
+		/*note: num_m column is new added, @author hongjun.liao <docici@126.com> @date 2016/12/28*/
+		/*format: site_id, device_id, httpstatus, datetime, num, num_m*/
+		auto sz = fprintf(stream, "%d %d %d %s %zu %zu\n",
+				site_id, g_plcdn_la_device_id, st_item.first, g.c_str_r(buft, sizeof(buft)), st_item.second,
+				(stat._access_m.count(st_item.first) != 0? stat._access_m.at(st_item.first) : 0)
+				);
 		if(sz <= 0) ++n;
 	}
 }
