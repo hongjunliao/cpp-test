@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <map>			/*std::map*/
 #include "nginx_log_analysis.h"	/*log_stats, ...*/
-#include "test_options.h"		/*plcdn_la_options**/
+#include "test_options.h"		/*plcdn_la_options*/
 #include "string_util.h"		/*sha1sum*/
 #include "net_util.h"	/*netutil_get_ip_str*/
 #include <algorithm>	/*std::sort*/
@@ -18,7 +18,7 @@
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
 
-/*nginx_log_analysis/option.cpp*/
+/*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;
 /*main.cpp*/
 extern time_t g_plcdn_la_start_time;

@@ -302,7 +302,7 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		do_srs_log_sid_stats(item.first, slog, dstat, failed_line, trans_line);
 	}
 	if(plcdn_la_opt.verbose){
-		fprintf(stdout, "%s: processed total = %zu, failed = %zu, trans = %zu, \n", __FUNCTION__,
+		fprintf(stdout, "%s: processed total = %zu, failed = %zu, trans = %zu\n", __FUNCTION__,
 				total_line, failed_line, trans_line);
 	}
 	return 0;

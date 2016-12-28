@@ -101,7 +101,7 @@ extern int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_st
 static int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
 		std::unordered_map<std::string, srs_domain_stat> & logstats);
 /*print_table.cpp*/
-extern void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
+extern void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
 /*split_log.cpp*/
 extern void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
 		std::unordered_map<int, srs_sid_log> & slogs);
@@ -727,6 +727,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			auto status = split_srs_log(srs_logstats,
 					plcdn_la_opt.output_split_srs_log, plcdn_la_opt.format_split_srs_log);
 		}
+		fprint_srs_log_stats(srs_logstats);
 	}
 	if(!nginx_log_file && !srs_log_file){
 		fprintf(stderr, "%s: none of nginx, srs log file specified or can be read, exit\n", __FUNCTION__);

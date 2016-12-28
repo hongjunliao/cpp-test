@@ -243,7 +243,7 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 	 * ibytes and obytes can NOT be calculated, @author hongjun.liao <docici@126.com> @date 2016/12/28
 	 */
 	if(vec.size() < 2){
-		fprintf(stderr, "%s: total srs_trans = %zu, < 2, rotate srs log to fast?\n", __FUNCTION__, vec.size());
+		fprintf(stderr, "%s: total srs_trans = %zu, < 2, rotate srs log too fast?\n", __FUNCTION__, vec.size());
 		return 0;
 	}
 	/*sort first*/
@@ -252,7 +252,7 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 
 	/*calculate bytes for official srs format*/
 	for(auto a = vec.begin(), b = ++vec.begin(); b != vec.end(); ++a, ++b){
-		/*FIXME: this IS 'time' in official trans_log, parse and use that one?*/
+		/*FIXME: there IS 'time' in official trans_log, parse and use that one?*/
 		auto difft = difftime(b->time_stamp, a->time_stamp);
 		auto ibytes = difft * ( difft < 30.001? b->ikbps_30s * difft / 8.0 : b->ikbps_5min * difft / 8.0 );
 		auto obytes = difft * ( difft < 30.001? b->okbps_30s * difft / 8.0 : b->okbps_5min * difft / 8.0 );
