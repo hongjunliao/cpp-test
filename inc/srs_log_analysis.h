@@ -40,15 +40,25 @@ struct srs_connect_url
 	char const * end;	/*',' yet*/
 };
 
-/*srs log_type transform*/
+/*! srs log_type transform
+ * in official srs log format, there's NO 'ibytes=' and 'obytes='(@see parse_srs_log_item_trans, do_srs_log_sid_stats),
+ * if is official, ver = 0; if with ibytes and obytes, ver = 1
+ * In a srs log file, there should only have one format for trans log
+ */
 struct srs_trans
 {
+	int ver;
 	time_t time_stamp;
 	int sid;
 	size_t ibytes;
 	size_t obytes;
-	size_t ikbps;
-	size_t okbps;
+	/*!
+	 * in official srs log format, kbps have 3 values: realtime(?), in 30s, in 5min
+	 */
+	size_t ikbps, okbps;
+	size_t ikbps_30s, okbps_30s;
+	size_t ikbps_5min, okbps_5min;
+
 };
 
 /*srs log_type disconnect*/
