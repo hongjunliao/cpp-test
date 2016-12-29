@@ -15,6 +15,8 @@
 #include <unordered_map> 		/*std::unordered_map*/
 #include <boost/filesystem.hpp> /*create_directories*/
 
+/*total lines for srs log file*/
+size_t g_srs_total_line = 0, g_srs_failed_line = 0, g_srs_slog_line = 0, g_srs_trans_line = 0;
 /*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;
 /*main.cpp*/
@@ -243,7 +245,7 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
 		std::unordered_map<int, srs_sid_log> & slogs)
 {
-	size_t total_line = 0, failed_line = 0;
+	size_t &total_line = g_srs_total_line, &failed_line = g_srs_failed_line;
 	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
 		if(*q != '\n')
 			continue;
@@ -289,7 +291,7 @@ void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
 int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
-	size_t total_line = 0, failed_line = 0, trans_line = 0;
+	size_t & total_line = g_srs_slog_line, & failed_line = g_srs_failed_line, & trans_line = g_srs_trans_line;
 	for(auto & item : slogs){
 		auto & slog = item.second;
 		if(!slog){
@@ -302,7 +304,7 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		do_srs_log_sid_stats(item.first, slog, dstat, failed_line, trans_line);
 	}
 	if(plcdn_la_opt.verbose){
-		fprintf(stdout, "%s: processed total = %zu, failed = %zu, trans = %zu\n", __FUNCTION__,
+		fprintf(stdout, "%s: slog = %zu, failed = %zu, trans = %zu\n", __FUNCTION__,
 				total_line, failed_line, trans_line);
 	}
 	return 0;

@@ -50,14 +50,16 @@ struct srs_trans
 	int ver;
 	time_t time_stamp;
 	int sid;
-	size_t ibytes;
 	size_t obytes;
+	size_t ibytes;
+
+	/*these two values NOT used yet*/
+	size_t okbps, ikbps;
 	/*!
 	 * in official srs log format, kbps have 3 values: realtime(?), in 30s, in 5min
 	 */
-	size_t ikbps, okbps;
-	size_t ikbps_30s, okbps_30s;
-	size_t ikbps_5min, okbps_5min;
+	size_t okbps_30s, ikbps_30s;
+	size_t okbps_5min, ikbps_5min;
 
 };
 
@@ -101,7 +103,6 @@ struct srs_log_stat
 	std::unordered_map<int, uint32_t> ips;		/*sid : ip*/
 	std::unordered_map<int, size_t>	obytes;		/*sid : bytes out*/
 	std::unordered_map<int, size_t>	ibytes;		/*sid : bytes in*/
-
 	std::vector<srs_raw_log_t> logs;			/*raw logs*/
 public:
 	size_t obytes_total() const;

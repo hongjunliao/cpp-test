@@ -82,14 +82,15 @@ struct plcdn_la_options
 
 /*for srs_log_analysis*/
 	char const * srs_log_file;
-	char const * output_file_srs_flow;
+	char const * output_srs_flow;
+	char const * format_srs_flow;
 	char const * srs_sid_dir;					/*dir for srs_sid, @see srs_log_analysis/split_log.cpp/sync_srs_sids_dir*/
 	char const * output_split_srs_log_by_sid;	/*folder for split srs log by sid*/
 /*for output results*/
 	int  interval;
 
-	char const * output_file_flow;	/*flow_table output dir*/
-	char const * format_flow;		/*output flow_table filename format*/
+	char const * output_nginx_flow;		/*flow_table output dir*/
+	char const * format_nginx_flow;		/*output flow_table filename format*/
 
 	char const * output_file_url_popular;
 	char const * format_url_popular;

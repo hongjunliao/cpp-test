@@ -11,40 +11,93 @@
 #include "net_util.h"	/*netutil_get_ip_str*/
 #include "test_options.h"		/*plcdn_la_options*/
 
+////////////////////////////////////////////////////////////////////////////////////////////////
 /*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;
+/*main.cpp*/
+extern time_t g_plcdn_la_start_time;
+extern int g_plcdn_la_device_id;
+/*nginx_log_analysis/parse_fmt.cpp*/
+extern int parse_fmt(char const * in, std::string& out,
+		std::unordered_map<std::string, std::string> const& argmap);
+
+static FILE * & append_stream(std::map<std::string, FILE *> & filemap, std::string const& filename);
+static std::string parse_srs_output_filename(char const * fmt, char const *interval, char const *day, int site_id, int user_id);
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+static FILE * & append_stream(std::map<std::string, FILE *> & filemap, std::string const& filename)
+{
+	if(!filemap[filename])
+		filemap[filename] = fopen(filename.c_str(), "a");	/*append mode*/
+	return filemap[filename];
+}
+
+static std::string parse_srs_output_filename(char const * fmt, char const *interval, char const *day, int site_id, int user_id)
+{
+	std::unordered_map<std::string, std::string> argmap;
+	char buff[32] = "";
+	strftime(buff, sizeof(buff), "%Y%m%d%H%M", localtime(&g_plcdn_la_start_time));
+
+	argmap["device_id"] = std::to_string(g_plcdn_la_device_id);
+	argmap["datetime"] = buff;
+	argmap["day"] = day;
+	argmap["interval"] = interval;
+	argmap["site_id"] = std::to_string(site_id);
+	argmap["user_id"] = std::to_string(user_id);
+
+	std::string outname;
+	parse_fmt(fmt, outname, argmap);
+	return outname;
+}
 
 void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const& srs_stats)
 {
-	FILE * stream = NULL;
-	if(plcdn_la_opt.output_file_srs_flow){
-		strcmp(plcdn_la_opt.output_file_srs_flow, "1") != 0?
-			stream = fopen(plcdn_la_opt.output_file_srs_flow, "a") : stdout;
-	}
-	if(!stream)
-		return;
-	if(plcdn_la_opt.verbose)
-		fprintf(stream, "%-8s%-13s%-16s%-40s%-14s%-14s\n", "site_id", "time", "client_ip", "url", "obytes", "ibytes");
-	for(auto const& ds : srs_stats){
-		for(auto const& stat : ds.second._stats){
-			char buft[32];
-			stat.first.c_str_r(buft, sizeof(buft));
-
-			auto & s = stat.second;
-			for(auto & url : s.urls){
-				char buf[32];
-				netutil_get_ip_str(s.ips.at(url.first), buf, sizeof(buf));
-				fprintf(stream, "%-8d%-13s%-16s%-40s%-14zu%-14zu\n",
-						ds.second._site_id
-						, buft
-						, buf
-						, url.second.c_str()
-						, (s.obytes.count(url.first) != 0? s.obytes.at(url.first) : 0)
-						, (s.ibytes.count(url.first) != 0? s.ibytes.at(url.first) : 0)
-						);
-
+//	if(plcdn_la_opt.verbose)
+//		fprintf(stream, "%-8s%-13s%-16s%-40s%-14s%-14s\n", "site_id", "time", "client_ip", "url", "obytes", "ibytes");
+		//%-8d%-13s%-16s%-40s%-14zu%-14zu\n
+	size_t n = 0;
+	std::map<std::string, FILE *> filemap; /*for output filenames*/
+	for(auto const& dstat_it : srs_stats){
+		auto site_id = dstat_it.second._site_id;
+		auto user_id = dstat_it.second._user_id;
+		for(auto const& stat_it : dstat_it.second._stats){
+			auto & stat = stat_it.second;
+			char buft[32], buft2[32];;
+			if(plcdn_la_opt.output_srs_flow){
+				auto outname = std::string(plcdn_la_opt.output_srs_flow) +
+						parse_srs_output_filename(plcdn_la_opt.format_srs_flow,
+								stat_it.first.c_str_r(buft, sizeof(buft)),
+								stat_it.first.c_str_r(buft2, sizeof(buft2), "%Y%m%d"),
+								site_id, user_id);
+				auto stream = append_stream(filemap, outname);
+				if(!stream)
+					continue;
+				/*flow stats, format: 'site_id datetime device_id obytes ibytes user_id'*/
+				auto sz = fprintf(stream, "%d %s %d %zu %zu %d\n", site_id, buft, g_plcdn_la_device_id,
+						stat.obytes_total(), stat.ibytes_total(), user_id);
+				if(sz <= 0) ++n;
 			}
-
 		}
 	}
+	for(auto & it : filemap){
+		if(it.second)
+			fclose(it.second);
+	}
+	//url stat
+//	for(auto & url : stat.urls){
+//		auto sid = url.first;
+//		char buf[32];
+//		netutil_get_ip_str(stat.ips.at(sid), buf, sizeof(buf));
+//		/*format: 'site_id time client_ip url obytes ibytes'*/
+//		fprintf(stream, "%d %s %s %s %zu %zu\n",
+//				site_id
+//				, buft
+//				, buf
+//				, url.second.c_str()
+//				, stat.obytes.at(sid)/*(s.obytes.count(url.first) != 0? s.obytes.at(url.first) : 0)*/
+//				, stat.ibytes.at(sid)/*(s.ibytes.count(url.first) != 0? s.ibytes.at(url.first) : 0)*/
+//				);
+//
+//	}
+
 }

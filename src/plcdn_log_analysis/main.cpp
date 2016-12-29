@@ -120,7 +120,13 @@ extern struct plcdn_la_options plcdn_la_opt;
 static std::unordered_map<std::string, int> g_devicelist;
 /*map<domain, site_info>*/
 std::unordered_map<std::string, site_info> g_sitelist;
-static size_t g_line_count = 0;
+static size_t g_nginx_total_line = 0;
+/*srs_log_analysis/split_log.cpp*/
+extern size_t g_srs_total_line;
+extern size_t g_srs_failed_line;
+extern size_t g_srs_slog_line;
+extern size_t g_srs_trans_line;
+
 time_t g_plcdn_la_start_time = 0;
 int g_plcdn_la_device_id = 0;
 
@@ -203,7 +209,7 @@ static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::stri
 	}
 
 	/*if NOT required, we needn't statistics it*/
-	if(plcdn_la_opt.output_file_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
+	if(plcdn_la_opt.output_nginx_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
 		//FIXME: test me! @date 2016/11
 		auto len = strlen(item.request_url);
 		char buff[64];
@@ -495,7 +501,7 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 			fprintf(stdout, "%s: thread=%p exited\n", __FUNCTION__, &item);
 		auto & ct = *(parse_context * )tret;
 		log_stats_append(stats, ct.logstats);
-		g_line_count += ct.total_lines;
+		g_nginx_total_line += ct.total_lines;
 	}
 	if(parallel_count == 0){
 		/*FIXME: NOT needed? just for speed*/
@@ -504,10 +510,7 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 	else{
 		log_stats_append(stats, parse_args[parallel_count].logstats);
 	}
-	g_line_count += parse_args[parallel_count].total_lines;
-	if(plcdn_la_opt.verbose)
-		fprintf(stdout, "%s: processed, total_line: %-8zu\n", __FUNCTION__, g_line_count);
-
+	g_nginx_total_line += parse_args[parallel_count].total_lines;
 	return 0;
 }
 
@@ -566,7 +569,7 @@ int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*merge*/
 
-/*FIXME: to be continued*/
+/*FIXME: to be continued, this function NOT used yet*/
 static void append_flow_table(
 		std::unordered_map<std::string, nginx_domain_stat> & nginx_stats,
 		std::unordered_map<std::string, srs_domain_stat> const& srs_stats)
@@ -678,6 +681,8 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			fprintf(stderr, "%s: parallel_parse_nginx_log failed, exit\n", __FUNCTION__);
 			return 1;
 		}
+		if(plcdn_la_opt.verbose)
+			fprintf(stdout, "%s: processed '%s', total_line: %zu\n", __FUNCTION__, plcdn_la_opt.nginx_log_file, g_nginx_total_line);
 		/*split log*/
 		if(plcdn_la_opt.output_split_nginx_log){
 			if(plcdn_la_opt.verbose)
@@ -720,6 +725,11 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		if(status != 0){
 			fprintf(stderr, "%s: parse_srs_log failed, exit\n", __FUNCTION__);
 			return 1;
+		}
+		if(plcdn_la_opt.verbose){
+			fprintf(stdout, "%s: processed '%s', total_line = %zu, failed = %zu, slog_log = %zu, trans_log = %zu\n", __FUNCTION__,
+					plcdn_la_opt.srs_log_file,
+					g_srs_total_line, g_srs_failed_line, g_srs_slog_line, g_srs_trans_line);
 		}
 		if(plcdn_la_opt.output_split_srs_log){
 			if(plcdn_la_opt.verbose)

@@ -37,7 +37,8 @@ static void print_http_stats_table(FILE * stream, time_group const& g, nginx_log
 static void print_ip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
 		int site_id, int user_id, size_t& n, int topn = 20);
 /*cutip_slowfast*/
-static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
+static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n);
 static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
 		int site_id, int user_id, size_t& n, int topn);
 
@@ -254,7 +255,8 @@ inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
+inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n)
 {
 	for(auto const& cutip_item : stat._cuitip_stats){
 		auto const & cutipstat = cutip_item.second;
@@ -301,12 +303,12 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 	std::map<std::string, FILE *> filemap; /*for output filenames*/
 	size_t n = 0;
 	for(auto const& dstat : stats){
+		auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
 		for(auto const& item : dstat.second._stats){
-			auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
 			char buft[32];
-			if(plcdn_la_opt.output_file_flow){
-				auto outname = std::string(plcdn_la_opt.output_file_flow) +
-						parse_nginx_output_filename(plcdn_la_opt.format_flow, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
+			if(plcdn_la_opt.output_nginx_flow){
+				auto outname = std::string(plcdn_la_opt.output_nginx_flow) +
+						parse_nginx_output_filename(plcdn_la_opt.format_nginx_flow, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
 				auto stream = append_stream(filemap, outname);
 				if(stream)
 					print_flow_table(stream, item.first, item.second, site_id, user_id, n);
