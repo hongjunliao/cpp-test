@@ -21,11 +21,11 @@ extern int g_plcdn_la_device_id;
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
 
-static FILE * & append_stream(std::map<std::string, FILE *> & filemap, std::string const& filename);
+static FILE * & get_stream_by_filename(std::map<std::string, FILE *> & filemap, std::string const& filename);
 static std::string parse_srs_output_filename(char const * fmt, char const *interval, char const *day, int site_id, int user_id);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-static FILE * & append_stream(std::map<std::string, FILE *> & filemap, std::string const& filename)
+static FILE * & get_stream_by_filename(std::map<std::string, FILE *> & filemap, std::string const& filename)
 {
 	if(!filemap[filename])
 		filemap[filename] = fopen(filename.c_str(), "a");	/*append mode*/
@@ -69,7 +69,7 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 								stat_it.first.c_str_r(buft, sizeof(buft)),
 								stat_it.first.c_str_r(buft2, sizeof(buft2), "%Y%m%d"),
 								site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = get_stream_by_filename(filemap, outname);
 				if(!stream)
 					continue;
 				/*flow stats, format: 'site_id datetime device_id obytes ibytes user_id'*/
