@@ -712,13 +712,14 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		}
 
 		/*FIXME: the return value is wired, we NOT use it yet*/
-		boost::filesystem::create_directories(plcdn_la_opt.srs_sid_dir);
+		boost::system::error_code ec;
+		boost::filesystem::create_directories(plcdn_la_opt.srs_sid_dir, ec);
 
 		std::unordered_map<int, srs_sid_log> slogs;
 		split_srs_log_by_sid(srs_file_addr, srs_file_stat, slogs);
 		sync_srs_sids_dir(slogs, plcdn_la_opt.srs_sid_dir);
 		if(plcdn_la_opt.output_split_srs_log_by_sid){
-			boost::filesystem::create_directories(plcdn_la_opt.output_split_srs_log_by_sid);
+			boost::filesystem::create_directories(plcdn_la_opt.output_split_srs_log_by_sid, ec);
 			fwrite_srs_log_by_sid(slogs, plcdn_la_opt.output_split_srs_log_by_sid);
 		}
 		auto status = parse_srs_log(slogs, srs_logstats);

@@ -105,23 +105,23 @@ struct srs_log_stat
 	std::unordered_map<int, size_t>	ibytes;		/*sid : bytes in*/
 
 	/* TODO: bandwidth statistics in time_group, how to?
-	 * avg of okbps, or max/min of okbps?
+	 * avg of okbps, or max/min of okbps, or obytes/5min?
 	 * @see avg_okbps/agv_ikbps/max_okbps
 	 * added at @date 2017/1/5 @author hongjun.liao <docici@126.com>*/
-	std::unordered_map<int, size_t>	okbps;		/*sid : okbps*/
-	std::unordered_map<int, size_t>	ikbps;		/*sid : ikbps*/
+//	std::unordered_map<int, std::vector<size_t>>	okbps;		/*sid : okbps*/
+//	std::unordered_map<int, std::vector<size_t>>	ikbps;		/*sid : ikbps*/
 
 	std::vector<srs_raw_log_t> logs;			/*raw logs*/
 public:
 	size_t obytes_total() const;
 	size_t ibytes_total() const;
 
-	double avg_okbps() const;
-	double agv_ikbps() const;
-	double max_okbps() const;
-	double max_ikbps() const;
-	double min_okbps() const;
-	double min_ikbps() const;
+//	double avg_okbps() const;
+//	double avg_ikbps() const;
+//	double max_okbps() const;
+//	double max_ikbps() const;
+//	double min_okbps() const;
+//	double min_ikbps() const;
 };
 
 struct srs_domain_stat

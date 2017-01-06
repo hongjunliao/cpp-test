@@ -223,7 +223,7 @@ $scheme $request_length $upstream_response_time\n"
 			"    (6)cutip_slowfast_table: '${device_id} ${datetime} ${ip} ${speed}'\n"
 			"    (7)ip_source_table:      '${bw_time} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
 			"    for srs:\n"
-			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${user_id}'\n"
+			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${ombps} ${imbps} ${user_id}'\n"
 	);
 }
 

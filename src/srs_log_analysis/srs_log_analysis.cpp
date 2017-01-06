@@ -29,62 +29,62 @@ size_t srs_log_stat::ibytes_total() const
 		ret += it.second;
 	return ret;
 }
-
-double srs_log_stat::avg_okbps() const
-{
-	size_t total = 0;
-	for(auto & it : okbps)
-		total += it.second;
-	return total * 1.0 / okbps.size();
-}
-
-double srs_log_stat::agv_ikbps() const
-{
-	size_t total = 0;
-	for(auto & it : ikbps)
-		total += it.second;
-	return total * 1.0 / ikbps.size();
-}
-
-double srs_log_stat::max_okbps() const
-{
-	double ret = 0;
-	for(auto & it : okbps){
-		if(it.second > ret)
-			ret = it.second;
-	}
-	return ret;
-}
-
-double srs_log_stat::max_ikbps() const
-{
-	double ret = 0;
-	for(auto & it : ikbps){
-		if(it.second > ret)
-			ret = it.second;
-	}
-	return ret;
-}
-
-double srs_log_stat::min_okbps() const
-{
-	double ret = 0;
-	for(auto & it : okbps){
-		if(it.second < ret)
-			ret = it.second;
-	}
-	return ret;
-}
-
-double srs_log_stat::min_ikbps() const
-{
-	double ret = 0;
-	for(auto & it : ikbps){
-		if(it.second < ret)
-			ret = it.second;
-	}
-	return ret;
-}
+//
+//double srs_log_stat::avg_okbps() const
+//{
+////	size_t total = 0;
+////	for(auto & it : okbps)
+////		total += it.second;
+////	return total * 1.0 / okbps.size();
+//}
+//
+//double srs_log_stat::avg_ikbps() const
+//{
+////	size_t total = 0;
+////	for(auto & it : ikbps)
+////		total += it.second;
+////	return total * 1.0 / ikbps.size();
+//}
+//
+//double srs_log_stat::max_okbps() const
+//{
+////	double ret = 0;
+////	for(auto & it : okbps){
+////		if(it.second > ret)
+////			ret = it.second;
+////	}
+////	return ret;
+//}
+//
+//double srs_log_stat::max_ikbps() const
+//{
+////	double ret = 0;
+////	for(auto & it : ikbps){
+////		if(it.second > ret)
+////			ret = it.second;
+////	}
+////	return ret;
+//}
+//
+//double srs_log_stat::min_okbps() const
+//{
+////	double ret = 0;
+////	for(auto & it : okbps){
+////		if(it.second < ret)
+////			ret = it.second;
+////	}
+////	return ret;
+//}
+//
+//double srs_log_stat::min_ikbps() const
+//{
+////	double ret = 0;
+////	for(auto & it : ikbps){
+////		if(it.second < ret)
+////			ret = it.second;
+////	}
+////	return ret;
+//}
 
 //////////////////////////////////////////////////////////////////////////////////
 srs_sid_log::srs_sid_log(int sid)
