@@ -3,6 +3,7 @@
 #ifndef _CPP_TEST_OPTIONS_H_
 #define _CPP_TEST_OPTIONS_H_
 #include <stdio.h> /*FILE*/
+#include <time.h> /*time_t*/
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -79,7 +80,8 @@ struct plcdn_la_options
 	char const * siteuidlist_file;
 	char const * ipmap_file;
 	int parse_url_mode;		/*0|1|2, default 2, @see parse_nginx_log_request_uri_url*/
-
+/*time range for log*/
+	time_t begin_time, end_time; /* time range for log, format [begin_time, end_time), disabled if 0*/
 /*for srs_log_analysis*/
 	char const * srs_log_file;
 	char const * output_srs_flow;

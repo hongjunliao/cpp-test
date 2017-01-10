@@ -243,5 +243,8 @@ int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& 
 /*find site_id by site_name/domain, return 0 on success*/
 int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
 		const char* site, int & siteid, int * user_id);
+
+/* if @param t in [@param begin, @param end) return true */
+bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end);
 #endif /*_NGINX_LOG_ANALYSIS_H_*/
 

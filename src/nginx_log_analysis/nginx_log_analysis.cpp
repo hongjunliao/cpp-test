@@ -322,3 +322,16 @@ int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& 
 	}
 	return 0;
 }
+
+bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end)
+{
+	if(begin != 0 && end != 0)
+		return t >= begin && t < end;
+	if(begin == 0 && end == 0)
+		return true;
+	if(begin != 0)
+		return t >= begin;
+	if(end != 0)
+		return t < end;
+	return false;	/* never comes here */
+}

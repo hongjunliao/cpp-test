@@ -292,16 +292,32 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
 	size_t & total_line = g_srs_slog_line, & failed_line = g_srs_failed_line, & trans_line = g_srs_trans_line;
+	std::vector<int> skipped_sids;	/* sids skipped */
+	std::vector<int> skipped_trans;	/*  skipped sids for countof(srs_trans) < 2*/
 	for(auto & item : slogs){
 		auto & slog = item.second;
 		if(!slog){
-			if(plcdn_la_opt.verbose)
-				fprintf(stderr, "%s: sid = '%d', skipped\n", __FUNCTION__, item.first);
+			skipped_sids.push_back(item.first);
 			continue;
 		}
 		total_line += slog._logs.size();
 		auto & dstat = logstats[slog._domain];
-		do_srs_log_sid_stats(item.first, slog, dstat, failed_line, trans_line);
+		bool skip;
+		do_srs_log_sid_stats(item.first, slog, dstat, failed_line, trans_line, skip);
+		if(skip)
+			skipped_trans.push_back(item.first);
+	}
+	if(plcdn_la_opt.verbose && !skipped_sids.empty()){
+		fprintf(stderr, "%s: skipped sids because of incomplete: [", __FUNCTION__);
+		for(auto & sid_item : skipped_sids)
+			fprintf(stderr, "%d,", sid_item);
+		fprintf(stderr, "]\n");
+	}
+	if(plcdn_la_opt.verbose && !skipped_trans.empty()){
+		fprintf(stderr, "%s: skipped sids because of trans < 2: [", __FUNCTION__);
+		for(auto & sid_item : skipped_trans)
+			fprintf(stderr, "%d,", sid_item);
+		fprintf(stderr, "]\n");
 	}
 	if(plcdn_la_opt.verbose){
 		fprintf(stdout, "%s: slog = %zu, failed = %zu, trans = %zu\n", __FUNCTION__,
@@ -334,7 +350,8 @@ int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logst
 			auto c = strrchr(dirname, '/');
 			if(c){
 				*c = '\0';
-				auto ret = boost::filesystem::create_directories(dirname);
+				boost::system::error_code ec;
+				auto ret = boost::filesystem::create_directories(dirname, ec);
 			}
 			auto & file = filemap[fname];
 			if(!file){

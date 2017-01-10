@@ -1,8 +1,9 @@
+#include <time.h>	/* gmtime_s, strftime */
 #include <cstdlib>	/*atoi*/
 #include <cstring>	/*strcmp*/
 #include <popt.h>	/*poptOption*/
 #include "test_options.h"	/*plcdn_la_options*/
-
+#include <boost/regex.hpp> 		/*boost::regex_match*/
 static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 
 #define DEF_FORMAT_FLOW 			"countfile.${interval}.${site_id}.${device_id}"
@@ -24,6 +25,8 @@ struct plcdn_la_options plcdn_la_opt = {
 		.siteuidlist_file = "siteuidlist.txt",
 		.ipmap_file = "iplocation.bin",
 		.parse_url_mode = 2,
+		.begin_time = 0,
+		.end_time = 0,
 
 		.srs_log_file = NULL,
 		.output_srs_flow = NULL,
@@ -69,6 +72,8 @@ static poptContext pc = 0;
 static struct poptOption plcdn_la_popt[] = {
 	  /* longName, shortName, argInfo, argPtr, value, descrip, argDesc */
 	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file", 0 },
+	{"begin-time",             	0,    POPT_ARG_STRING,   0, 'D', "time_range, begin time, see NOTES for details", 0 },
+	{"end-time",          		0,    POPT_ARG_STRING,   0, 'I', "time_range, end time", 0 },
 
 	{"device-list-file",        'd',  POPT_ARG_STRING,   0, 'd', "devicelist_file default: devicelist.txt", 0 },
 	{"siteuid-list-file",       's',  POPT_ARG_STRING,   0, 's', "siteuidlist_file default: siteuidlist.txt", 0 },
@@ -123,6 +128,25 @@ static struct poptOption plcdn_la_popt[] = {
 	NULL	/*required!!!*/
 };
 
+/* sample: '2016-10-31 14:00:04' */
+/* TODO: to '%Y-%m-%d %H:%M:%S' */
+static int parse_time(char const * str, time_t & t)
+{
+	if(!str || str[0] == '\0')
+		return -1;
+	auto s1 = "([0-9]{4})-([0-9]{2})-([0-9]{2})";
+	boost::regex re{s1};
+	boost::cmatch cm;
+	if(!boost::regex_match(str, cm, re))
+		return -1;
+	tm my_tm{ 0 };
+	auto result = strptime(str, "%Y-%m-%d", &my_tm);
+	if(!result)
+		return -1;
+	t = mktime(&my_tm);
+	return 0;
+}
+
 int plcdn_la_parse_options(int argc, char ** argv)
 {
 	if(pc)
@@ -131,6 +155,14 @@ int plcdn_la_parse_options(int argc, char ** argv)
 	for(int opt; (opt = poptGetNextOpt(pc)) != -1; ){
 		switch(opt){
 		case 'l': plcdn_la_opt.nginx_log_file = poptGetOptArg(pc); break;
+		case 'D':
+			if(parse_time(poptGetOptArg(pc), plcdn_la_opt.begin_time) != 0)
+				return -1;
+		break;
+		case 'I':
+			if(parse_time(poptGetOptArg(pc), plcdn_la_opt.end_time) != 0)
+				return -1;
+		break;
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
@@ -205,14 +237,16 @@ void plcdn_la_show_help(FILE * stream)
 			"    ${site_id}    site_id/domain id\n"
 			"    ${user_id}    user_id\n"
 			"    ${domain}     domain\n"
-			"  2.use ulimit(or other command) to increase 'open files', or may crash!\n"
-			"  3.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
-			"  4.nginx_log_format: $host $remote_addr $request_time_msec $cache_status [$time_local] \"$request_method \
+			"  2.time_range format 'YYYY-mm-dd'(sample '2017-02-14'), range in [begin_time, end_time) (include begin_time, NOT end_time)\n"
+			"    default disabled, applied for both nginx and srs log if enabled\n"
+			"  3.use ulimit(or other command) to increase 'open files', or may crash!\n"
+			"  4.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
+			"  5.nginx_log_format: $host $remote_addr $request_time_msec $cache_status [$time_local] \"$request_method \
 $request_uri $server_protocol\" $status $bytes_sent \
 \"$http_referer" "$remote_user" "$http_cookie" "$http_user_agent\" \
 $scheme $request_length $upstream_response_time\n"
-			"  5.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
-			"  6.output table formats\n"
+			"  6.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
+			"  7.output table formats\n"
 			"    for nginx:\n"
 			"    (1)nginx_flow_table:     '${site_id} ${datetime} ${device_id} ${num_total} ${bytes_total} ${user_id} ${pvs_m} ${px_m}'\n"
 			"    (2)url_popular_table:    '${datetime} ${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302}\n"
@@ -244,8 +278,19 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 {
 	if(!popt) return;
 	auto& opt = *popt;
+
+	char btime[32] = "0", etime[32] = "0";
+	if(opt.begin_time != 0){
+		tm btmbuf;
+		strftime(btime, sizeof(btime), "%Y-%m-%d", localtime_r(&opt.begin_time, &btmbuf));
+	}
+	if(opt.end_time != 0){
+		tm etmbuf;
+		strftime(etime, sizeof(etime), "%Y-%m-%d", localtime_r(&opt.end_time, &etmbuf));
+	}
 	fprintf(stream,
-			"%-34s%-20s" "\n%-34s%-20d" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20d\n" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
@@ -258,6 +303,9 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
+		, "begin_time", btime
+		, "end_time", etime
+
 		, "interval", opt.interval
 		, "devicelist_file", opt.devicelist_file
 		, "siteuidlist_file", opt.siteuidlist_file

@@ -3,6 +3,7 @@
  */
 
 #include "srs_log_analysis.h"
+#include "test_options.h"	/*plcdn_la_options*/
 #include <string>				/*std::string*/
 #include <unordered_map>		/*std::unordered_map*/
 #include <boost/regex.hpp> 		/*regex_search*/
@@ -12,7 +13,8 @@
 
 /*plcdn_log_analysis/main.cpp*/
 extern std::unordered_map<std::string, site_info> g_sitelist;
-
+/*plcdn_log_analysis/option.cpp*/
+extern struct plcdn_la_options plcdn_la_opt;
 //////////////////////////////////////////////////////////////////////////////////
 size_t srs_log_stat::obytes_total() const
 {
@@ -271,7 +273,7 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 }
 
 int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
-		size_t & failed_line, size_t & trans_line)
+		size_t & failed_line, size_t & trans_line, bool& skip)
 {
 //	fprintf(stdout, "%s: _____sid = %d, size = %zu, site_id = %d______\n", __FUNCTION__,
 //			sid, slog._logs.size(), slog._site_id);
@@ -291,6 +293,8 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 			++failed_line;
 			continue;	/*parse faield*/
 		}
+		if(r == 2)
+			continue;
 		auto & stat = dstat._stats[trans.time_stamp];
 		stat.urls[sid] = slog._url;
 		stat.ips[sid] = slog._ip;
@@ -320,9 +324,10 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 	 * ibytes and obytes can NOT be calculated, @author hongjun.liao <docici@126.com> @date 2016/12/28
 	 */
 	if(vec.size() < 2){
-		fprintf(stderr, "%s: sid = %d, total srs_trans = %zu, < 2, skip\n", __FUNCTION__, sid, vec.size());
+		skip = true;
 		return 0;
 	}
+	skip = false;
 	/*sort first*/
 	auto sort_by_timestamp = [](srs_trans const& a, srs_trans const& b){ return a.time_stamp < b.time_stamp; };
 	std::sort(vec.begin(), vec.end(), sort_by_timestamp);
@@ -390,6 +395,8 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 		//fprintf(stderr, "%s: _____parse time_stamp failed for buff = %s______\n", __FUNCTION__, buff);
 		return -1;
 	}
+	if(!is_time_in_range(time_stamp, plcdn_la_opt.begin_time, plcdn_la_opt.end_time))
+		return 2;
 	trans.time_stamp = time_stamp;
 
 	/* TODO: parse official format, @date 2016/12/13
@@ -444,3 +451,4 @@ int parse_domain_from_url(const char* url, char* domain)
 	domain[length] = '\0';
 	return 0;
 }
+

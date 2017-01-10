@@ -407,7 +407,9 @@ int parse_nginx_log_item_buf(parse_context& ct)
 		int result = parse_log_item(item, p, '\n');
 
 		if(result == 0){
-			do_nginx_log_stats(item, logstats);
+			auto is_time_in = is_time_in_range(item.time_local, plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
+			if(is_time_in)
+				do_nginx_log_stats(item, logstats);
 		}
 		else {
 			//current line failed, move to next line

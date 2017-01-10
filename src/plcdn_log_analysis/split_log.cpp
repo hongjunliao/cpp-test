@@ -87,7 +87,8 @@ int split_nginx_log(std::unordered_map<std::string, nginx_domain_stat> const& st
 			auto c = strrchr(dirname, '/');
 			if(c){
 				*c = '\0';
-				auto ret = boost::filesystem::create_directories(dirname);
+				boost::system::error_code ec;
+				auto ret = boost::filesystem::create_directories(dirname, ec);
 			}
 			auto & file = filemap[fname];
 			if(!file)
