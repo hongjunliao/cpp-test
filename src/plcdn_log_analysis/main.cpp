@@ -112,6 +112,9 @@ extern int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 extern int split_srs_log(std::unordered_map<std::string, srs_domain_stat> const & logstats,
 		char const * folder, char const * fmt);
 extern int fwrite_srs_log_by_sid(std::unordered_map<int, srs_sid_log> & slogs, char const * folder);
+
+/* plcdn_log_result_merge/main.cpp */
+extern int merge_srs_flow(int argc, char ** argv);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*GLOBAL vars*/
 /*plcdn_log_analysis/option.cpp*/
@@ -622,6 +625,8 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		fprintf(stdout, "%d\n", id);
 		return result == 0? 0 : 1;
 	}
+	if(plcdn_la_opt.work_mode == 1)
+		return merge_srs_flow(argc, argv);
 	g_plcdn_la_start_time = time(NULL);
 	result = load_devicelist(plcdn_la_opt.devicelist_file, g_devicelist);
 	if(result != 0){

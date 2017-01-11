@@ -61,7 +61,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.device_id = 0,
 		.print_device_id = 0,
 		.enable_multi_thread = 0,
-
+		.work_mode = 0,
 		.show_help = 0,
 		.show_version = 0,
 
@@ -121,10 +121,11 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"device-id",                 0,  POPT_ARG_INT,      0, 'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
-	{"enable-multi-thread",     0,  POPT_ARG_NONE,       0, 'a', "enable_multi_thread", 0 },
+	{"enable-multi-thread",     0,  POPT_ARG_NONE,       0, 'a', "enable_multi_thread, ONLY for nginx yet", 0 },
+	{"merge-srs-flow",          0,  POPT_ARG_NONE,       0, 'E', "set work_mode to merge_srs_flow, see NOTES for details", 0 },
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",                   0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
-	{"verbose",                 'v',  POPT_ARG_NONE,     0, 'v', "verbose, print more details", 0 },
+	{"verbose",                 'v',  POPT_ARG_INT,     0, 'v', "verbose, >=0, print more details, 0 for close", 0},
 	NULL	/*required!!!*/
 };
 
@@ -207,10 +208,11 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'c': plcdn_la_opt.print_device_id = 1; break;
 		case 'a': plcdn_la_opt.enable_multi_thread = 1; break;
+		case 'E': plcdn_la_opt.work_mode = 1; break;
 		case 'M': plcdn_la_opt.parse_url_mode = atoi(poptGetOptArg(pc)); break;
 		case 'h': plcdn_la_opt.show_help = 1; break;
 		case 'V': plcdn_la_opt.show_version = 1; break;
-		case 'v': plcdn_la_opt.verbose = 1; break;
+		case 'v': plcdn_la_opt.verbose = atoi(poptGetOptArg(pc)); break;
 		default:
 			break;
 		}
@@ -225,11 +227,14 @@ int test_plcdn_log_analysis_options_main(int argc, char ** argv)
 
 void plcdn_la_show_help(FILE * stream)
 {
-	fprintf(stream, "analysis log file and print results, currently support nginx, srs log files. build at %s %s\n"
+	fprintf(stream, "analysis log file, print result tables, or merge results. currently support nginx, srs log files. build at %s %s\n"
 			, __DATE__, __TIME__);
 	poptPrintHelp(pc, stream, 0);
 	fprintf(stream, "NOTES:\n"
-			"  1.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
+			"  1.work_mode\n"
+			"    analysis: analysis log files and output result tables, default\n"
+			"    merge_srs_flow: merge srs_flow_table (use --merge-srs-flow)\n"
+			"  2.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
 	        "    ${datetime}   current date time, format YYYYmmDDHHMM\n"
 			"    ${interval}   according to option --interval, in minute, format YYYYmmDDHHMM\n"
 			"    ${day}        $time_local in log, in day, format YYYYmmDD\n"
@@ -237,20 +242,20 @@ void plcdn_la_show_help(FILE * stream)
 			"    ${site_id}    site_id/domain id\n"
 			"    ${user_id}    user_id\n"
 			"    ${domain}     domain\n"
-			"  2.time_range format 'YYYY-mm-dd'(sample '2017-02-14'), range in [begin_time, end_time) (include begin_time, NOT end_time)\n"
+			"  3.time_range format 'YYYY-mm-dd'(sample '2017-02-14'), range in [begin_time, end_time) (include begin_time, NOT end_time)\n"
 			"    default disabled, applied for both nginx and srs log if enabled\n"
-			"  3.use ulimit(or other command) to increase 'open files', or may crash!\n"
-			"  4.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
-			"  5.nginx_log_format: $host $remote_addr $request_time_msec $cache_status [$time_local] \"$request_method \
+			"  4.use ulimit(or other command) to increase 'open files', or may crash!\n"
+			"  5.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
+			"  6.nginx_log_format: $host $remote_addr $request_time_msec $cache_status [$time_local] \"$request_method \
 $request_uri $server_protocol\" $status $bytes_sent \
 \"$http_referer" "$remote_user" "$http_cookie" "$http_user_agent\" \
 $scheme $request_length $upstream_response_time\n"
-			"  6.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
-			"  7.output table formats\n"
+			"  7.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
+			"  8.output table formats\n"
 			"    for nginx:\n"
 			"    (1)nginx_flow_table:     '${site_id} ${datetime} ${device_id} ${num_total} ${bytes_total} ${user_id} ${pvs_m} ${px_m}'\n"
 			"    (2)url_popular_table:    '${datetime} ${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302}\n"
-		    "                               ${num_304} ${num_403} ${num_404} ${num_416} ${num_499} ${num_500} ${num_502} ${num_other}'\n"
+		    "                                ${num_304} ${num_403} ${num_404} ${num_416} ${num_499} ${num_500} ${num_502} ${num_other}'\n"
 			"    (3)ip_popular_table:     '${site_id} ${device_id} ${ip} ${datetime} ${num}'\n"
 			"    (4)http_stats_table:     '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m}'\n"
 			"    (5)ip_slowfast_table:    '${device_id} ${ip} ${datetime} ${speed} ${type}'\n"
@@ -300,7 +305,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
+			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "begin_time", btime
@@ -346,6 +351,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "output_split_srs_log", opt.output_split_srs_log
 		, "format_split_srs_log", opt.format_split_srs_log
 
+		, "work_mode", (opt.work_mode == 0? "analysis" : (opt.work_mode == 1? "merge_srs_flow" : "<error>"))
 		, "device_id", opt.device_id
 		, "print_device_id", opt.print_device_id
 		, "parse_url_mode", opt.parse_url_mode

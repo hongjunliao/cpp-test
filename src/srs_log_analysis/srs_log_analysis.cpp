@@ -133,8 +133,12 @@ int parse_srs_log_header_sid(char const * buff, char const * end)
 int parse_srs_log_header_time(char const * buff, char const * end, time_t & t)
 {
 	//'[2016-11-15 18:05:02.665]'
-	if(!buff || !end || end - buff - 1 < 19 || *buff != '[')	/*'2016-11-15 18:05:02'*/
+	if(!buff || !end || end - buff - 1 < 19 || *buff != '['){	/*'2016-11-15 18:05:02'*/
+		if(plcdn_la_opt.verbose > 3){
+			fprintf(stdout, "%s: failed: [%s]\n", __FUNCTION__, buff);
+		}
 		return -1;
+	}
 //	fprintf(stdout, "%s: __len=%ld__", __FUNCTION__, end - buff);
 //	for(auto p = buff; p != end; ++p){
 //		fprintf(stdout, "%c", *p);
@@ -193,12 +197,12 @@ int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 	auto status = parse_srs_log_header(buff, time_stamp, sid);
 	if(status != 0) return -1;
 
-	static auto s1 = "RTMP client ip=([0-9.]+)";
-	static auto s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
+	static auto const s1 = "RTMP client ip=([0-9.]+)";
+	static auto const s2 = "(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?obytes=([0-9]+), ibytes=([0-9]+),"
 				 " okbps=([0-9]+),[0-9]+,[0-9]+, ikbps=([0-9]+),[0-9]+,[0-9]+";
-	static auto s3 = "client disconnect peer\\. ret=[0-9]+";
-	static auto s4 = "connect app, tcUrl=(.+), pageUrl=";
-	static boost::regex r1{s1}, r2{s2}, r3{s3}, r4{s4};
+	static auto const s3 = "client disconnect peer\\. ret=[0-9]+";
+	static auto const s4 = "\\][ \t]+connect app,[ \t]+tcUrl=", s4_vhost = "vhost=([^,]+),";
+	static const boost::regex r1{s1}, r2{s2}, r3{s3}, r4{s4}, r4_vhost{s4_vhost};
 
 	boost::cmatch cm1, cm2, cm3, cm4;
 	if(boost::regex_search(buff, cm1, r1)) {
@@ -207,7 +211,7 @@ int parse_srs_log_item(char * buff, srs_log_item& logitem, int& log_type)
 		logitem.conn_ip.sid = sid;
 		logitem.conn_ip.ip = netutil_get_ip_from_str(cm1[1].str().c_str());
 	}
-	else if(boost::regex_search(buff, cm4, r4)) {
+	else if(boost::regex_search(buff, r4) && boost::regex_search(buff, cm4, r4_vhost)) {
 		log_type = 4;
 		logitem.conn_url.time_stamp = time_stamp;
 		logitem.conn_url.sid = sid;
@@ -285,7 +289,8 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 	for(auto & log : slog._logs){
 		if(!log.buff.empty())
 			dslog += log.buff;
-
+		if(log.second - log.first <= 0)
+			continue;	/* why this happened? */
 		srs_trans trans;
 		memset(&trans, 0, sizeof(srs_trans));
 		auto r = parse_srs_log_item_trans(sid, log, trans);
@@ -363,22 +368,26 @@ int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_u
 //	if(status != 0) return -1;
 
 	static auto s1 = "RTMP client ip=([0-9.]+)";
-	static auto s4 = "connect app, tcUrl=(.+), pageUrl=";
-	static boost::regex r1{s1}, r4{s4};
+	static auto s_url = "connect app, tcUrl=([^,]+),", s_vhost = ",[ \t]*vhost=([^,]+),";
+	static boost::regex r1{s1}, re_url{s_url}, re_vhost{s_vhost};
 
-	boost::cmatch cm1, cm4;
+	boost::cmatch cm1, cm4_url, cm4_vhost;
 	if(boost::regex_search(buff, cm1, r1)) {
 		t = 1;
 //		ip.time_stamp = time_stamp;
 //		ip.sid = sid;
 		ip.ip = netutil_get_ip_from_str(cm1[1].str().c_str());
 	}
-	else if(boost::regex_search(buff, cm4, r4)) {
+	else if(boost::regex_search(buff, cm4_url, re_url) &&
+			boost::regex_search(buff, cm4_vhost, re_vhost)) {
 		t = 2;
 //		url.time_stamp = time_stamp;
 //		url.sid = sid;
-		url.url = cm4[1].first;
-		url.end = cm4[1].second;
+		url.url = cm4_url[1].first;
+		url.end = cm4_url[1].second;
+
+		url.domain = cm4_vhost[1].first;
+		url.d_end = cm4_vhost[1].second;
 //		buff[cm4[1].second - buff]  = '\0';
 //		fprintf(stdout, "%s: ______url.url=%s___________\n", __FUNCTION__, url.url);
 	}

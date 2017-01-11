@@ -35,9 +35,14 @@ struct srs_connect_url
 {
 	time_t time_stamp;
 	int sid;
-	/*FIXME: change to std::string?*/
+	/* TODO: change to std::string?*/
+	/* sample: 'tcUrl=rtmp://192.168.212.164:1935/live', FIXME: change to std::string?*/
 	char const * url;
 	char const * end;	/*',' yet*/
+
+	/* sample: 'vhost=hk.vpcdn.com' */
+	char const * domain;
+	char const * d_end;
 };
 
 /*! srs log_type transform

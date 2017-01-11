@@ -140,20 +140,14 @@ static void parse_srs_sid_from_raw_logs(srs_sid_log & slog)
 		}
 		else if(t == 2) {
 			rlog.type = 4;
-			std::string surl(url.url, url.end);
-			char domain[128];
-//			printf("%s: ___url = %s____\n", __FUNCTION__, surl.c_str());
-			auto r = parse_domain_from_url(surl.c_str(), domain);
-			if(r == 0){
-//				printf("%s: ___url = %s, domain = %s____\n", __FUNCTION__, surl.c_str(), domain);
-				int site_id = 0, user_id = 0;
-				find_site_id(g_sitelist, domain, site_id, &user_id);
-				slog._site_id = site_id;
-				slog._user_id = user_id;
+			int site_id = 0, user_id = 0;
+			std::string sdomain{url.domain, url.d_end};
+			find_site_id(g_sitelist, sdomain.c_str(), site_id, &user_id);
+			slog._site_id = site_id;
+			slog._user_id = user_id;
 
-				slog._url = surl;
-				slog._domain = domain;
-			}
+			slog._url.assign(url.url, url.end);
+			slog._domain = sdomain;
 		}
 	}
 }
@@ -163,8 +157,8 @@ static void parse_srs_sid_from_file(srs_sid_log & slog, char const * file)
 {
 	auto f = fopen(file, "r");
 	if(!f){
-		if(plcdn_la_opt.verbose)
-			fprintf(stderr, "%s: fopen '%s' failed\n", __FUNCTION__, file);
+//		if(plcdn_la_opt.verbose)
+//			fprintf(stderr, "%s: fopen '%s' failed\n", __FUNCTION__, file);
 		return;
 	}
 	srs_connect_ip ip;
@@ -186,16 +180,13 @@ static void parse_srs_sid_from_file(srs_sid_log & slog, char const * file)
 			slog._logs.push_back(rlog);	/*TODO: emplace_back?*/
 		}
 		else if(t == 2) {
-			char domain[128];
-			auto r = parse_domain_from_url(url.url, domain);
-			if(r != 0)
-				break;	/*FIXME: impossible?*/
 			int site_id, user_id;
-			find_site_id(g_sitelist, domain, site_id, &user_id);
+			std::string sdomain{url.domain, url.d_end};
+			find_site_id(g_sitelist, sdomain.c_str(), site_id, &user_id);
 			slog._site_id = site_id;
 			slog._user_id = user_id;
-			slog._url = url.url;
-			slog._domain = domain;
+			slog._url.assign(url.url, url.end);
+			slog._domain = sdomain;
 
 			/*@see fwrite_srs_sid_log*/
 			srs_raw_log_t rlog;
@@ -215,6 +206,7 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 //	fprintf(stdout, "%s: ___size = %zu, dir = %s____\n", __FUNCTION__, slogs.size(), srs_sid_dir);
 	if(!srs_sid_dir || srs_sid_dir[0] == '\0')
 		return;
+	std::vector<int> sidvec;
 	for(auto & item : slogs){
 		auto sid = item.first;
 		auto & slog = item.second;
@@ -233,9 +225,14 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 		}
 		/*else find sid from file*/
 		parse_srs_sid_from_file(slog, fullname.c_str());
-		if(!slog){
-			fprintf(stderr, "%s: sid '%d' NOT found\n", __FUNCTION__, sid);
-		}
+		if(!slog)
+			sidvec.push_back(sid);
+	}
+	if(plcdn_la_opt.verbose > 2 && !sidvec.empty()){
+		fprintf(stderr, "%s: sid NOT found from srs_sid_log: [", __FUNCTION__);
+		for(auto & sid_item : sidvec)
+			fprintf(stderr, "%d,", sid_item);
+		fprintf(stderr, "]\n");
 	}
 }
 
@@ -307,13 +304,13 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		if(skip)
 			skipped_trans.push_back(item.first);
 	}
-	if(plcdn_la_opt.verbose && !skipped_sids.empty()){
+	if(plcdn_la_opt.verbose > 2 && !skipped_sids.empty()){
 		fprintf(stderr, "%s: skipped sids because of incomplete: [", __FUNCTION__);
 		for(auto & sid_item : skipped_sids)
 			fprintf(stderr, "%d,", sid_item);
 		fprintf(stderr, "]\n");
 	}
-	if(plcdn_la_opt.verbose && !skipped_trans.empty()){
+	if(plcdn_la_opt.verbose > 2 && !skipped_trans.empty()){
 		fprintf(stderr, "%s: skipped sids because of trans < 2: [", __FUNCTION__);
 		for(auto & sid_item : skipped_trans)
 			fprintf(stderr, "%d,", sid_item);

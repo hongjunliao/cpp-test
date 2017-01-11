@@ -72,7 +72,7 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 				auto stream = get_stream_by_filename(filemap, outname);
 				if(!stream)
 					continue;
-				/*flow stats, format: 'site_id datetime device_id obytes ibytes user_id'*/
+				/*flow stats, format: 'site_id datetime device_id obytes ibytes ombps imbps user_id'*/
 				auto obytes = stat.obytes_total(), ibytes = stat.ibytes_total();
 				auto ombps = obytes * 1.0 * 8 / plcdn_la_opt.interval / (1024 * 1024),
 						imbps = ibytes * 1.0 * 8 / plcdn_la_opt.interval / (1024 * 1024);

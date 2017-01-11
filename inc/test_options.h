@@ -123,10 +123,13 @@ struct plcdn_la_options
 	int print_device_id;
 /**/
 	int enable_multi_thread;	/*enalbe_multi_thread?*/
+/* work mode, 0: analysis mode: analysis log files
+ * 1: merge_srs_flow */
+	int work_mode;
 /*version and help*/
 	int show_help;
 	int show_version;
-/*debug*/
+/*debug, 0: close, >=1: verbose*/
 	int verbose;
 
 };
