@@ -126,8 +126,11 @@ int parse_srs_log_header_sid(char const * buff, char const * end)
 	auto e = strchr(p + 1, ']');
 	if(!e || e >= end || p + 1 >= e)
 		return -1;
-
-	return stoi(std::string(p + 1, e));
+	for(auto psid = p + 1; psid != e; ++psid){
+		if(!isdigit(*psid))
+			return -1;
+	}
+	return std::stoi(std::string(p + 1, e));
 }
 
 int parse_srs_log_header_time(char const * buff, char const * end, time_t & t)

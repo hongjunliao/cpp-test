@@ -13,6 +13,12 @@
 #include <tuple>			/* std::tuple */
 #include <boost/functional/hash.hpp>	/* boost::hash_combine */
 
+//template<typename T> struct group_field
+//{
+//	T val;
+//	char name[64];
+//	bool is_group;
+//};
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /* @see  fprint_srs_log_stats */
 struct srs_flow_table_row
@@ -29,7 +35,7 @@ struct srs_flow_table_row
  * @see fprint_srs_log_stats*/
 static int parse_srs_flow_table_row(char const * buf, srs_flow_table_row & row);
 
-typedef std::tuple<time_t, int, int> srs_flow_key_t; /* std::tuple<datetime, site_id, user_id> */
+typedef std::tuple<time_t, int> srs_flow_key_t; /* std::tuple<datetime, user_id> */
 typedef std::tuple<size_t, size_t, double, double> srs_flow_value_t;	/* std::tuple<obytes, ibytes, ombps, imbps> */
 /* required by std::unordered_map's key, @see http://en.cppreference.com/w/cpp/utility/hash */
 namespace std{
@@ -48,10 +54,8 @@ std::size_t std::hash<srs_flow_key_t>::operator()(
 	size_t ret = 0;
 	size_t const h0 ( std::hash<time_t>{}(std::get<0>(val)) );
 	size_t const h1 ( std::hash<int>{}(std::get<1>(val)) );
-	size_t const h2 ( std::hash<int>{}(std::get<2>(val)) );
 	boost::hash_combine(ret, h0);
 	boost::hash_combine(ret, h1);
-	boost::hash_combine(ret, h2);
 	return ret;
 }
 
@@ -69,7 +73,7 @@ int merge_srs_flow(int argc, char ** argv)
 
     std::unordered_map<srs_flow_key_t, srs_flow_value_t> flow_map;
     for(auto const & item : flows){
-    	auto  k = std::make_tuple(item.datetime, item.site_id, item.user_id);
+    	auto  k = std::make_tuple(item.datetime, item.user_id);
     	auto & val = flow_map[k];
     	auto & obytes = std::get<0>(val);
     	auto & ibytes = std::get<1>(val);
@@ -84,8 +88,7 @@ int merge_srs_flow(int argc, char ** argv)
     size_t failed_line = 0;
     for(auto const & item : flow_map){
     	auto t = std::get<0>(item.first);
-    	auto site_id = std::get<1>(item.first);
-    	auto user_id = std::get<2>(item.first);
+    	auto user_id = std::get<1>(item.first);
 
     	auto obytes = std::get<0>(item.second);
     	auto ibytes = std::get<1>(item.second);
@@ -94,8 +97,8 @@ int merge_srs_flow(int argc, char ** argv)
 
     	char buft[32] = "";
     	strftime(buft, sizeof(buft), "%Y%m%d%H%M", localtime(&t));
-		/* format: 'site_id datetime obytes ibytes ombps imbps user_id' @see fprint_srs_log_stats */
-		auto sz = fprintf(stdout, "%d %s %zu %zu %.2f %.2f %d\n", site_id, buft,
+		/* format: 'datetime obytes ibytes ombps imbps user_id' @see fprint_srs_log_stats */
+		auto sz = fprintf(stdout, "%s %zu %zu %.2f %.2f %d\n", buft,
 				obytes, ibytes, ombps, imbps, user_id);
 		if(sz <= 0)
 			++failed_line;
@@ -103,13 +106,13 @@ int merge_srs_flow(int argc, char ** argv)
 	return 0;
 }
 
-/*flow stats, format: 'device_id obytes ibytes ombps imbps user_id'*/
 static int parse_srs_flow_table_row(char const * buf, srs_flow_table_row & row)
 {
 	if(!buf || buf[0] == '\0')
 		return -1;
 
 	char datetime[12 + 1]; /* '201611220920' */
+	/* @see fprint_srs_log_stats */
 	int n = sscanf(buf, "%d%12s%d%zu%zu%lf%lf%d",
 	                     &row.site_id, datetime, &row.device_id,
 						 &row.obytes, &row.ibytes, &row.ombps, &row.imbps, &row.user_id);
