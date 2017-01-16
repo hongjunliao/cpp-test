@@ -55,6 +55,7 @@ struct srs_trans
 	int ver;
 	time_t time_stamp;
 	int sid;
+	size_t msec;		/*micro_seconds*/
 	size_t obytes;
 	size_t ibytes;
 

@@ -349,6 +349,7 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 		if(b->ver == 0){
 			/*FIXME: there IS 'time' in official trans_log, parse and use that one?*/
 			auto difft = difftime(b->time_stamp, a->time_stamp);
+			difft = (b->msec - a->msec) / 1000.0;	/* use time in official trans_log */
 			auto okbps = (difft < 30.001? b->okbps_30s : b->okbps_5min);
 			auto ikpbs = (difft < 30.001? b->ikbps_30s : b->ikbps_5min);
 			auto obytes = 1024.0 * difft * okbps / 8.0;
@@ -421,32 +422,34 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 	 * custom:   '[obytes=0, ibytes=19916, okbps=0,0,0, ikbps=478,556,472][obytes=0, ibytes=19916, ][0][19916][0][0][0][478][556][472]'
 	 * */
 	/*'(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?'*/
-	static auto s2 = "(obytes=([0-9]+), ibytes=([0-9]+), )?okbps=([0-9]+),([0-9]+),([0-9]+), ikbps=([0-9]+),([0-9]+),([0-9]+)";
+	static auto s2 = "time=([0-9]+), (msgs=[0-9]+, )?(obytes=([0-9]+), ibytes=([0-9]+), )?okbps=([0-9]+),([0-9]+),([0-9]+), "
+			"ikbps=([0-9]+),([0-9]+),([0-9]+)";
 	static boost::regex r2{s2};
 	boost::cmatch cm2;
 	if(boost::regex_search(rlog.first, cm2, r2)) {
-		trans.ver = (cm2[1].str().empty()? 0 : 1);
+		trans.ver = (cm2[3].str().empty()? 0 : 1);
 //		fprintf(stdout, "%s:____________%zu__________________________________________________________________\n", __FUNCTION__, cm2.size());
 //		for(auto & it : cm2){
 //			fprintf(stdout, "[%s]", it.str().c_str());
 //		}
 //		fprintf(stdout, "\n%s:______________________________________________________________________________\n", __FUNCTION__);
 
+		char * end;
 		rlog.type = 2;	/*FIXME: u may found a better way*/
 		trans.sid = sid;
+		trans.msec = strtoul(cm2[1].str().c_str(), &end, 10);
 		trans.obytes = trans.ibytes = 0;
-		char * end;
 		if(trans.ver == 1) {	/*custom format*/
-			trans.obytes = strtoul(cm2[2].str().c_str(), &end, 10);
-			trans.ibytes = strtoul(cm2[3].str().c_str(), &end, 10);
+			trans.obytes = strtoul(cm2[4].str().c_str(), &end, 10);
+			trans.ibytes = strtoul(cm2[5].str().c_str(), &end, 10);
 		}
-		trans.okbps = strtoul(cm2[4].str().c_str(), &end, 10);
-		trans.okbps_30s = strtoul(cm2[5].str().c_str(), &end, 10);
-		trans.okbps_5min = strtoul(cm2[6].str().c_str(), &end, 10);
+		trans.okbps = strtoul(cm2[6].str().c_str(), &end, 10);
+		trans.okbps_30s = strtoul(cm2[7].str().c_str(), &end, 10);
+		trans.okbps_5min = strtoul(cm2[8].str().c_str(), &end, 10);
 
-		trans.ikbps = strtoul(cm2[7].str().c_str(), &end, 10);
-		trans.ikbps_30s = strtoul(cm2[8].str().c_str(), &end, 10);
-		trans.ikbps_5min = strtoul(cm2[9].str().c_str(), &end, 10);
+		trans.ikbps = strtoul(cm2[9].str().c_str(), &end, 10);
+		trans.ikbps_30s = strtoul(cm2[10].str().c_str(), &end, 10);
+		trans.ikbps_5min = strtoul(cm2[11].str().c_str(), &end, 10);
 		return 0;
 	}
 	return 1;
