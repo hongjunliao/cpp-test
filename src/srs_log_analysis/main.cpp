@@ -24,7 +24,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*srs_log_analysis/print_table.cpp*/
-extern void fprint_srs_log_stats(FILE * stream, std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
+extern void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
 /*GLOBAL vars*/
 extern struct sla_options sla_opt;	/*test_options.cpp*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,6 +107,6 @@ int test_srs_log_stats_main(int argc, char ** argv)
 	std::unordered_map<std::string, srs_domain_stat> srs_stats;
 	parse_srs_log(log_file, srs_stats);
 
-	fprint_srs_log_stats(stdout, srs_stats);
+	fprint_srs_log_stats(srs_stats);
 	return 0;
 }

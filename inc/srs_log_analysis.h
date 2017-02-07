@@ -46,9 +46,16 @@ struct srs_connect_url
 };
 
 /*! srs log_type transform
- * in official srs log format, there's NO 'ibytes=' and 'obytes='(@see parse_srs_log_item_trans, do_srs_log_sid_stats),
- * if is official, ver = 0; if with ibytes and obytes, ver = 1
- * In a srs log file, there should only have one format for trans log
+ * @NOTE about ver, 0-official format, 1 custom format, @see parse_srs_log_item_trans
+ * 1.sample official format:
+ * '[2016-12-07 14:49:54.057][trace][20308][105] <- CPB time=1980013, \
+ * okbps=0,0,0, ikbps=477,428,472, mr=0/350, p1stpt=20000, pnt=20000'
+ *
+ * 2.sample custom format:
+ * '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB ip=127.0.0.1, tcUrl=rtmp://localhost/live, \
+ * vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'
+ *
+ *  * In a srs log file, there should only have one format for trans log
  */
 struct srs_trans
 {
@@ -56,17 +63,23 @@ struct srs_trans
 	time_t time_stamp;
 	int sid;
 	size_t msec;		/*micro_seconds*/
+	/* the following 2 fields parsed but NOT correct yet, @see srs's source for details */
 	size_t obytes;
 	size_t ibytes;
 
 	/*these two values NOT used yet*/
 	size_t okbps, ikbps;
-	/*!
-	 * in official srs log format, kbps have 3 values: realtime(?), in 30s, in 5min
-	 */
+	/* in official srs log format, kbps have 3 values: realtime(?), in 30s, in 5min */
 	size_t okbps_30s, ikbps_30s;
 	size_t okbps_5min, ikbps_5min;
 
+	/* the left fields have values ONLY when ver == 1 */
+	uint32_t ip;
+	/* @see srs_connect_url, TODO: change to std::string? */
+	char const * url;
+	char const * u_end;
+	char const * domain;
+	char const * d_end;
 };
 
 /*srs log_type disconnect*/
@@ -193,9 +206,18 @@ int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_u
 
 /**
  * parse srs trans log
- * @note: change srs_raw_log_t.type(@param rlog) if needed
+ * @NOTE: change srs_raw_log_t.type(@param rlog) if needed
  * @return:  <0 parse failed; =0 parse ok and is trans; 1 parse ok but not trans
  * 			2 parse ok but is_time_in_range return false, @see plcdn_la_options::begin_time/end_time
+ * 2.sample custom trans_log format:
+ * '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB ip=127.0.0.1, tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, \
+ * obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'
+ * @see srs_trans
+ *
+ * changes are made in the following files
+ * ${srs-2.0}/trunk/src/app/srs_app_edge.cpp
+ * ${srs-2.0}/trunk/src/app/srs_app_forward.cpp
+ * ${srs-2.0}/trunk/src/app/srs_app_rtmp_conn.cpp
  */
 int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans);
 
@@ -239,7 +261,7 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
  * @if count of(srs_trans) < 2, skip = true
  * return 0 on success
  */
-int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
+int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::string, srs_domain_stat> & logstats,
 		size_t & failed_line, size_t & trans_line, bool& skip);
 
 /* get domain from url, 

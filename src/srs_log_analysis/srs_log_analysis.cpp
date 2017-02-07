@@ -279,11 +279,16 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 	return 0;
 }
 
-int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
+int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::string, srs_domain_stat> & logstats,
 		size_t & failed_line, size_t & trans_line, bool& skip)
 {
 //	fprintf(stdout, "%s: _____sid = %d, size = %zu, site_id = %d______\n", __FUNCTION__,
 //			sid, slog._logs.size(), slog._site_id);
+	/* TODO: to be continued */
+	auto & dstat = logstats[slog._domain];
+
+	std::vector<int> skipped_sids;	/* sids skipped for incomplete*/
+
 	dstat._site_id = slog._site_id;
 	dstat._user_id = slog._user_id;
 
@@ -303,6 +308,8 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 		}
 		if(r == 2)
 			continue;
+
+//		skipped_sids.push_back(item.first);
 		auto & stat = dstat._stats[trans.time_stamp];
 		stat.urls[sid] = slog._url;
 		stat.ips[sid] = slog._ip;
@@ -360,6 +367,12 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, srs_domain_stat & dstat,
 			stat.ibytes[sid] += ibytes;
 		}
 	}
+	if(plcdn_la_opt.verbose > 2 && !skipped_sids.empty()){
+		fprintf(stderr, "%s: skipped sids because of incomplete: [", __FUNCTION__);
+		for(auto & sid_item : skipped_sids)
+			fprintf(stderr, "%d,", sid_item);
+		fprintf(stderr, "]\n");
+	}
 	return 0;
 }
 
@@ -412,44 +425,54 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 		return 2;
 	trans.time_stamp = time_stamp;
 
-	/* TODO: parse official format, @date 2016/12/13
-	 * @NOTES: obytes and ibytes are NOT exist in official format
-	 */
-	/* FIXME: there are 3 okbps/ikbps, use which one? @see srs log official format,
-	 * @date 2016/12/20 @author hongjun.liao <docici@126.com>
-	 * sample match result(total 10):
-	 * official: '[okbps=0,0,0, ikbps=948,937,948][][][][0][0][0][948][937][948]'
-	 * custom:   '[obytes=0, ibytes=19916, okbps=0,0,0, ikbps=478,556,472][obytes=0, ibytes=19916, ][0][19916][0][0][0][478][556][472]'
-	 * */
-	/*'(?:<- CPB|-> PLA) time=[0-9]+, (?:msgs=[0-9]+, )?'*/
-	static auto s2 = "time=([0-9]+), (msgs=[0-9]+, )?(obytes=([0-9]+), ibytes=([0-9]+), )?okbps=([0-9]+),([0-9]+),([0-9]+), "
-			"ikbps=([0-9]+),([0-9]+),([0-9]+)";
-	static boost::regex r2{s2};
-	boost::cmatch cm2;
-	if(boost::regex_search(rlog.first, cm2, r2)) {
-		trans.ver = (cm2[3].str().empty()? 0 : 1);
-//		fprintf(stdout, "%s:____________%zu__________________________________________________________________\n", __FUNCTION__, cm2.size());
-//		for(auto & it : cm2){
-//			fprintf(stdout, "[%s]", it.str().c_str());
-//		}
-//		fprintf(stdout, "\n%s:______________________________________________________________________________\n", __FUNCTION__);
-
-		char * end;
-		rlog.type = 2;	/*FIXME: u may found a better way*/
-		trans.sid = sid;
-		trans.msec = strtoul(cm2[1].str().c_str(), &end, 10);
-		trans.obytes = trans.ibytes = 0;
-		if(trans.ver == 1) {	/*custom format*/
-			trans.obytes = strtoul(cm2[4].str().c_str(), &end, 10);
-			trans.ibytes = strtoul(cm2[5].str().c_str(), &end, 10);
+	static auto const s0 = "time=([0-9]+), (msgs=[0-9]+, )?okbps=([0-9]+),([0-9]+),([0-9]+), ikbps=([0-9]+),([0-9]+),([0-9]+)",
+					s1 = "time=([^,]+), type=[^,]+, ip=([^,]+), tcUrl=([^,]+), vhost=([^,]+), obytes=([^,]+), "
+							"ibytes=([^,]+), okbps=([^,]+),([^,]+),([^,]+), ikbps=([^,]+),([^,]+),([^,]+)";
+	static boost::regex const r0{s0}, r1{s1};
+	boost::cmatch cm0, cm1;
+	auto b0 = boost::regex_search(rlog.first, cm0, r0),
+		 b1 = (b0? false : boost::regex_search(rlog.first, cm1, r1));
+	if(b0 || b1) {
+		auto const & cm = b0? cm0 : cm1;
+		fprintf(stdout, "%s:____________%zu__________________________________________________________________\n", __FUNCTION__, cm.size());
+		for(auto & it : cm){
+			fprintf(stdout, "[%s]", it.str().c_str());
 		}
-		trans.okbps = strtoul(cm2[6].str().c_str(), &end, 10);
-		trans.okbps_30s = strtoul(cm2[7].str().c_str(), &end, 10);
-		trans.okbps_5min = strtoul(cm2[8].str().c_str(), &end, 10);
+		fprintf(stdout, "\n%s:______________________________________________________________________________\n", __FUNCTION__);
+		rlog.type = 2;	/*FIXME: u may found a better way*/
+		trans.ver = (b0? 0 : 1);
+		char * end;
+		trans.sid = sid;
+		trans.msec = strtoul(cm[1].str().c_str(), &end, 10);
+		if(b0){
+			trans.obytes = trans.ibytes = 0;
+			trans.okbps = strtoul(cm[3].str().c_str(), &end, 10);
+			trans.okbps_30s = strtoul(cm[4].str().c_str(), &end, 10);
+			trans.okbps_5min = strtoul(cm[5].str().c_str(), &end, 10);
 
-		trans.ikbps = strtoul(cm2[9].str().c_str(), &end, 10);
-		trans.ikbps_30s = strtoul(cm2[10].str().c_str(), &end, 10);
-		trans.ikbps_5min = strtoul(cm2[11].str().c_str(), &end, 10);
+			trans.ikbps = strtoul(cm[6].str().c_str(), &end, 10);
+			trans.ikbps_30s = strtoul(cm[7].str().c_str(), &end, 10);
+			trans.ikbps_5min = strtoul(cm[8].str().c_str(), &end, 10);
+		}
+		else{
+			trans.ip = netutil_get_ip_from_str(cm[2].str().c_str());
+			trans.url = cm[3].first;
+			trans.u_end = cm[3].second;
+
+			trans.domain = cm[4].first;
+			trans.d_end = cm[4].second;
+
+			trans.obytes = strtoul(cm[5].str().c_str(), &end, 10);
+			trans.ibytes = strtoul(cm[6].str().c_str(), &end, 10);
+
+			trans.okbps = strtoul(cm[7].str().c_str(), &end, 10);
+			trans.okbps_30s = strtoul(cm[8].str().c_str(), &end, 10);
+			trans.okbps_5min = strtoul(cm[9].str().c_str(), &end, 10);
+
+			trans.ikbps = strtoul(cm[10].str().c_str(), &end, 10);
+			trans.ikbps_30s = strtoul(cm[11].str().c_str(), &end, 10);
+			trans.ikbps_5min = strtoul(cm[12].str().c_str(), &end, 10);
+		}
 		return 0;
 	}
 	return 1;

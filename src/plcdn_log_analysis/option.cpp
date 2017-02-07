@@ -240,7 +240,7 @@ void plcdn_la_show_help(FILE * stream)
 			"    ${interval}   according to option --interval, in minute, format YYYYmmDDHHMM\n"
 			"    ${day}        $time_local in log, in day, format YYYYmmDD\n"
 			"    ${device_id}  device_id\n"
-			"    ${site_id}    site_id/domain id\n"
+			"    ${site_id}    site_id/domain_id\n"
 			"    ${user_id}    user_id\n"
 			"    ${domain}     domain\n"
 			"  3.time_range format 'YYYY-mm-dd'(sample '2017-02-14'), range in [begin_time, end_time) (include begin_time, NOT end_time)\n"
@@ -264,6 +264,11 @@ $scheme $request_length $upstream_response_time\n"
 			"    (7)ip_source_table:      '${bw_time} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
 			"    for srs:\n"
 			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${ombps} ${imbps} ${user_id}'\n"
+			"  9.for srs log, currently supports 2 formats of trans_log, 0: official , 1: custom\n"
+			"    >>sample official_format: '[2016-12-07 14:49:54.057][trace][20308][105] <- CPB time=1980013, \\\n"
+            "      okbps=0,0,0, ikbps=477,428,472, mr=0/350, p1stpt=20000, pnt=20000'\n"
+			"    >>sample custom_format: '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB ip=127.0.0.1, \\\n"
+			"      tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'\n"
 	);
 }
 

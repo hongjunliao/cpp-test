@@ -289,26 +289,15 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 		std::unordered_map<std::string, srs_domain_stat> & logstats)
 {
 	size_t & total_line = g_srs_slog_line, & failed_line = g_srs_failed_line, & trans_line = g_srs_trans_line;
-	std::vector<int> skipped_sids;	/* sids skipped */
 	std::vector<int> skipped_trans;	/*  skipped sids for countof(srs_trans) < 2*/
 	for(auto & item : slogs){
 		auto & slog = item.second;
-		if(!slog){
-			skipped_sids.push_back(item.first);
-			continue;
-		}
 		total_line += slog._logs.size();
 		auto & dstat = logstats[slog._domain];
 		bool skip;
-		do_srs_log_sid_stats(item.first, slog, dstat, failed_line, trans_line, skip);
+		do_srs_log_sid_stats(item.first, slog, logstats, failed_line, trans_line, skip);
 		if(skip)
 			skipped_trans.push_back(item.first);
-	}
-	if(plcdn_la_opt.verbose > 2 && !skipped_sids.empty()){
-		fprintf(stderr, "%s: skipped sids because of incomplete: [", __FUNCTION__);
-		for(auto & sid_item : skipped_sids)
-			fprintf(stderr, "%d,", sid_item);
-		fprintf(stderr, "]\n");
 	}
 	if(plcdn_la_opt.verbose > 2 && !skipped_trans.empty()){
 		fprintf(stderr, "%s: skipped sids because of trans < 2: [", __FUNCTION__);
