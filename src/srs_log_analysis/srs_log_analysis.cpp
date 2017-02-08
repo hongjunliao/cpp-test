@@ -304,6 +304,15 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 		}
 		if(trans.ver == 1){
 			std::string sdomain{trans.domain, trans.d_end};
+			std::string surl{trans.url, trans.u_end};
+			/* @NOTE: with the same sid, srs_trans.ip(also domain etc) should also the same */
+			/* FIXME: for custom_format, connection info should always updated by every srs_trans, although this should NOT needed
+			 * for sync_srs_sids_dir may load connection info from cache, which can be incorrect if srs restarted */
+			if(slog && (slog._ip != trans.ip || slog._domain != sdomain || slog._url != surl)){
+				if(plcdn_la_opt.verbose > 0)
+					fprintf(stdout, "%s: sid=%d, sid mismatch, remove sid cache file from option --output-srs-sid(-k)\n", __FUNCTION__, sid);
+				slog._site_id = slog._ip = 0;	/* make sid invalid */
+			}
 			if(!slog){
 				int site_id = 0, user_id = 0;
 				find_site_id(g_sitelist, sdomain.c_str(), site_id, &user_id);
@@ -316,12 +325,6 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 					skipped_sids.push_back(sid);
 					continue;
 				}
-			}
-			/* @NOTE: with the same sid, srs_trans.ip(also domain etc) should also the same */
-			if(slog._ip != trans.ip){
-				fprintf(stderr, "%s: interval error for srs log, exit(custom format, domain1='%s', domain2='%s')\n", __FUNCTION__,
-						slog._domain.c_str(), sdomain.c_str());
-				exit(0);
 			}
 		}
 		vec.push_back(trans);

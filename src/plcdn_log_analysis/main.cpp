@@ -735,9 +735,9 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			return 1;
 		}
 		if(plcdn_la_opt.verbose){
-			fprintf(stdout, "%s: processed '%s', total_line = %zu, failed = %zu, slog_log = %zu, trans_log = %zu\n", __FUNCTION__,
+			fprintf(stdout, "%s: processed '%s', total_line = %zu, failed = %zu, trans_log = %zu\n", __FUNCTION__,
 					plcdn_la_opt.srs_log_file,
-					g_srs_total_line, g_srs_failed_line, g_srs_slog_line, g_srs_trans_line);
+					g_srs_total_line, g_srs_failed_line, g_srs_trans_line);
 		}
 		if(plcdn_la_opt.output_split_srs_log){
 			if(plcdn_la_opt.verbose)
