@@ -267,7 +267,7 @@ $scheme $request_length $upstream_response_time\n"
 			"  9.for srs log, currently supports 2 formats of trans_log, 0: official , 1: custom\n"
 			"    >>sample official_format: '[2016-12-07 14:49:54.057][trace][20308][105] <- CPB time=1980013, \\\n"
             "      okbps=0,0,0, ikbps=477,428,472, mr=0/350, p1stpt=20000, pnt=20000'\n"
-			"    >>sample custom_format: '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB ip=127.0.0.1, \\\n"
+			"    >>sample custom_format: '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB, ip=127.0.0.1, \\\n"
 			"      tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'\n"
 	);
 }

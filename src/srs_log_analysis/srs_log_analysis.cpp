@@ -284,32 +284,55 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 {
 //	fprintf(stdout, "%s: _____sid = %d, size = %zu, site_id = %d______\n", __FUNCTION__,
 //			sid, slog._logs.size(), slog._site_id);
-	/* TODO: to be continued */
-	auto & dstat = logstats[slog._domain];
-
-	std::vector<int> skipped_sids;	/* sids skipped for incomplete*/
-
-	dstat._site_id = slog._site_id;
-	dstat._user_id = slog._user_id;
-
 	std::vector<srs_trans> vec;
-	auto & dslog = dstat._sid_log[sid];
+	std::vector<int> skipped_sids;	/* sids skipped for incomplete*/
 	for(auto & log : slog._logs){
-		if(!log.buff.empty())
-			dslog += log.buff;
 		if(log.second - log.first <= 0)
 			continue;	/* why this happened? */
 		srs_trans trans;
 		memset(&trans, 0, sizeof(srs_trans));
 		auto r = parse_srs_log_item_trans(sid, log, trans);
-		if(r < 0){
-			++failed_line;
-			continue;	/*parse faield*/
-		}
-		if(r == 2)
+		if(r != 0){
+			if(r < 0)
+				++failed_line;	/*parse faield*/
 			continue;
+		}
+		++trans_line;
+		if(trans.ver == 0 && !slog){	/* official format, srs_sid_log MUST be ready*/
+			skipped_sids.push_back(sid);
+			continue;
+		}
+		if(trans.ver == 1){
+			std::string sdomain{trans.domain, trans.d_end};
+			if(!slog){
+				int site_id = 0, user_id = 0;
+				find_site_id(g_sitelist, sdomain.c_str(), site_id, &user_id);
+				slog._site_id = site_id;
+				slog._ip = trans.ip;
+				slog._user_id = user_id;
+				slog._url.assign(trans.url, trans.u_end);
+				slog._domain = sdomain;
+				if(!slog){
+					skipped_sids.push_back(sid);
+					continue;
+				}
+			}
+			/* @NOTE: with the same sid, srs_trans.ip(also domain etc) should also the same */
+			if(slog._ip != trans.ip){
+				fprintf(stderr, "%s: interval error for srs log, exit(custom format, domain1='%s', domain2='%s')\n", __FUNCTION__,
+						slog._domain.c_str(), sdomain.c_str());
+				exit(0);
+			}
+		}
+		vec.push_back(trans);
 
-//		skipped_sids.push_back(item.first);
+		auto & dstat = logstats[slog._domain];
+		dstat._site_id = slog._site_id;
+		dstat._user_id = slog._user_id;
+		auto & dslog = dstat._sid_log[sid];
+		if(!log.buff.empty())
+			dslog += log.buff;
+
 		auto & stat = dstat._stats[trans.time_stamp];
 		stat.urls[sid] = slog._url;
 		stat.ips[sid] = slog._ip;
@@ -317,32 +340,18 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 		stat.obytes[sid] += 0;
 		stat.ibytes[sid] += 0;
 
-
-		/**
-		 * FIXME: connection logs are also be put into stat._logs[time]
+		/* FIXME: connection logs are also be put into stat._logs[time]
 		 * if 'plcdn_la_options.format_split_srs_log' contains 'interval',
-		 * then connection logs are lost for most of the split log files, @date 2016/12/05
-		 */
+		 * then connection logs are lost for most of the split log files, @date 2016/12/05 */
 		stat.logs.push_back(log);
-
-		if(r == 0){
-			++trans_line;
-			vec.push_back(trans);
-			if(trans.ver == 1){
-				stat.obytes[sid] += trans.obytes;
-				stat.ibytes[sid] += trans.ibytes;
-			}
-		}
 	}
 	/*!
 	 * FIXME: when rotate srs log, total line of trans log may < 2, in this condition
 	 * ibytes and obytes can NOT be calculated, @author hongjun.liao <docici@126.com> @date 2016/12/28
 	 */
-	if(vec.size() < 2){
-		skip = true;
+	skip = (vec.size() < 2);
+	if(skip)
 		return 0;
-	}
-	skip = false;
 	/*sort first*/
 	auto sort_by_timestamp = [](srs_trans const& a, srs_trans const& b){ return a.time_stamp < b.time_stamp; };
 	std::sort(vec.begin(), vec.end(), sort_by_timestamp);
@@ -351,21 +360,22 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 //		fprintf(stdout, "%s: _____time=%lld, ikbps_30s=%zu, okbps_30s=%zu________________\n", __FUNCTION__,
 //				item.time_stamp, item.ikbps_30s, item.okbps_30s);
 //	}
-	/*calculate bytes for official srs format*/
+	/* calculate bytes */
+	auto & dstat = logstats[slog._domain];
 	for(auto a = vec.begin(), b = ++vec.begin(); b != vec.end(); ++a, ++b){
-		if(b->ver == 0){
-			/*FIXME: there IS 'time' in official trans_log, parse and use that one?*/
-			auto difft = difftime(b->time_stamp, a->time_stamp);
-			difft = (b->msec - a->msec) / 1000.0;	/* use time in official trans_log */
-			auto okbps = (difft < 30.001? b->okbps_30s : b->okbps_5min);
-			auto ikpbs = (difft < 30.001? b->ikbps_30s : b->ikbps_5min);
-			auto obytes = 1024.0 * difft * okbps / 8.0;
-			auto ibytes = 1024.0 * difft * ikpbs / 8.0;
-
-			auto & stat = dstat._stats[b->time_stamp];
-			stat.obytes[sid] += obytes;
-			stat.ibytes[sid] += ibytes;
-		}
+		/* @NOTE: there IS 'time' in official trans_log, parse and use that one!!!*/
+		auto difft = difftime(b->time_stamp, a->time_stamp);
+		/* use time in official trans_log, after a lot of test for yixin 2016-12,
+		 * @author hongjun.liao <docici@126.com>, @date 2016/12 */
+		difft = (b->msec - a->msec) / 1000.0;
+		auto okbps = (difft < 30.001? b->okbps_30s : b->okbps_5min);
+		auto ikpbs = (difft < 30.001? b->ikbps_30s : b->ikbps_5min);
+		auto obytes = 1024.0 * difft * okbps / 8.0;
+		auto ibytes = 1024.0 * difft * ikpbs / 8.0;
+//		fprintf(stdout, "%s: difft=%f, ikbps=%zu, ibytes=%f\n", __FUNCTION__, difft, ikpbs, ibytes);
+		auto & stat = dstat._stats[b->time_stamp];
+		stat.obytes[sid] += obytes;
+		stat.ibytes[sid] += ibytes;
 	}
 	if(plcdn_la_opt.verbose > 2 && !skipped_sids.empty()){
 		fprintf(stderr, "%s: skipped sids because of incomplete: [", __FUNCTION__);
@@ -418,7 +428,8 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 	time_t time_stamp;
 	auto status = parse_srs_log_header_time(rlog.first, rlog.second, time_stamp);
 	if(status != 0) {
-		//fprintf(stderr, "%s: _____parse time_stamp failed for buff = %s______\n", __FUNCTION__, buff);
+		if(plcdn_la_opt.verbose > 4)
+			fprintf(stderr, "%s: parse time_stamp failed\n", __FUNCTION__);
 		return -1;
 	}
 	if(!is_time_in_range(time_stamp, plcdn_la_opt.begin_time, plcdn_la_opt.end_time))
@@ -434,11 +445,11 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 		 b1 = (b0? false : boost::regex_search(rlog.first, cm1, r1));
 	if(b0 || b1) {
 		auto const & cm = b0? cm0 : cm1;
-		fprintf(stdout, "%s:____________%zu__________________________________________________________________\n", __FUNCTION__, cm.size());
-		for(auto & it : cm){
-			fprintf(stdout, "[%s]", it.str().c_str());
-		}
-		fprintf(stdout, "\n%s:______________________________________________________________________________\n", __FUNCTION__);
+//		fprintf(stdout, "%s:____________%zu__________________________________________________________________\n", __FUNCTION__, cm.size());
+//		for(auto & it : cm){
+//			fprintf(stdout, "[%s]", it.str().c_str());
+//		}
+//		fprintf(stdout, "\n%s:______________________________________________________________________________\n", __FUNCTION__);
 		rlog.type = 2;	/*FIXME: u may found a better way*/
 		trans.ver = (b0? 0 : 1);
 		char * end;

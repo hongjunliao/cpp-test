@@ -52,7 +52,7 @@ struct srs_connect_url
  * okbps=0,0,0, ikbps=477,428,472, mr=0/350, p1stpt=20000, pnt=20000'
  *
  * 2.sample custom format:
- * '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB ip=127.0.0.1, tcUrl=rtmp://localhost/live, \
+ * '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB, ip=127.0.0.1, tcUrl=rtmp://localhost/live, \
  * vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'
  *
  *  * In a srs log file, there should only have one format for trans log
@@ -63,7 +63,7 @@ struct srs_trans
 	time_t time_stamp;
 	int sid;
 	size_t msec;		/*micro_seconds*/
-	/* the following 2 fields parsed but NOT correct yet, @see srs's source for details */
+	/* the following 2 fields are parsed but NOT correct yet, @see srs's source for details */
 	size_t obytes;
 	size_t ibytes;
 
@@ -210,11 +210,11 @@ int parse_srs_log_item_conn(char const * buff, srs_connect_ip& ip, srs_connect_u
  * @return:  <0 parse failed; =0 parse ok and is trans; 1 parse ok but not trans
  * 			2 parse ok but is_time_in_range return false, @see plcdn_la_options::begin_time/end_time
  * 2.sample custom trans_log format:
- * '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB ip=127.0.0.1, tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, \
+ * '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB, ip=127.0.0.1, tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, \
  * obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'
  * @see srs_trans
  *
- * changes are made in the following files
+ * changes are made in the following files for srs-2.0
  * ${srs-2.0}/trunk/src/app/srs_app_edge.cpp
  * ${srs-2.0}/trunk/src/app/srs_app_forward.cpp
  * ${srs-2.0}/trunk/src/app/srs_app_rtmp_conn.cpp

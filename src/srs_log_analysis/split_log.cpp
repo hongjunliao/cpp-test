@@ -229,7 +229,7 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 			sidvec.push_back(sid);
 	}
 	if(plcdn_la_opt.verbose > 2 && !sidvec.empty()){
-		fprintf(stderr, "%s: sid NOT found from srs_sid_log: [", __FUNCTION__);
+		fprintf(stderr, "%s: sid NOT found from '%s': [", __FUNCTION__, srs_sid_dir);
 		for(auto & sid_item : sidvec)
 			fprintf(stderr, "%d,", sid_item);
 		fprintf(stderr, "]\n");
