@@ -295,6 +295,13 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 		if(r != 0){
 			if(r < 0)
 				++failed_line;	/*parse faield*/
+
+			/* @NOTE: @author hongjun.liao, @date 2017/02/09
+			 * r == 1 can represents a client's 'access record', although there maybe no trans record for that client,
+			 * currently we also save these records */
+			if(r == 1 && slog){
+				logstats[slog._domain]._stats[trans.time_stamp];
+			}
 			continue;
 		}
 		++trans_line;
