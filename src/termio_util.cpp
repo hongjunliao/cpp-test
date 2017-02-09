@@ -2,6 +2,7 @@
  * This file is Part of cpp-test
  * @author: hongjun.liao<docici@126.com>
  */
+#if (defined __GCC__ || defined  __CYGWIN_GCC__)
 #include "termio_util.h"
 #include <stdio.h>
 #include <time.h>	/*tmespec*/
@@ -94,3 +95,5 @@ void termio_debug_log(FILE * stream, const char *fmt, ...)
     fprintf(stream, "%s [debug]: %s\n", time_buf, buf);
 #endif /*__CYGWIN_GCC__*/
 }
+
+#endif /* (defined __GCC__ || defined  __CYGWIN_GCC__) */

@@ -4,6 +4,7 @@
  *  Created on: Jan 5, 2016
  *      Author: root
  */
+#if (defined __GCC__ || defined  __CYGWIN_GCC__)
 //#include </usr/include/google/protobuf/message.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -14,7 +15,7 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <fcntl.h>
-#include <syslog.h>
+//#include <syslog.h>
 
 #include <sys/mman.h>
 #include <sys/stat.h>        /* For mode constants */
@@ -561,3 +562,4 @@ static int test_empty_array()
 			sizeof(s_fly), sizeof(a), a);
 	return 0;
 }
+#endif /* (defined __GCC__ || defined  __CYGWIN_GCC__) */

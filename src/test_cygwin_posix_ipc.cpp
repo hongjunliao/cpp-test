@@ -1,4 +1,6 @@
 /*UNPv2,POSIX IPC*/
+#if (defined __GCC__ || defined  __CYGWIN_GCC__)
+
 #include "bd_test.h"
 #include <stdio.h>
 #include <mqueue.h>	/*POSIX*/
@@ -15,3 +17,4 @@ int test_cygwin_posix_ipc_main(int argc, char ** arg)
 	int ret = 0;
 	return ret;
 }
+#endif

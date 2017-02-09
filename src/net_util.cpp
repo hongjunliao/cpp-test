@@ -3,6 +3,7 @@
  * @author: hongjun.liao<docici@126.com>
  * for get local ip
  */
+#if (defined __GCC__ || defined  __CYGWIN_GCC__)
 #include "net_util.h"	/**/
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -80,3 +81,4 @@ int test_net_util_main(int argc, char ** argv)
 			sip, ip, netutil_get_ip_str(ip, ipbuff, 16));
     exit(0);
 }
+#endif /* (defined __GCC__ || defined  __CYGWIN_GCC__) */

@@ -1,9 +1,11 @@
 #include "string_util.h"
 #include <stdio.h>
 
+#if (defined __GCC__ || defined  __CYGWIN_GCC__)
 /*coreutils-8.21 also ok*/
 #include <openssl/md5.h> /*MD5()*/
 #include <openssl/sha.h> /*SHA1()*/
+
 
 static auto HEXTAB="0123456789abcdef";
 
@@ -34,6 +36,7 @@ char * sha1sum_r(char const * str, int len, char * buff)
 	buff[n] = '\0';
 	return buff;
 }
+#endif /* (defined __GCC__ || defined  __CYGWIN_GCC__) */
 
 #if (defined __GNUC__) && !(defined __CYGWIN__)
 

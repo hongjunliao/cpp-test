@@ -1,3 +1,4 @@
+#if (defined __GCC__ || defined  __CYGWIN_GCC__)
 #include "bd_test.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,3 +63,4 @@ int test_alloc_mmap_main(int argc, char * argv[])
 
 	return 0;
 }
+#endif /* (defined __GCC__ || defined  __CYGWIN_GCC__) */
