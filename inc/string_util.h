@@ -19,12 +19,12 @@ char *strupr(char *s);
 /*string_util.cpp*/
 /*_r version is thread-safe*/
 
-#if (defined __GCC__ || defined  __CYGWIN_GCC__)
+#if (defined __GNUC__ || defined  __CYGWIN_GCC__)
 /*@param buff[33] at least(include NULL)*/
 char * md5sum_r(char const * str, int len, char * buff);
 /*@param buff[41] at least(include NULL)*/
 char * sha1sum_r(char const * str, int len, char * buff);
-#endif /* (defined __GCC__ || defined  __CYGWIN_GCC__) */
+#endif /* (defined __GNUC__ || defined  __CYGWIN_GCC__) */
 extern char const * byte_to_mb_kb_str(size_t bytes, char const * fmt);
 extern char * byte_to_mb_kb_str_r(size_t bytes, char const * fmt, char * buff);
 #ifdef __cplusplus
