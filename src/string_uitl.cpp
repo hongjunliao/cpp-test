@@ -63,7 +63,7 @@ char *strupr(char *s)
 #endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/
 
 /*@param unit 'K': KB, 'M':MB, 'G':GB, ' ':B*/
-double byte_to_mb_kb(size_t bytes, char & unit)
+static double byte_to_mb_kb(size_t bytes, char & unit)
 {
 	if(bytes >= 1024 * 1024 && bytes < 1024 * 1024 * 1024){
 		unit = 'M';
