@@ -94,15 +94,12 @@ static void fwrite_srs_raw_log(FILE * f, std::vector<srs_raw_log_t> const& logs,
  * try to write connection info to file
  * @param n: write failed lines
  * */
-static void fwrite_srs_sid_to_file(srs_sid_log const & slog, char const * file, size_t & n)
+static int fwrite_srs_sid_to_file(srs_sid_log const & slog, char const * file, size_t & n)
 {
 //	fprintf(stdout, "%s: write : dir = %s____\n", __FUNCTION__, fullname.c_str());
 	auto f = fopen(file, "a");	/*append mode*/
-	if(!f){
-		if(plcdn_la_opt.verbose)
-			fprintf(stderr, "%s: fopen file '%s' for write connection info failed\n", __FUNCTION__, file);
-		return;
-	}
+	if(!f)
+		return -1;
 	for(auto & log : slog._logs){
 //		printf("%s: type = %d\n", __FUNCTION__, log.type);
 		if(log.type == 1 || log.type == 4){
@@ -121,6 +118,7 @@ static void fwrite_srs_sid_to_file(srs_sid_log const & slog, char const * file, 
 		}
 	}
 	fclose(f);
+	return 0;
 }
 
 /*try to get connection info from raw logs, it's OK if not found*/
@@ -206,7 +204,7 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 //	fprintf(stdout, "%s: ___size = %zu, dir = %s____\n", __FUNCTION__, slogs.size(), srs_sid_dir);
 	if(!srs_sid_dir || srs_sid_dir[0] == '\0')
 		return;
-	std::vector<int> sidvec;
+	std::vector<int> sidvec, fopenvec;
 	for(auto & item : slogs){
 		auto sid = item.first;
 		auto & slog = item.second;
@@ -218,7 +216,11 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 			parse_srs_sid_from_raw_logs(slog);	/*sid NOT exist, first find in log*/
 		if(slog){	/*if found, cache them to files*/
 			size_t n = 0;
-			fwrite_srs_sid_to_file(slog, fullname.c_str(), n);
+			auto result = fwrite_srs_sid_to_file(slog, fullname.c_str(), n);
+			if(result != 0){
+				fopenvec.push_back(sid);
+				continue;
+			}
 			if(n != 0)
 				fprintf(stderr, "%s: sid = '%d', skipped lines = %zu\n", __FUNCTION__, sid, n);
 			continue;
@@ -228,11 +230,22 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 		if(!slog)
 			sidvec.push_back(sid);
 	}
-	if(plcdn_la_opt.verbose > 2 && !sidvec.empty()){
-		fprintf(stderr, "%s: sid NOT found from '%s': [", __FUNCTION__, srs_sid_dir);
-		for(auto & sid_item : sidvec)
-			fprintf(stderr, "%d,", sid_item);
-		fprintf(stderr, "]\n");
+	if(plcdn_la_opt.verbose > 2){
+		if(!sidvec.empty() || !fopenvec.empty()){
+			fprintf(stderr, "%s: failed sids, dir = '%s':\n", __FUNCTION__, srs_sid_dir);
+			if(!sidvec.empty()){
+				fprintf(stderr, "sids NOT found: [");
+				for(auto & sid_item : sidvec)
+					fprintf(stderr, "%d,", sid_item);
+				fprintf(stderr, "]\n");
+			}
+			if(!fopenvec.empty()){
+				fprintf(stderr, "sids append failed: [");
+				for(auto & sid_item : fopenvec)
+					fprintf(stderr, "%d,", sid_item);
+				fprintf(stderr, "]\n");
+			}
+		}
 	}
 }
 
