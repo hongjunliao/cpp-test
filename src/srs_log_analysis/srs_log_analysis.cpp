@@ -334,8 +334,6 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 				}
 			}
 		}
-		vec.push_back(trans);
-
 		auto & dstat = logstats[slog._domain];
 		dstat._site_id = slog._site_id;
 		dstat._user_id = slog._user_id;
@@ -346,46 +344,56 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 		auto & stat = dstat._stats[trans.time_stamp];
 		stat.urls[sid] = slog._url;
 		stat.ips[sid] = slog._ip;
-		/*just for add a new item if needed*/
-		stat.obytes[sid] += 0;
-		stat.ibytes[sid] += 0;
 
 		/* FIXME: connection logs are also be put into stat._logs[time]
 		 * if 'plcdn_la_options.format_split_srs_log' contains 'interval',
 		 * then connection logs are lost for most of the split log files, @date 2016/12/05 */
 		stat.logs.push_back(log);
-	}
-	/*!
-	 * FIXME: when rotate srs log, total line of trans log may < 2, in this condition
-	 * ibytes and obytes can NOT be calculated, @author hongjun.liao <docici@126.com> @date 2016/12/28
-	 */
-	skip = (vec.size() < 2);
-	if(skip)
-		return 0;
-	/*sort first*/
-	auto sort_by_timestamp = [](srs_trans const& a, srs_trans const& b){ return a.time_stamp < b.time_stamp; };
-	std::sort(vec.begin(), vec.end(), sort_by_timestamp);
 
-//	for(auto const& item : vec){
-//		fprintf(stdout, "%s: _____time=%lld, ikbps_30s=%zu, okbps_30s=%zu________________\n", __FUNCTION__,
-//				item.time_stamp, item.ikbps_30s, item.okbps_30s);
-//	}
-	/* calculate bytes */
-	auto & dstat = logstats[slog._domain];
-	for(auto a = vec.begin(), b = ++vec.begin(); b != vec.end(); ++a, ++b){
-		/* @NOTE: there IS 'time' in official trans_log, parse and use that one!!!*/
-		auto difft = difftime(b->time_stamp, a->time_stamp);
-		/* use time in official trans_log, after a lot of test for yixin 2016-12,
-		 * @author hongjun.liao <docici@126.com>, @date 2016/12 */
-		difft = (b->msec - a->msec) / 1000.0;
-		auto okbps = (difft < 30.001? b->okbps_30s : b->okbps_5min);
-		auto ikpbs = (difft < 30.001? b->ikbps_30s : b->ikbps_5min);
-		auto obytes = 1024.0 * difft * okbps / 8.0;
-		auto ibytes = 1024.0 * difft * ikpbs / 8.0;
-//		fprintf(stdout, "%s: difft=%f, ikbps=%zu, ibytes=%f\n", __FUNCTION__, difft, ikpbs, ibytes);
-		auto & stat = dstat._stats[b->time_stamp];
-		stat.obytes[sid] += obytes;
-		stat.ibytes[sid] += ibytes;
+		if(plcdn_la_opt.srs_calc_flow_mode == 1){
+			vec.push_back(trans);
+			/*just for add a new item if needed*/
+			stat.obytes[sid] += 0;
+			stat.ibytes[sid] += 0;
+		}
+		else if(plcdn_la_opt.srs_calc_flow_mode == 0){
+			stat.obytes[sid] += trans.obytes;
+			stat.ibytes[sid] += trans.ibytes;
+		}
+	}
+	if(plcdn_la_opt.srs_calc_flow_mode == 1){
+		/*!
+		 * FIXME: when rotate srs log, total line of trans log may < 2, in this condition
+		 * ibytes and obytes can NOT be calculated, @author hongjun.liao <docici@126.com> @date 2016/12/28
+		 */
+		skip = (vec.size() < 2);
+		if(skip)
+			return 0;
+		/*sort first*/
+		auto sort_by_timestamp = [](srs_trans const& a, srs_trans const& b){ return a.time_stamp < b.time_stamp; };
+		std::sort(vec.begin(), vec.end(), sort_by_timestamp);
+
+	//	for(auto const& item : vec){
+	//		fprintf(stdout, "%s: _____time=%lld, ikbps_30s=%zu, okbps_30s=%zu________________\n", __FUNCTION__,
+	//				item.time_stamp, item.ikbps_30s, item.okbps_30s);
+	//	}
+		/* calculate bytes */
+		auto & dstat = logstats[slog._domain];
+		for(auto a = vec.begin(), b = ++vec.begin(); b != vec.end(); ++a, ++b){
+			/* @NOTE: there IS 'time' in official trans_log, parse and use that one!!!*/
+			auto difft = difftime(b->time_stamp, a->time_stamp);
+			/* use time in official trans_log, after a lot of test for yixin 2016-12,
+			 * @author hongjun.liao <docici@126.com>, @date 2016/12 */
+			difft = (b->msec - a->msec) / 1000.0;
+			auto okbps = (difft < 30.001? b->okbps_30s : b->okbps_5min);
+			auto ikpbs = (difft < 30.001? b->ikbps_30s : b->ikbps_5min);
+			auto obytes = 1024.0 * difft * okbps / 8.0;
+			auto ibytes = 1024.0 * difft * ikpbs / 8.0;
+	//		fprintf(stdout, "%s: difft=%f, ikbps=%zu, ibytes=%f\n", __FUNCTION__, difft, ikpbs, ibytes);
+			auto & stat = dstat._stats[b->time_stamp];
+			stat.obytes[sid] += obytes;
+			stat.ibytes[sid] += ibytes;
+		}
 	}
 	if(plcdn_la_opt.verbose > 2 && !skipped_sids.empty()){
 		fprintf(stderr, "%s: skipped sids because of incomplete: [", __FUNCTION__);

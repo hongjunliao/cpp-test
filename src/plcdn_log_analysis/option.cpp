@@ -29,6 +29,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.end_time = 0,
 
 		.srs_log_file = NULL,
+		.srs_calc_flow_mode = 0,
 		.output_srs_flow = NULL,
 		.format_srs_flow = DEF_FORMAT_SRS_FLOW,
 		.srs_sid_dir = DEF_SRS_SID_DIR,
@@ -83,6 +84,8 @@ static struct poptOption plcdn_la_popt[] = {
 	{"interval",                'i',  POPT_ARG_INT,      0, 'i', "interval in seconds, default: 300", 0 },
 
 	{"srs-log-file",            'n',  POPT_ARG_STRING,   0, 'n', "srs_log_file", 0 },
+	{"srs-calc-flow-mode",       0,   POPT_ARG_INT,      0, 'N', "0 or 1, default 0. mode for calculate srs flow, see NOTES for details", 0 },
+
 	{"output-srs-sid",          'k',  POPT_ARG_STRING,   0, 'k', "folder for srs_log_by_sid, default '" DEF_SRS_SID_DIR "'", 0 },
 	{"output-srs-flow",         'b',  POPT_ARG_STRING,   0, 'b', "output folder for srs_flow_table, disabled if NULL", 0 },
 	{"format-srs-flow",         'B',  POPT_ARG_STRING,   0, 'B', "filename format for srs_flow_table, default '" DEF_FORMAT_SRS_FLOW "'", 0 },
@@ -166,6 +169,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		break;
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
+		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
 		case 'b': plcdn_la_opt.output_srs_flow = poptGetOptArg(pc); break;
 		case 'B': plcdn_la_opt.format_srs_flow = poptGetOptArg(pc); break;
@@ -269,6 +273,7 @@ $scheme $request_length $upstream_response_time\n"
             "      okbps=0,0,0, ikbps=477,428,472, mr=0/350, p1stpt=20000, pnt=20000'\n"
 			"    >>sample custom_format: '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB, ip=127.0.0.1, \\\n"
 			"      tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'\n"
+			"  10.about option --srs-calc-flow-mode, 0: use obytes/ibytes, 1: use okbps/ikbps\n"
 	);
 }
 
@@ -302,7 +307,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	fprintf(stream,
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20d\n" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n"
@@ -323,6 +328,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "ipmap_file", opt.ipmap_file
 
 		, "srs_log_file", opt.srs_log_file
+		, "srs_calc_flow_mode", opt.srs_calc_flow_mode
 		, "srs_sid_dir", opt.srs_sid_dir
 		, "output_split_srs_log_by_sid", opt.output_split_srs_log_by_sid
 		, "output_srs_flow", opt.output_srs_flow

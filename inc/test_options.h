@@ -84,6 +84,7 @@ struct plcdn_la_options
 	time_t begin_time, end_time; /* time range for log, format [begin_time, end_time), disabled if 0*/
 /*for srs_log_analysis*/
 	char const * srs_log_file;
+	int srs_calc_flow_mode;						/* for srs, mode for calculate flow, 0: use obytes/ibytes, 1: use okbps/ikbps */
 	char const * output_srs_flow;
 	char const * format_srs_flow;
 	char const * srs_sid_dir;					/*dir for srs_sid, @see srs_log_analysis/split_log.cpp/sync_srs_sids_dir*/

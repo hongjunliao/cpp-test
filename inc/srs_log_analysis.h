@@ -55,7 +55,11 @@ struct srs_connect_url
  * '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB, ip=127.0.0.1, tcUrl=rtmp://localhost/live, \
  * vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'
  *
- *  * In a srs log file, there should only have one format for trans log
+ * In a srs log file, there should only have one format for trans log
+ *
+ * @date 2017/02/10, @author hongjun.liao <docici@126.com>:
+ * there are 2 methods to calculate i/o bytes,
+ * use obytes/ibytes or use okbps/ikbps, @see plcdn_la_options.srs_calc_flow_mode
  */
 struct srs_trans
 {
@@ -63,7 +67,7 @@ struct srs_trans
 	time_t time_stamp;
 	int sid;
 	size_t msec;		/*micro_seconds*/
-	/* the following 2 fields are parsed but NOT correct yet, @see srs's source for details */
+	/* delta bytes, @see srs's source for details */
 	size_t obytes;
 	size_t ibytes;
 
