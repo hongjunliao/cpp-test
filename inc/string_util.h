@@ -16,6 +16,7 @@ char *strupr(char *s);
 /*string_util.cpp*/
 /*_r version is thread-safe*/
 
+/* checksum.cpp */
 #if (defined __GNUC__ || defined  __CYGWIN_GCC__)
 /*@param buff[33] at least(include NULL)*/
 char * md5sum_r(char const * str, int len, char * buff);
