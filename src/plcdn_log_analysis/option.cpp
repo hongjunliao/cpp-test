@@ -64,6 +64,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.print_device_id = 0,
 		.enable_multi_thread = 0,
 		.work_mode = 0,
+		.append_flow_nginx = 0,
 		.show_help = 0,
 		.show_version = 0,
 
@@ -91,7 +92,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"output-srs-flow",         'b',  POPT_ARG_STRING,   0, 'b', "output folder for srs_flow_table, disabled if NULL", 0 },
 	{"format-srs-flow",         'B',  POPT_ARG_STRING,   0, 'B', "filename format for srs_flow_table, default '" DEF_FORMAT_SRS_FLOW "'", 0 },
 	{"srs-flow-merge-same-datetime",
-			                     0,   POPT_ARG_INT,      0, 'L', "0 or 1, default 1. if 1, merge rows in srs_flow_table where ${datetime} same", 0 },
+			                     0,   POPT_ARG_NONE,      0, 'L', "default ON, if set, merge rows in srs_flow_table where ${datetime} same", 0 },
 	{"output-split-srs-log-by-sid",
 			                    0,    POPT_ARG_STRING,   0, 'C', "output folder for splitted srs log(by sid), usually for debug", 0 },
 
@@ -129,6 +130,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
 	{"enable-multi-thread",     0,  POPT_ARG_NONE,       0, 'a', "enable_multi_thread, ONLY for nginx yet", 0 },
 	{"merge-srs-flow",          0,  POPT_ARG_NONE,       0, 'E', "set work_mode to merge_srs_flow, see NOTES for details", 0 },
+	{"append-flow-nginx",       0,  POPT_ARG_NONE,       0, 'X', "if set, append other(currently srs) flows to nginx", 0 },
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",                   0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
 	{"verbose",                 'v',  POPT_ARG_INT,     0, 'v', "verbose, >=0, print more details, 0 for close", 0},
@@ -173,7 +175,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
 		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
-		case 'L': plcdn_la_opt.srs_flow_merge_same_datetime = atoi(poptGetOptArg(pc)); break;
+		case 'L': plcdn_la_opt.srs_flow_merge_same_datetime = 1; break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
 		case 'b': plcdn_la_opt.output_srs_flow = poptGetOptArg(pc); break;
 		case 'B': plcdn_la_opt.format_srs_flow = poptGetOptArg(pc); break;
@@ -218,6 +220,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'a': plcdn_la_opt.enable_multi_thread = 1; break;
 		case 'E': plcdn_la_opt.work_mode = 1; break;
 		case 'M': plcdn_la_opt.parse_url_mode = atoi(poptGetOptArg(pc)); break;
+		case 'X': plcdn_la_opt.append_flow_nginx = 1; break;
 		case 'h': plcdn_la_opt.show_help = 1; break;
 		case 'V': plcdn_la_opt.show_version = 1; break;
 		case 'v': plcdn_la_opt.verbose = atoi(poptGetOptArg(pc)); break;
@@ -320,7 +323,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
+			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "begin_time", btime
@@ -369,6 +372,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "format_split_srs_log", opt.format_split_srs_log
 
 		, "work_mode", (opt.work_mode == 0? "analysis" : (opt.work_mode == 1? "merge_srs_flow" : "<error>"))
+		, "append_flow_nginx", opt.append_flow_nginx
 		, "device_id", opt.device_id
 		, "print_device_id", opt.print_device_id
 		, "parse_url_mode", opt.parse_url_mode
