@@ -32,6 +32,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.srs_calc_flow_mode = 0,
 		.output_srs_flow = NULL,
 		.format_srs_flow = DEF_FORMAT_SRS_FLOW,
+		.srs_flow_merge_same_datetime = 1,
 		.srs_sid_dir = DEF_SRS_SID_DIR,
 		.output_split_srs_log_by_sid = NULL,
 
@@ -89,6 +90,8 @@ static struct poptOption plcdn_la_popt[] = {
 	{"output-srs-sid",          'k',  POPT_ARG_STRING,   0, 'k', "folder for srs_log_by_sid, default '" DEF_SRS_SID_DIR "'", 0 },
 	{"output-srs-flow",         'b',  POPT_ARG_STRING,   0, 'b', "output folder for srs_flow_table, disabled if NULL", 0 },
 	{"format-srs-flow",         'B',  POPT_ARG_STRING,   0, 'B', "filename format for srs_flow_table, default '" DEF_FORMAT_SRS_FLOW "'", 0 },
+	{"srs-flow-merge-same-datetime",
+			                     0,   POPT_ARG_INT,      0, 'L', "0 or 1, default 1. if 1, merge rows in srs_flow_table where ${datetime} same", 0 },
 	{"output-split-srs-log-by-sid",
 			                    0,    POPT_ARG_STRING,   0, 'C', "output folder for splitted srs log(by sid), usually for debug", 0 },
 
@@ -170,6 +173,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
 		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
+		case 'L': plcdn_la_opt.srs_flow_merge_same_datetime = atoi(poptGetOptArg(pc)); break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
 		case 'b': plcdn_la_opt.output_srs_flow = poptGetOptArg(pc); break;
 		case 'B': plcdn_la_opt.format_srs_flow = poptGetOptArg(pc); break;
@@ -307,7 +311,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	fprintf(stream,
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20d\n" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n"
@@ -329,6 +333,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "srs_log_file", opt.srs_log_file
 		, "srs_calc_flow_mode", opt.srs_calc_flow_mode
+		, "srs_flow_merge_same_datetime", opt.srs_flow_merge_same_datetime
 		, "srs_sid_dir", opt.srs_sid_dir
 		, "output_split_srs_log_by_sid", opt.output_split_srs_log_by_sid
 		, "output_srs_flow", opt.output_srs_flow

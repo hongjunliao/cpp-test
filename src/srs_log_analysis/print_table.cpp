@@ -20,6 +20,8 @@ extern int g_plcdn_la_device_id;
 /*nginx_log_analysis/parse_fmt.cpp*/
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
+/*  merge_srs_flow.cpp */
+extern int merge_srs_flow_same_datetime(FILE *& f);
 
 static FILE * & get_stream_by_filename(std::map<std::string, FILE *> & filemap, std::string const& filename);
 static std::string parse_srs_output_filename(char const * fmt, char const *interval, char const *day, int site_id, int user_id);
@@ -28,7 +30,7 @@ static std::string parse_srs_output_filename(char const * fmt, char const *inter
 static FILE * & get_stream_by_filename(std::map<std::string, FILE *> & filemap, std::string const& filename)
 {
 	if(!filemap[filename])
-		filemap[filename] = fopen(filename.c_str(), "a");	/*append mode*/
+		filemap[filename] = fopen(filename.c_str(), "a+");	/*append extended mode*/
 	return filemap[filename];
 }
 
@@ -72,7 +74,7 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 				auto stream = get_stream_by_filename(filemap, outname);
 				if(!stream)
 					continue;
-				/*flow stats, format: 'site_id datetime device_id obytes ibytes ombps imbps user_id'*/
+				/*flow stats, format: 'site_id datetime device_id obytes ibytes obps ibps user_id'*/
 				auto obytes = stat.obytes_total(), ibytes = stat.ibytes_total();
 				auto obps = obytes * 1.0 * 8 / plcdn_la_opt.interval,
 						ibps = ibytes * 1.0 * 8 / plcdn_la_opt.interval;
@@ -83,8 +85,17 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 		}
 	}
 	for(auto & it : filemap){
-		if(it.second)
+		if(it.second){
+			/* merge rows in srs_flow_table where datetime same*/
+			if(plcdn_la_opt.srs_flow_merge_same_datetime == 1){
+				std::fseek(it.second, 0, SEEK_SET);	/* move to start */
+				auto r = merge_srs_flow_same_datetime(it.second);
+				if(r != 0 && plcdn_la_opt.verbose > 4){
+					fprintf(stderr, "%s: merge_srs_flow_same_datetime failed\n", __FUNCTION__);
+				}
+			}
 			fclose(it.second);
+		}
 	}
 	//url stat
 //	for(auto & url : stat.urls){

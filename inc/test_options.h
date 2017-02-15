@@ -87,6 +87,7 @@ struct plcdn_la_options
 	int srs_calc_flow_mode;						/* for srs, mode for calculate flow, 0: use obytes/ibytes, 1: use okbps/ikbps */
 	char const * output_srs_flow;
 	char const * format_srs_flow;
+	int srs_flow_merge_same_datetime;			/* merge rows in srs_flow_table where datetime same, 1: yes, 0: no*/
 	char const * srs_sid_dir;					/*dir for srs_sid, @see srs_log_analysis/split_log.cpp/sync_srs_sids_dir*/
 	char const * output_split_srs_log_by_sid;	/*folder for split srs log by sid*/
 /*for output results*/
