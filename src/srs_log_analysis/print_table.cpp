@@ -74,10 +74,10 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 					continue;
 				/*flow stats, format: 'site_id datetime device_id obytes ibytes ombps imbps user_id'*/
 				auto obytes = stat.obytes_total(), ibytes = stat.ibytes_total();
-				auto ombps = obytes * 1.0 * 8 / plcdn_la_opt.interval / (1024 * 1024),
-						imbps = ibytes * 1.0 * 8 / plcdn_la_opt.interval / (1024 * 1024);
-				auto sz = fprintf(stream, "%d %s %d %zu %zu %.2f %.2f %d\n", site_id, buft, g_plcdn_la_device_id,
-						obytes, ibytes, ombps, imbps, user_id);
+				auto obps = obytes * 1.0 * 8 / plcdn_la_opt.interval,
+						ibps = ibytes * 1.0 * 8 / plcdn_la_opt.interval;
+				auto sz = fprintf(stream, "%d %s %d %zu %zu %.0f %.0f %d\n", site_id, buft, g_plcdn_la_device_id,
+						obytes, ibytes, obps, ibps, user_id);
 				if(sz <= 0) ++n;
 			}
 		}
