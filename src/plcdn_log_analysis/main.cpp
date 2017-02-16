@@ -581,6 +581,18 @@ static void append_flow_nginx(
 {
 	for(auto srs_domain_pair : srs_stats){
 		auto & dstat = nginx_stats[srs_domain_pair.first];
+		if(dstat._site_id == 0 || dstat._user_id == 0){
+			dstat._site_id = srs_domain_pair.second._site_id;
+			dstat._user_id = srs_domain_pair.second._user_id;
+		}
+		else{
+			if(dstat._site_id != srs_domain_pair.second._site_id ||
+					dstat._user_id != srs_domain_pair.second._user_id){
+				fprintf(stderr, "%s: interval error! site_id or user_id not equal in nginx and srs log! domain='%s'\n",
+						__FUNCTION__, srs_domain_pair.first.c_str());
+				 continue;
+			}
+		}
 		for(auto & srs_log_pair : srs_domain_pair.second._stats){
 			auto & nginx_stat = dstat._stats[srs_log_pair.first];
 			auto & srs_stat = srs_log_pair.second;

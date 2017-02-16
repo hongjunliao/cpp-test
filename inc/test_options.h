@@ -79,29 +79,30 @@ struct plcdn_la_options
 	char const * devicelist_file;
 	char const * siteuidlist_file;
 	char const * ipmap_file;
-	int parse_url_mode;		/*0|1|2, default 2, @see parse_nginx_log_request_uri_url*/
+	int parse_url_mode;							/*0|1|2, default 2, @see parse_nginx_log_request_uri_url*/
 /*time range for log*/
-	time_t begin_time, end_time; /* time range for log, format [begin_time, end_time), disabled if 0*/
+	time_t begin_time, end_time; 				/* time range for log, format [begin_time, end_time), disabled if 0*/
+
+	int no_merge_same_datetime;					/* default off, if set, don't merge rows in before print tables where datetime same */
 /*for srs_log_analysis*/
 	char const * srs_log_file;
 	int srs_calc_flow_mode;						/* for srs, mode for calculate flow, 0: use obytes/ibytes, 1: use okbps/ikbps */
 	char const * output_srs_flow;
 	char const * format_srs_flow;
-	int srs_flow_merge_same_datetime;			/* if set, merge rows in srs_flow_table where datetime same */
 	char const * srs_sid_dir;					/*dir for srs_sid, @see srs_log_analysis/split_log.cpp/sync_srs_sids_dir*/
 	char const * output_split_srs_log_by_sid;	/*folder for split srs log by sid*/
 /*for output results*/
 	int  interval;
 
-	char const * output_nginx_flow;		/*flow_table output dir*/
-	char const * format_nginx_flow;		/*output flow_table filename format*/
+	char const * output_nginx_flow;				/*flow_table output dir*/
+	char const * format_nginx_flow;				/*output flow_table filename format*/
 
 	char const * output_file_url_popular;
 	char const * format_url_popular;
 
 	char const * output_file_ip_popular;
 	char const * format_ip_popular;
-	int min_ip_popular, max_ip_popular; /*for filter output, minimal access_count for all ip*/
+	int min_ip_popular, max_ip_popular; 		/*for filter output, minimal access_count for all ip*/
 
 	char const * output_file_http_stats;
 	char const * format_http_stats;

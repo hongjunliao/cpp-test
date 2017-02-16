@@ -27,12 +27,12 @@ struct plcdn_la_options plcdn_la_opt = {
 		.parse_url_mode = 2,
 		.begin_time = 0,
 		.end_time = 0,
+		.no_merge_same_datetime = 0,
 
 		.srs_log_file = NULL,
 		.srs_calc_flow_mode = 0,
 		.output_srs_flow = NULL,
 		.format_srs_flow = DEF_FORMAT_SRS_FLOW,
-		.srs_flow_merge_same_datetime = 1,
 		.srs_sid_dir = DEF_SRS_SID_DIR,
 		.output_split_srs_log_by_sid = NULL,
 
@@ -77,6 +77,8 @@ static struct poptOption plcdn_la_popt[] = {
 	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file", 0 },
 	{"begin-time",             	0,    POPT_ARG_STRING,   0, 'D', "time_range, begin time, see NOTES for details", 0 },
 	{"end-time",          		0,    POPT_ARG_STRING,   0, 'I', "time_range, end time", 0 },
+	{"no-merge-same-datetime",
+			                     0,   POPT_ARG_NONE,      0, 'L', "default OFF, if set, don't merge rows before print output tables where ${datetime} same", 0 },
 
 	{"device-list-file",        'd',  POPT_ARG_STRING,   0, 'd', "devicelist_file default: devicelist.txt", 0 },
 	{"siteuid-list-file",       's',  POPT_ARG_STRING,   0, 's', "siteuidlist_file default: siteuidlist.txt", 0 },
@@ -91,8 +93,6 @@ static struct poptOption plcdn_la_popt[] = {
 	{"output-srs-sid",          'k',  POPT_ARG_STRING,   0, 'k', "folder for srs_log_by_sid, default '" DEF_SRS_SID_DIR "'", 0 },
 	{"output-srs-flow",         'b',  POPT_ARG_STRING,   0, 'b', "output folder for srs_flow_table, disabled if NULL", 0 },
 	{"format-srs-flow",         'B',  POPT_ARG_STRING,   0, 'B', "filename format for srs_flow_table, default '" DEF_FORMAT_SRS_FLOW "'", 0 },
-	{"srs-flow-merge-same-datetime",
-			                     0,   POPT_ARG_NONE,      0, 'L', "default ON, if set, merge rows in srs_flow_table where ${datetime} same", 0 },
 	{"output-split-srs-log-by-sid",
 			                    0,    POPT_ARG_STRING,   0, 'C', "output folder for splitted srs log(by sid), usually for debug", 0 },
 
@@ -175,7 +175,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
 		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
-		case 'L': plcdn_la_opt.srs_flow_merge_same_datetime = 1; break;
+		case 'L': plcdn_la_opt.no_merge_same_datetime = 1; break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
 		case 'b': plcdn_la_opt.output_srs_flow = poptGetOptArg(pc); break;
 		case 'B': plcdn_la_opt.format_srs_flow = poptGetOptArg(pc); break;
@@ -245,7 +245,7 @@ void plcdn_la_show_help(FILE * stream)
 			"  1.work_mode\n"
 			"    analysis: analysis log files and output result tables, default\n"
 			"    merge_srs_flow: merge srs_flow_table(--merge-srs-flow)\n"
-			"      output format: '${site_id} ${datetime} ${obytes} ${ibytes} ${ombps} ${imbps} ${user_id}'\n"
+			"      output format: '${datetime} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  2.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
 	        "    ${datetime}   current date time, format YYYYmmDDHHMM\n"
 			"    ${interval}   according to option --interval, in minute, format YYYYmmDDHHMM\n"
@@ -281,6 +281,7 @@ $scheme $request_length $upstream_response_time\n"
 			"    >>sample custom_format: '[2017-02-07 15:03:31.138][trace][6946][107] time=3460008, type=CPB, ip=127.0.0.1, \\\n"
 			"      tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'\n"
 			"  10.about option --srs-calc-flow-mode, 0: use obytes/ibytes, 1: use okbps/ikbps\n"
+			"  11.if option --append-flow-nginx on, append '${tx_rtmp_in} ${tx_rtmp_out}' to end of 'nginx_flow_table'\n"
 	);
 }
 
@@ -336,7 +337,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "srs_log_file", opt.srs_log_file
 		, "srs_calc_flow_mode", opt.srs_calc_flow_mode
-		, "srs_flow_merge_same_datetime", opt.srs_flow_merge_same_datetime
+		, "no_merge_same_datetime", opt.no_merge_same_datetime
 		, "srs_sid_dir", opt.srs_sid_dir
 		, "output_split_srs_log_by_sid", opt.output_split_srs_log_by_sid
 		, "output_srs_flow", opt.output_srs_flow
