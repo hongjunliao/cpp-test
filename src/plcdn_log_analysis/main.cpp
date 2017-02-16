@@ -585,13 +585,8 @@ static void append_flow_nginx(
 			auto & nginx_stat = dstat._stats[srs_log_pair.first];
 			auto & srs_stat = srs_log_pair.second;
 
-			/*FIXME: is it OK?*/
-			for(auto & urlitem : srs_stat.urls){
-				auto & sid = urlitem.first;
-				char buff[64];
-				sha1sum_r(urlitem.second.c_str(), urlitem.second.size(), buff);
-				nginx_stat._url_stats[buff]._bytes[200] += (srs_stat.obytes[sid] + srs_stat.ibytes[sid]);
-			}
+			nginx_stat.srs_in = srs_stat.ibytes_total();
+			nginx_stat.srs_out = srs_stat.obytes_total();
 		}
 	}
 }

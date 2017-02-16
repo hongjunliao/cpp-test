@@ -198,6 +198,8 @@ public:
 	/* http_status_code: access_count,
 	 * access_count for nginx 'MISS', grouped by http_status_code*/
 	std::unordered_map<int, size_t> _access_m;
+	/* @date 2017/02/16 bytes from srs, @see append_flow_nginx */
+	size_t srs_in, srs_out;
 public:
 		std::vector<nginx_raw_log_t> _logs;
 public:

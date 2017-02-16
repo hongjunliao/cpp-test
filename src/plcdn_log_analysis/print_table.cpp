@@ -67,11 +67,23 @@ static std::string parse_nginx_output_filename(char const * fmt, char const *int
 
 static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
+	/* @NOTES: @date 2017/02/16,
+	 * when plcdn_la_options.append_flow_nginx set, add 2 new fields: tx_rtmp_in(srs ibytes), tx_rtmp_out(srs obytes)
+	 * @see append_flow_nginx */
 	char buft[32];
-	/*format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m */
-	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu\n",
-			site_id, g.c_str_r(buft, sizeof(buft)), g_plcdn_la_device_id, stat.access_total()
-			, stat.bytes_total(), user_id, stat.access_m(), stat._bytes_m);
+	int sz = 0;
+	if(plcdn_la_opt.append_flow_nginx){
+		auto bytes_total = stat.bytes_total() + stat.srs_in + stat.srs_out;
+		sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu\n",
+					site_id, g.c_str_r(buft, sizeof(buft)), g_plcdn_la_device_id, stat.access_total()
+					, bytes_total , user_id, stat.access_m(), stat._bytes_m, stat.srs_in, stat.srs_out);
+	}
+	else{
+		/* format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m  */
+		sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu\n",
+					site_id, g.c_str_r(buft, sizeof(buft)), g_plcdn_la_device_id, stat.access_total()
+					, stat.bytes_total(), user_id, stat.access_m(), stat._bytes_m);
+	}
 	if(sz <= 0) ++n;
 }
 

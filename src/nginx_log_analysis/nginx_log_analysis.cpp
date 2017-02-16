@@ -87,13 +87,9 @@ size_t url_stat::access(int code1, int code2/* = -1*/) const
 
 size_t url_stat::bytes(int code1, int code2/* = -1*/) const
 {
-	size_t ret  = 0;
-	for(auto it = _bytes.begin(); it !=_bytes.end(); ++it){
-		if(it->first == code1 || it->first == code2)
-			ret += it->second;
-	}
-	return ret;
-
+	size_t c1 = (_bytes.count(code1) != 0? _bytes.at(code1) : 0);
+	size_t c2 = (_bytes.count(code2) != 0? _bytes.at(code2) : 0);
+	return c1 + c2;
 }
 
 size_t url_stat::bytes_total() const
