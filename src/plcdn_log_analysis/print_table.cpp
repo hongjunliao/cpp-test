@@ -47,6 +47,10 @@ static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_st
 /*ip_source*/
 static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 
+/* merge tables for same datetime */
+/*  merge_srs_flow.cpp */
+extern int merge_nginx_flow_table(FILE *& f);
+
 static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {
 	std::unordered_map<std::string, std::string> argmap;
@@ -303,16 +307,26 @@ void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat co
 	}
 }
 
-static FILE * & append_stream(std::map<std::string, FILE *> & filemap, std::string const& filename)
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+typedef int (* merge_nginx_table_fn_t)(FILE *&);
+
+static FILE * & append_stream(std::map<std::string, std::tuple<FILE *, merge_nginx_table_fn_t>> & filemap,
+		std::string const& filename,
+		merge_nginx_table_fn_t fn = NULL)
 {
-	if(!filemap[filename])
-		filemap[filename] = fopen(filename.c_str(), "a");	/*append mode*/
-	return filemap[filename];
+	auto & val = filemap[filename];
+	auto & file = std::get<0>(val);
+	if(!file){
+		file = fopen(filename.c_str(), "a+");	/*append extended mode*/
+		std::get<1>(val) = fn;
+	}
+	return file;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> const& stats)
 {
-	std::map<std::string, FILE *> filemap; /*for output filenames*/
+	std::map<std::string, std::tuple<FILE *, merge_nginx_table_fn_t>> filemap; /*for output filenames*/
 	size_t n = 0;
 	for(auto const& dstat : stats){
 		auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
@@ -321,7 +335,7 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			if(plcdn_la_opt.output_nginx_flow){
 				auto outname = std::string(plcdn_la_opt.output_nginx_flow) +
 						parse_nginx_output_filename(plcdn_la_opt.format_nginx_flow, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_flow_table);
 				if(stream)
 					print_flow_table(stream, item.first, item.second, site_id, user_id, n);
 			}
@@ -370,8 +384,18 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 		}
 	}
 	for(auto & it : filemap){
-		if(it.second)
-			fclose(it.second);
+		auto & f = std::get<0>(it.second);
+		auto fn = std::get<1>(it.second);
+		if(f){
+			if(!plcdn_la_opt.no_merge_same_datetime && fn){
+				std::fseek(f, 0, SEEK_SET);	/* move to start */
+				auto r = fn(f);
+				if(r != 0 && plcdn_la_opt.verbose > 4){
+					fprintf(stderr, "%s: merge nginx table failed\n", __FUNCTION__);
+				}
+			}
+			fclose(f);
+		}
 	}
 	if(n != 0)
 		fprintf(stderr, "%s: WARNING, skip %zu lines\n", __FUNCTION__, n);

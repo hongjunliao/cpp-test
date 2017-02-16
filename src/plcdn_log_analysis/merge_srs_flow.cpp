@@ -12,6 +12,9 @@
 #include <unordered_map> 	/* std::unordered_map */
 #include <tuple>			/* std::tuple */
 #include <boost/functional/hash.hpp>	/* boost::hash_combine */
+#include "test_options.h"				/*plcdn_la_options*/
+/*plcdn_log_analysis/option.cpp*/
+extern struct plcdn_la_options plcdn_la_opt;
 
 //template<typename T> struct group_field
 //{
@@ -31,26 +34,46 @@ struct srs_flow_table_row
 	double obps, ibps;
 };
 
+struct nginx_flow_table_row
+{
+	 int site_id;
+	 time_t datetime;
+	 int device_id;
+	 size_t num_total;
+	 size_t bytes_total;
+	 int user_id;
+	 size_t pvs_m;
+	 size_t px_m;
+
+	 size_t srs_in, srs_out;
+};
+
 /* parse srs_flow_table_row from @param buf, return 0 on success
  * @see fprint_srs_log_stats*/
-static int parse_srs_flow_table_row(char const * buf, srs_flow_table_row & row);
-
+static int parse_table_row(char const * buf, srs_flow_table_row & row);
+static int parse_table_row(char const * buf, nginx_flow_table_row & row);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-typedef std::tuple<time_t, int> srs_flow_key_t; /* std::tuple<datetime, user_id> */
-typedef std::tuple<size_t, size_t, double, double> srs_flow_value_t;	/* std::tuple<obytes, ibytes, obps, ibps> */
+typedef std::tuple<time_t, int> srs_user_flow_key_t; /* std::tuple<datetime, user_id> */
+typedef std::tuple<size_t, size_t, double, double> srs_user_flow_value_t;	/* std::tuple<obytes, ibytes, obps, ibps> */
+typedef std::tuple<time_t, int, int, int> merge_key_t; 	/* std::tuple<datetime, site_id, device_id, user_id> */
+/* std::tuple<num_total, bytes_total, pvs_m, px_m, srs_in, srs_out> */
+typedef std::tuple<size_t, size_t, size_t, size_t, size_t, size_t> nginx_flow_value_t;
+/* std::tuple<num_total, bytes_total, pvs_m, px_m, srs_in, srs_out> */
+typedef srs_user_flow_value_t srs_flow_value_t;
+
 /* required by std::unordered_map's key, @see http://en.cppreference.com/w/cpp/utility/hash */
 namespace std{
-template<> struct hash<srs_flow_key_t>
+template<> struct hash<srs_user_flow_key_t>
 {
-	typedef srs_flow_key_t argument_type;
+	typedef srs_user_flow_key_t argument_type;
 	typedef std::size_t result_type;
 	result_type operator()(argument_type const& s) const;
 };
 
 }	//namespace std
 
-std::size_t std::hash<srs_flow_key_t>::operator()(
-		srs_flow_key_t const& val) const
+std::size_t std::hash<srs_user_flow_key_t>::operator()(
+		srs_user_flow_key_t const& val) const
 {
 	size_t ret = 0;
 	size_t const h0 ( std::hash<time_t>{}(std::get<0>(val)) );
@@ -62,21 +85,28 @@ std::size_t std::hash<srs_flow_key_t>::operator()(
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace std{
-template<> struct hash<std::tuple<time_t>>
+template<> struct hash<merge_key_t>
 {
-	typedef std::tuple<time_t> argument_type;
+	typedef merge_key_t argument_type;
 	typedef std::size_t result_type;
 	result_type operator()(argument_type const& s) const;
 };
 
 }	//namespace std
 
-std::size_t std::hash<std::tuple<time_t>>::operator()(
-		std::tuple<time_t> const& val) const
+std::size_t std::hash<merge_key_t>::operator()(
+		merge_key_t const& val) const
 {
 	size_t ret = 0;
 	size_t const h0 ( std::hash<time_t>{}(std::get<0>(val)) );
+	size_t const h1 ( std::hash<int>{}(std::get<1>(val)) );
+	size_t const h2 ( std::hash<int>{}(std::get<2>(val)) );
+	size_t const h3 ( std::hash<int>{}(std::get<3>(val)) );
+
 	boost::hash_combine(ret, h0);
+	boost::hash_combine(ret, h1);
+	boost::hash_combine(ret, h2);
+	boost::hash_combine(ret, h3);
 	return ret;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,12 +116,12 @@ int merge_srs_flow(int argc, char ** argv)
     char buf[512];
     while (fgets(buf, sizeof buf, stdin)){
     	srs_flow_table_row row;
-    	if(parse_srs_flow_table_row(buf, row) != 0)
+    	if(parse_table_row(buf, row) != 0)
     		continue;
     	flows.push_back(row);
     }
 
-    std::unordered_map<srs_flow_key_t, srs_flow_value_t> flow_map;
+    std::unordered_map<srs_user_flow_key_t, srs_user_flow_value_t> flow_map;
     for(auto const & item : flows){
     	auto  k = std::make_tuple(item.datetime, item.user_id);
     	auto & val = flow_map[k];
@@ -124,17 +154,38 @@ int merge_srs_flow(int argc, char ** argv)
 	return 0;
 }
 
-static int parse_srs_flow_table_row(char const * buf, srs_flow_table_row & row)
+static int parse_table_row(char const * buf, srs_flow_table_row & row)
 {
 	if(!buf || buf[0] == '\0')
 		return -1;
-
 	/* @see fprint_srs_log_stats */
 	int n = sscanf(buf, "%d%ld%d%zu%zu%lf%lf%d",
 	                     &row.site_id, &row.datetime, &row.device_id,
 						 &row.obytes, &row.ibytes, &row.obps, &row.ibps, &row.user_id);
 	if(n != 8)
 		return -1;
+	return 0;
+}
+
+static int parse_table_row(char const * buf, nginx_flow_table_row & row)
+{
+	if(!buf || buf[0] == '\0')
+		return -1;
+	if(!plcdn_la_opt.append_flow_nginx){
+		int n = sscanf(buf, "%d%ld%d%zu%zu%d%zu%zu",
+							 &row.site_id, &row.datetime, &row.device_id,
+							 &row.num_total, &row.bytes_total, &row.user_id, &row.pvs_m, &row.px_m);
+		if(n != 8)
+			return -1;
+	}
+	else{
+		int n = sscanf(buf, "%d%ld%d%zu%zu%d%zu%zu%zu%zu",
+							 &row.site_id, &row.datetime, &row.device_id,
+							 &row.num_total, &row.bytes_total, &row.user_id, &row.pvs_m, &row.px_m,
+							 &row.srs_in, &row.srs_out);
+		if(n != 10)
+			return -1;
+	}
 	return 0;
 }
 
@@ -145,7 +196,7 @@ int merge_srs_flow_same_datetime(FILE *& f)
     char buf[512];
     while (fgets(buf, sizeof buf, f)){
     	srs_flow_table_row row;
-    	if(parse_srs_flow_table_row(buf, row) != 0)
+    	if(parse_table_row(buf, row) != 0)
     		continue;
     	flows.push_back(row);
     }
@@ -153,46 +204,78 @@ int merge_srs_flow_same_datetime(FILE *& f)
     f = std::freopen(NULL, "w", f);
     if(!f) return -1;
     /* std::tuple<site_id, device_id, obytes, ibytes, obps, ibps, user_id> */
-    std::unordered_map<std::tuple<time_t>, std::tuple<int, int, size_t, size_t, double, double, int>> flow_map;
+    std::unordered_map<merge_key_t, srs_flow_value_t> flow_map;
     for(auto const & item : flows){
-    	auto  k = std::make_tuple(item.datetime);
+    	auto  k = std::make_tuple(item.datetime, item.site_id, item.device_id, item.user_id);
     	auto & val = flow_map[k];
 
-    	auto & site_id = std::get<0>(val);
-    	auto & device_id = std::get<1>(val);
-    	auto & user_id = std::get<6>(val);
+    	std::get<0>(val) += item.obytes;
+    	std::get<1>(val) += item.ibytes;
 
-    	auto & obytes = std::get<2>(val);
-    	auto & ibytes = std::get<3>(val);
-    	auto & obps = std::get<4>(val);
-    	auto & ibps = std::get<5>(val);
-
-    	site_id = item.site_id;
-    	device_id = item.device_id;
-    	user_id = item.user_id;
-
-    	obytes += item.obytes;
-    	ibytes += item.ibytes;
     	/* FIXME: use obytes/interval? */
-    	obps += item.obps;
-    	ibps += item.ibps;
+    	std::get<2>(val) += item.obps;
+    	std::get<3>(val) += item.ibps;
     }
     size_t failed_line = 0;
     for(auto const & item : flow_map){
-    	auto t = std::get<0>(item.first);
-
-    	auto site_id = std::get<0>(item.second);
-    	auto device_id = std::get<1>(item.second);
-    	auto user_id = std::get<6>(item.second);
-
-    	auto obytes = std::get<2>(item.second);
-    	auto ibytes = std::get<3>(item.second);
-    	auto obps = std::get<4>(item.second);
-    	auto ibps = std::get<5>(item.second);
-
 		/* format: 'site_id datetime device_id obytes ibytes obps ibps user_id' @see fprint_srs_log_stats */
-		auto sz = fprintf(f, "%d %ld %d %zu %zu %.0f %.0f %d\n", site_id, t, device_id,
-				obytes, ibytes, obps, ibps, user_id);
+		auto sz = fprintf(f, "%d %ld %d %zu %zu %.0f %.0f %d\n", std::get<1>(item.first), std::get<0>(item.first),
+				std::get<2>(item.first),
+				std::get<0>(item.second), std::get<1>(item.second),
+				std::get<2>(item.second), std::get<3>(item.second),
+				std::get<3>(item.first));
+		if(sz <= 0)
+			++failed_line;
+    }
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+int merge_nginx_flow_table(FILE *& f)
+{
+	std::vector<nginx_flow_table_row> rows;
+    char buf[512];
+    while (fgets(buf, sizeof buf, f)){
+    	nginx_flow_table_row row;
+    	if(parse_table_row(buf, row) != 0)
+    		continue;
+    	rows.push_back(row);
+    }
+
+    f = std::freopen(NULL, "w", f);
+    if(!f) return -1;
+    /* '${site_id} ${device_id} ${num_total} ${bytes_total} ${user_id} ${pvs_m} ${px_m} (${tx_rtmp_in} ${tx_rtmp_out})' */
+    std::unordered_map<merge_key_t, nginx_flow_value_t> flow_map;
+    for(auto const & item : rows){
+    	auto  k = std::make_tuple(item.datetime, item.site_id, item.device_id, item.user_id);
+    	auto & val = flow_map[k];
+
+    	std::get<0>(val) += item.num_total;
+    	std::get<1>(val) += item.bytes_total;
+    	std::get<2>(val) += item.pvs_m;
+    	std::get<3>(val) += item.px_m;
+    	std::get<4>(val) += item.srs_in;
+    	std::get<5>(val) += item.srs_out;
+    }
+    size_t failed_line = 0;
+    for(auto const & item : flow_map){
+		int sz = 0;
+    	if(!plcdn_la_opt.append_flow_nginx){
+    		/* @see nginx/print_flow_table */
+			sz = fprintf(f, "%d %ld %d %zu %zu %d %zu %zu\n", std::get<1>(item.first), std::get<0>(item.first),
+					std::get<2>(item.first),
+					std::get<0>(item.second), std::get<1>(item.second),
+					std::get<3>(item.first), std::get<2>(item.second),
+					std::get<3>(item.second));
+    	}
+    	else{
+			sz = fprintf(f, "%d %ld %d %zu %zu %d %zu %zu %zu %zu\n", std::get<1>(item.first), std::get<0>(item.first),
+					std::get<2>(item.first),
+					std::get<0>(item.second), std::get<1>(item.second),
+					std::get<3>(item.first), std::get<2>(item.second),
+					std::get<3>(item.second),
+					std::get<4>(item.second), std::get<5>(item.second));
+    	}
 		if(sz <= 0)
 			++failed_line;
     }
