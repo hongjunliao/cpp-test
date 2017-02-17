@@ -77,7 +77,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file", 0 },
 	{"begin-time",             	0,    POPT_ARG_STRING,   0, 'D', "time_range, begin time, see NOTES for details", 0 },
 	{"end-time",          		0,    POPT_ARG_STRING,   0, 'I', "time_range, end time", 0 },
-	{"no-merge-same-datetime",
+	{"no-merge-datetime",
 			                     0,   POPT_ARG_NONE,      0, 'L', "default OFF, if set, don't merge rows before print output tables where ${datetime} same", 0 },
 
 	{"device-list-file",        'd',  POPT_ARG_STRING,   0, 'd', "devicelist_file default: devicelist.txt", 0 },

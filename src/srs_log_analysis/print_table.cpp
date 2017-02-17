@@ -21,7 +21,7 @@ extern int g_plcdn_la_device_id;
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
 /*  merge_srs_flow.cpp */
-extern int merge_srs_flow_same_datetime(FILE *& f);
+extern int merge_srs_flow_datetime(FILE *& f);
 
 static FILE * & get_stream_by_filename(std::map<std::string, FILE *> & filemap, std::string const& filename);
 static std::string parse_srs_output_filename(char const * fmt, char const *interval, char const *day, int site_id, int user_id);
@@ -89,7 +89,7 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 			/* merge rows in srs_flow_table where datetime same*/
 			if(!plcdn_la_opt.no_merge_same_datetime){
 				std::fseek(it.second, 0, SEEK_SET);	/* move to start */
-				auto r = merge_srs_flow_same_datetime(it.second);
+				auto r = merge_srs_flow_datetime(it.second);
 				if(r != 0 && plcdn_la_opt.verbose > 4){
 					fprintf(stderr, "%s: merge_srs_flow_same_datetime failed\n", __FUNCTION__);
 				}

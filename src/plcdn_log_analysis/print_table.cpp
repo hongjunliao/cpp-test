@@ -49,7 +49,8 @@ static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_
 
 /* merge tables for same datetime */
 /*  merge_srs_flow.cpp */
-extern int merge_nginx_flow_table(FILE *& f);
+extern int merge_nginx_flow_datetime(FILE *& f);
+extern int merge_nginx_url_popular_datetime(FILE *& f);
 
 static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {
@@ -335,14 +336,14 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			if(plcdn_la_opt.output_nginx_flow){
 				auto outname = std::string(plcdn_la_opt.output_nginx_flow) +
 						parse_nginx_output_filename(plcdn_la_opt.format_nginx_flow, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname, merge_nginx_flow_table);
+				auto stream = append_stream(filemap, outname, merge_nginx_flow_datetime);
 				if(stream)
 					print_flow_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_url_popular){
 				auto outname = std::string(plcdn_la_opt.output_file_url_popular) +
 						parse_nginx_output_filename(plcdn_la_opt.format_url_popular, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_url_popular_datetime);
 				if(stream)
 					print_url_popular_table(stream, item.first, item.second, site_id, user_id, n);
 			}
