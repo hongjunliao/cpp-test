@@ -83,7 +83,7 @@ struct plcdn_la_options
 /*time range for log*/
 	time_t begin_time, end_time; 				/* time range for log, format [begin_time, end_time), disabled if 0*/
 
-	int no_merge_same_datetime;					/* default off, if set, don't merge rows in before print tables where datetime same */
+	int no_merge_datetime;					/* default off, if set, don't merge rows in before print tables where datetime same */
 /*for srs_log_analysis*/
 	char const * srs_log_file;
 	int srs_calc_flow_mode;						/* for srs, mode for calculate flow, 0: use obytes/ibytes, 1: use okbps/ikbps */

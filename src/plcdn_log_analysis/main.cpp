@@ -574,7 +574,6 @@ int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*merge*/
 
-/* FIXME: to be continued, test me!!! */
 static void append_flow_nginx(
 		std::unordered_map<std::string, nginx_domain_stat> & nginx_stats,
 		std::unordered_map<std::string, srs_domain_stat> const& srs_stats)

@@ -27,7 +27,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.parse_url_mode = 2,
 		.begin_time = 0,
 		.end_time = 0,
-		.no_merge_same_datetime = 0,
+		.no_merge_datetime = 0,
 
 		.srs_log_file = NULL,
 		.srs_calc_flow_mode = 0,
@@ -175,7 +175,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
 		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
-		case 'L': plcdn_la_opt.no_merge_same_datetime = 1; break;
+		case 'L': plcdn_la_opt.no_merge_datetime = 1; break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
 		case 'b': plcdn_la_opt.output_srs_flow = poptGetOptArg(pc); break;
 		case 'B': plcdn_la_opt.format_srs_flow = poptGetOptArg(pc); break;
@@ -272,7 +272,7 @@ $scheme $request_length $upstream_response_time\n"
 			"    (4)http_stats_table:     '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m}'\n"
 			"    (5)ip_slowfast_table:    '${device_id} ${ip} ${datetime} ${speed} ${type}'\n"
 			"    (6)cutip_slowfast_table: '${device_id} ${datetime} ${ip} ${speed}'\n"
-			"    (7)ip_source_table:      '${bw_time} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
+			"    (7)ip_source_table:      '${datetime} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
 			"    for srs:\n"
 			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  9.for srs log, currently supports 2 formats of trans_log, 0: official , 1: custom\n"
@@ -282,6 +282,8 @@ $scheme $request_length $upstream_response_time\n"
 			"      tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'\n"
 			"  10.about option --srs-calc-flow-mode, 0: use obytes/ibytes, 1: use okbps/ikbps\n"
 			"  11.if option --append-flow-nginx on, append '${tx_rtmp_in} ${tx_rtmp_out}' to end of 'nginx_flow_table'\n"
+			"  12.file '--device-list-file' format: '${device_id} ${device_ip}'\n"
+			"  13.file '--siteuid-list-file' format: '${site_id} ${user_id} ${domain}'\n"
 	);
 }
 
@@ -314,7 +316,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	}
 	fprintf(stream,
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20d\n" "\n%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
@@ -337,7 +339,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "srs_log_file", opt.srs_log_file
 		, "srs_calc_flow_mode", opt.srs_calc_flow_mode
-		, "no_merge_same_datetime", opt.no_merge_same_datetime
+		, "no_merge_datetime", opt.no_merge_datetime
 		, "srs_sid_dir", opt.srs_sid_dir
 		, "output_split_srs_log_by_sid", opt.output_split_srs_log_by_sid
 		, "output_srs_flow", opt.output_srs_flow

@@ -87,7 +87,7 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 	for(auto & it : filemap){
 		if(it.second){
 			/* merge rows in srs_flow_table where datetime same*/
-			if(!plcdn_la_opt.no_merge_same_datetime){
+			if(!plcdn_la_opt.no_merge_datetime){
 				std::fseek(it.second, 0, SEEK_SET);	/* move to start */
 				auto r = merge_srs_flow_datetime(it.second);
 				if(r != 0 && plcdn_la_opt.verbose > 4){

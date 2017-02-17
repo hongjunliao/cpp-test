@@ -51,6 +51,11 @@ static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_
 /*  merge_srs_flow.cpp */
 extern int merge_nginx_flow_datetime(FILE *& f);
 extern int merge_nginx_url_popular_datetime(FILE *& f);
+extern int merge_nginx_ip_popular_datetime(FILE *& f);
+extern int merge_nginx_http_stats_datetime(FILE *& f);
+extern int merge_nginx_ip_source_datetime(FILE *& f);
+extern int merge_nginx_cutip_slowfast_datetime(FILE *& f);
+extern int merge_nginx_ip_slowfast_datetime(FILE *& f);
 
 static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {
@@ -132,8 +137,8 @@ inline void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log
 		/*format: site_id, device_id, ip, datetime, num*/
 		/*FIXME: ip is string format?*/
 		auto sz = fprintf(stream, "%d %d %s %s %zu\n",
-						site_id, g_plcdn_la_device_id, g.c_str_r(buft, sizeof(buft)),
-						netutil_get_ip_str(ip_item.first, ipbuff, sizeof(ipbuff)), ipstat.access);
+						site_id, g_plcdn_la_device_id, netutil_get_ip_str(ip_item.first, ipbuff, sizeof(ipbuff)),
+						g.c_str_r(buft, sizeof(buft)), ipstat.access);
 		if(sz <= 0) ++n;
 	}
 }
@@ -350,35 +355,35 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			if(plcdn_la_opt.output_file_ip_popular){
 				auto outname = std::string(plcdn_la_opt.output_file_ip_popular) +
 						parse_nginx_output_filename(plcdn_la_opt.format_ip_popular, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_ip_popular_datetime);
 				if(stream)
 					print_ip_popular_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_http_stats){
 				auto outname = std::string(plcdn_la_opt.output_file_http_stats) +
 						parse_nginx_output_filename(plcdn_la_opt.format_http_stats, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_http_stats_datetime);
 				if(stream)
 					print_http_stats_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_ip_slowfast){
 				auto outname = std::string(plcdn_la_opt.output_file_ip_slowfast) +
 						parse_nginx_output_filename(plcdn_la_opt.format_ip_slowfast, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_ip_slowfast_datetime);
 				if(stream)
 					print_ip_slowfast_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if(plcdn_la_opt.output_file_cutip_slowfast){
 				auto outname = std::string(plcdn_la_opt.output_file_cutip_slowfast) +
 						parse_nginx_output_filename(plcdn_la_opt.format_cutip_slowfast, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_cutip_slowfast_datetime);
 				if(stream)
 					print_cutip_slowfast_table(stream, item.first, item.second, site_id, user_id, n);
 			}
 			if( plcdn_la_opt.output_file_ip_source) {
 				auto outname = std::string( plcdn_la_opt.output_file_ip_source) +
 						parse_nginx_output_filename(plcdn_la_opt.format_ip_source, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_ip_source_datetime);
 				if(stream)
 					print_ip_source_table(stream, item.first, item.second, site_id, user_id, n);
 			}
@@ -388,7 +393,7 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 		auto & f = std::get<0>(it.second);
 		auto fn = std::get<1>(it.second);
 		if(f){
-			if(!plcdn_la_opt.no_merge_same_datetime && fn){
+			if(!plcdn_la_opt.no_merge_datetime && fn){
 				std::fseek(f, 0, SEEK_SET);	/* move to start */
 				auto r = fn(f);
 				if(r != 0 && plcdn_la_opt.verbose > 4){
