@@ -448,7 +448,7 @@ int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
 	if(!file) return -1;
 
 	log_item item;
-    char buf[1024 * 10];
+    char buf[1024 * 10];	/* 1 row of log */
     size_t n = 0;
     while (fgets(buf, sizeof(buf), file)){
 		++n;

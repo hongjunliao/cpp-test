@@ -37,10 +37,17 @@ static int nginx_rotate_append_log(char const * rotate_dir, char const * row, ti
 
 static void nginx_rotate_remove_expire(char const * rotate_dir, time_t now, int expire_sec)
 {
+	if(expire_sec <= 0)
+		return;
+	char buff[32] = "";
+	tm t;
+	strftime(buff, sizeof(buff), "%Y%m%d%H%M%S", localtime_r(&now, &t));
+	auto id_2 = std::stoul(buff);
+
 	std::vector<std::string> vec;
 	for(boost::filesystem::directory_iterator it(rotate_dir), end; it != end; ++it){
-		auto id = std::stoul(it->path().filename().string());
-		if(now - id > expire_sec)
+		auto id_1 = std::stoul(it->path().filename().string()) * 100;	/* x100 for seconds, see nginx_rotate_append_log */
+		if(id_2 - id_1 > (size_t)expire_sec)
 			vec.push_back(it->path().string());
 	}
 	for(auto const& item : vec){
@@ -66,8 +73,8 @@ static int nginx_rotate_append_log(char const * rotate_dir, char const * row, ti
 	f = fopen(fullpath.c_str(), "a");
 	if(!f)
 		return -1;
-	auto result = fwrite(row, sizeof(char), sizeof(row), f);
-	if(result < sizeof(row) || ferror(f))
+	auto result = fwrite(row, sizeof(char), strlen(row), f);
+	if(result < strlen(row) || ferror(f))
 		return -1;
 	return 0;
 }
@@ -101,7 +108,7 @@ int nginx_rotate_log(char const * rotate_dir, FILE * logfile, size_t& total_line
 	/* append log by time first */
 	total_line = 0;
 	std::map<time_group, rotate_file> rmap;
-    char buf[8192];
+    char buf[1024 * 10];	/* length of 1 row */
     while (fgets(buf, sizeof(buf), logfile)){
     	++total_line;
     	time_t t;
@@ -119,22 +126,22 @@ int nginx_rotate_log(char const * rotate_dir, FILE * logfile, size_t& total_line
     }
     /* parse rotate_dir(updated only) and do statistics */
     for(auto const& item: rmap){
+    	auto is_time_in = is_time_in_range(item.first.t(), plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
+    	if(!is_time_in)
+    		continue;
     	auto f = item.second.file;
     	f = std::freopen(NULL, "r", f);
 		if(!f){
 			if(plcdn_la_opt.verbose > 4){
-				char buft[32];
+				char buft[32] = "<error>";
 				item.first.c_str_r(buft, sizeof(buft));
 				fprintf(stderr, "%s: freopen failed, skip! rotate_dir = '%s', file = '%s'\n", __FUNCTION__,
 						rotate_dir, buft);
 			}
 			continue;
 		}
-    	auto is_time_in = is_time_in_range(item.first.t(), plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
-    	if(is_time_in){
-    		size_t n = 0;
-    		do_nginx_log_stats(f, plcdn_la_opt, g_sitelist, logstats, n);
-    	}
+		size_t n = 0;
+		do_nginx_log_stats(f, plcdn_la_opt, g_sitelist, logstats, n);
     }
 	return 0;
 }
