@@ -22,6 +22,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 struct plcdn_la_options plcdn_la_opt = {
 		.nginx_log_file = NULL,
 		.nginx_rotate_dir = NULL,
+		.nginx_rotate_time = 7200,
 		.devicelist_file = "devicelist.txt",
 		.siteuidlist_file = "siteuidlist.txt",
 		.ipmap_file = "iplocation.bin",

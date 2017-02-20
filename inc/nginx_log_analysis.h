@@ -9,6 +9,7 @@
 #include <vector>	/*std::vector*/
 #include <map>	/*std::map*/
 #include <string> /*std::string*/
+#include "test_options.h"	/* plcdn_la_options */
 /*declares*/
 struct log_item;
 struct site_info;
@@ -266,5 +267,17 @@ bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end);
  * TODO:make it customizable
  * */
 int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
+
+/*do log statistics with time interval*/
+int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,
+		std::unordered_map<std::string, site_info> const& sitelist,
+		std::unordered_map<std::string, nginx_domain_stat> & logstats);
+
+/* override version for file
+ * @param failed_line, failded_line for file @param file
+ * @return 0 on success */
+int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
+		std::unordered_map<std::string, site_info> const& sitelist,
+		std::unordered_map<std::string, nginx_domain_stat> & logstats, size_t & failed_line);
 #endif /*_NGINX_LOG_ANALYSIS_H_*/
 

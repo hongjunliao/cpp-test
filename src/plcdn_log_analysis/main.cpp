@@ -63,8 +63,6 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
  * mode 2, custom, @param cache_status required
  * */
 static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode = 2);
-/*do log statistics with time interval*/
-static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::string, nginx_domain_stat> & logstats);
 
 /*load devicelist, @param devicelist map<ip, device_id>*/
 static int load_devicelist(char const* file, std::unordered_map<std::string, int>& devicelist);
@@ -101,8 +99,8 @@ extern int fwrite_srs_log_by_sid(std::unordered_map<int, srs_sid_log> & slogs, c
 extern int merge_srs_flow_user(int argc, char ** argv);
 
 /* nginx_rotate.cpp */
-extern int nginx_rotate_log(char const * rotate_dir, FILE * logfile,
-		std::unordered_map<std::string, nginx_domain_stat> const& stats);
+extern int nginx_rotate_log(char const * rotate_dir, FILE * logfile, size_t& total_line,
+		std::unordered_map<std::string, nginx_domain_stat> & logstats);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*GLOBAL vars*/
 /*plcdn_log_analysis/option.cpp*/
@@ -184,59 +182,6 @@ static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
 	item.is_hit = (strcmp(items[3],"HIT") == 0);
-	return 0;
-}
-
-static int do_nginx_log_stats(log_item const& item, std::unordered_map<std::string, nginx_domain_stat> & logstats)
-{
-	auto & dstat = logstats[item.domain];
-	if(dstat._site_id == 0)
-		find_site_id(g_sitelist, item.domain, dstat._site_id, &dstat._user_id);
-
-	auto & logsstat = dstat._stats[item.time_local];
-	if(!item.is_hit){
-		logsstat._bytes_m += item.bytes_sent;
-		++logsstat._access_m[item.status];
-	}
-
-	/*if NOT required, we needn't statistics it*/
-	if(plcdn_la_opt.output_nginx_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
-		//FIXME: test me! @date 2016/11
-		auto len = strlen(item.request_url);
-		char buff[64];
-		sha1sum_r(item.request_url, len, buff);
-		url_stat& urlstat = logsstat._url_stats[buff];
-		++urlstat._status[item.status];
-		urlstat._bytes[item.status] += item.bytes_sent;
-	}
-
-	if(plcdn_la_opt.output_file_ip_popular || plcdn_la_opt.output_file_ip_slowfast){
-		ip_stat& ipstat =logsstat._ip_stats[item.client_ip];
-		ipstat.bytes += item.bytes_sent;
-		ipstat.sec += item.request_time;
-		++ipstat.access;
-
-	}
-	if(plcdn_la_opt.output_file_cutip_slowfast){
-		auto & cutipstat = logsstat._cuitip_stats[item.client_ip];
-		cutipstat.bytes += item.bytes_sent;
-		cutipstat.sec += item.request_time;
-	}
-	if(plcdn_la_opt.output_file_ip_source){
-		/*FIXME, @date 2016/11/11*/
-//		if(plcdn_la_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
-//			return 0;
-		locisp_stat& listat = logsstat._locisp_stats[item.client_ip];
-		listat.bytes += item.bytes_sent;
-		++listat.access;
-		if(!item.is_hit){
-			listat.bytes_m += item.bytes_sent;
-			++listat.access_m;
-		}
-	}
-
-	if(item.beg && item.end)
-		logsstat._logs.push_back(std::make_pair<>(item.beg, item.end));
 	return 0;
 }
 
@@ -347,7 +292,7 @@ int parse_nginx_log_item_buf(parse_context& ct)
 		if(result == 0){
 			auto is_time_in = is_time_in_range(item.time_local, plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
 			if(is_time_in)
-				do_nginx_log_stats(item, logstats);
+				do_nginx_log_stats(item, plcdn_la_opt, g_sitelist, logstats);
 		}
 		else {
 			//current line failed, move to next line
@@ -605,7 +550,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		}
 
 		if(plcdn_la_opt.work_mode == 2)	{ /* rotate mode */
-			auto result = nginx_rotate_log(plcdn_la_opt.nginx_rotate_dir, nginx_log_file, nginx_logstats);
+			auto result = nginx_rotate_log(plcdn_la_opt.nginx_rotate_dir, nginx_log_file, g_nginx_total_line, nginx_logstats);
 		}
 		else{	/* analysis mode */
 			auto fno = fileno(nginx_log_file);

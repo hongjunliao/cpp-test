@@ -77,6 +77,7 @@ struct plcdn_la_options
 /*for ngnx_log_analysis*/
 	char const * nginx_log_file;
 	char const * nginx_rotate_dir;				/* for work_mode == 2 */
+	int nginx_rotate_time;						/* for work_mode == 2, rotate time in seconds */
 	char const * devicelist_file;
 	char const * siteuidlist_file;
 	char const * ipmap_file;

@@ -7,6 +7,7 @@
 #include <time.h> /*strptime*/
 #include <string.h> /*strncpy*/
 #include <time.h> /*strptime*/
+#include "string_util.h"	/* sha1sum_r */
 #include "net_util.h"	/*netutil_get_ip_str*/
 
 int time_group::_sec = 300;
@@ -383,4 +384,88 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
 error_return:
 	fields[0] = '\0';
 	return -1;
+}
+
+int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,
+		std::unordered_map<std::string, site_info> const& sitelist,
+		std::unordered_map<std::string, nginx_domain_stat> & logstats)
+{
+	auto & dstat = logstats[item.domain];
+	if(dstat._site_id == 0)
+		find_site_id(sitelist, item.domain, dstat._site_id, &dstat._user_id);
+
+	auto & logsstat = dstat._stats[item.time_local];
+	if(!item.is_hit){
+		logsstat._bytes_m += item.bytes_sent;
+		++logsstat._access_m[item.status];
+	}
+
+	/*if NOT required, we needn't statistics it*/
+	if(plcdn_la_opt.output_nginx_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
+		//FIXME: test me! @date 2016/11
+		auto len = strlen(item.request_url);
+		char buff[64];
+		sha1sum_r(item.request_url, len, buff);
+		url_stat& urlstat = logsstat._url_stats[buff];
+		++urlstat._status[item.status];
+		urlstat._bytes[item.status] += item.bytes_sent;
+	}
+
+	if(plcdn_la_opt.output_file_ip_popular || plcdn_la_opt.output_file_ip_slowfast){
+		ip_stat& ipstat =logsstat._ip_stats[item.client_ip];
+		ipstat.bytes += item.bytes_sent;
+		ipstat.sec += item.request_time;
+		++ipstat.access;
+
+	}
+	if(plcdn_la_opt.output_file_cutip_slowfast){
+		auto & cutipstat = logsstat._cuitip_stats[item.client_ip];
+		cutipstat.bytes += item.bytes_sent;
+		cutipstat.sec += item.request_time;
+	}
+	if(plcdn_la_opt.output_file_ip_source){
+		/*FIXME, @date 2016/11/11*/
+//		if(plcdn_la_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
+//			return 0;
+		locisp_stat& listat = logsstat._locisp_stats[item.client_ip];
+		listat.bytes += item.bytes_sent;
+		++listat.access;
+		if(!item.is_hit){
+			listat.bytes_m += item.bytes_sent;
+			++listat.access_m;
+		}
+	}
+
+	if(item.beg && item.end)
+		logsstat._logs.push_back(std::make_pair<>(item.beg, item.end));
+	return 0;
+}
+
+int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
+		std::unordered_map<std::string, site_info> const& sitelist,
+		std::unordered_map<std::string, nginx_domain_stat> & logstats, size_t & failed_line)
+{
+	if(!file) return -1;
+
+	log_item item;
+    char buf[1024 * 10];
+    size_t n = 0;
+    while (fgets(buf, sizeof(buf), file)){
+		++n;
+		memset(&item, 0, sizeof(log_item));
+    	char * p = buf;
+		item.beg = p;
+		char *items[18];
+		int result = do_parse_nginx_log_item(items, p, '\n');
+    	if(result != 0){
+    		if(plcdn_la_opt.verbose > 4)
+    			fprintf(stderr, "%s: do_parse_nginx_log_item failed, line=%zu, skip\n", __FUNCTION__, n);
+    		++failed_line;
+    		continue;
+    	}
+    	result = do_nginx_log_stats(item, plcdn_la_opt, sitelist, logstats);
+    	if(result != 0)
+    		++failed_line;
+    }
+    return 0;
 }
