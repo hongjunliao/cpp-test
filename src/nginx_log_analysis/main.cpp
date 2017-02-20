@@ -35,23 +35,6 @@
 
 /*tests, @see nginx_log_analysis/test.cpp*/
 extern int test_nginx_log_analysis_main(int argc, char ** argv);
-/*!
- * parse ' ' splitted nginx log
- * @NOTE:
- * 1.current nginx_log format:
- * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method \
- * $request_uri $server_protocol" $status $bytes_sent \
- * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" \
- * $scheme $request_length $upstream_response_time', total fields == 18
- *
- * nginx_log sample:
- * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
- * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
- * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
-
- * TODO:make it customizable
- * */
-static int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
 /*parse nginx_log buffer @apram ct, and output results*/
 static int parse_nginx_log_item_buf(parse_context& ct);
 /* split file @param f into parts, use pthread to parallel parse*/
@@ -245,59 +228,6 @@ static int get_device_id(std::unordered_map<std::string, int> const & devicelist
 		}
 	}
 	return 0;
-}
-
-int do_parse_nginx_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
-{
-//	for(char * ch = szitem; ; ++ch) { fprintf(stdout, "%c", *ch); if(*ch == delim) break; }
-	auto arg_start = false;
-	int field_count = 0;
-
-	auto q = szitem;
-	for(auto p = szitem; ; ++q){
-		if(*q == '"'){
-			if(!arg_start) {
-				arg_start = true;
-				p = q + 1;
-			}
-			else{
-				arg_start = false;
-				if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
-//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
-					goto error_return;
-				}
-				*q = '\0';
-				fields[field_count++] = p;
-				++q;
-				if(*q == delim)
-					break;
-				p = q + 1;
-			}
-			continue;
-		}
-		if(arg_start && *q == delim){
-//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
-			goto error_return;
-		}
-		if(!arg_start && (*q == ' ' || *q == delim)){
-			fields[field_count++] = p;
-			auto c = *q;
-			*q = '\0';
-			if(c == delim){
-				break;
-			}
-			p = q + 1;
-		}
-	}
-	szitem = q;
-//	for(int i  = 0; i < field_count; ++i){
-//		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
-//	}
-
-	return 0;
-error_return:
-	fields[0] = '\0';
-	return -1;
 }
 
 /*for str_find()*/

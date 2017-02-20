@@ -76,6 +76,7 @@ struct plcdn_la_options
 {
 /*for ngnx_log_analysis*/
 	char const * nginx_log_file;
+	char const * nginx_rotate_dir;				/* for work_mode == 2 */
 	char const * devicelist_file;
 	char const * siteuidlist_file;
 	char const * ipmap_file;
@@ -126,8 +127,7 @@ struct plcdn_la_options
 	int print_device_id;
 /**/
 	int enable_multi_thread;	/*enalbe_multi_thread?*/
-/* work mode, 0: analysis mode: analysis log files
- * 1: merge_srs_flow */
+/* work mode, 0: analysis mode: analysis log files; 1: merge_srs_flow; 2: rotate */
 	int work_mode;
 /* append/merge table */
 	int append_flow_nginx;		/* append other(currently srs) flow to nginx output, 0 or 1, default 0 */

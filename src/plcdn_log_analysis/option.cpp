@@ -21,6 +21,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
 		.nginx_log_file = NULL,
+		.nginx_rotate_dir = NULL,
 		.devicelist_file = "devicelist.txt",
 		.siteuidlist_file = "siteuidlist.txt",
 		.ipmap_file = "iplocation.bin",
@@ -75,6 +76,7 @@ static poptContext pc = 0;
 static struct poptOption plcdn_la_popt[] = {
 	  /* longName, shortName, argInfo, argPtr, value, descrip, argDesc */
 	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file", 0 },
+	{"nginx-rotate-dir",        0,    POPT_ARG_STRING,   0, 'A', "directory for rotate, also set work_mode to rotate, see NOTES for details", 0 },
 	{"begin-time",             	0,    POPT_ARG_STRING,   0, 'D', "time_range, begin time, see NOTES for details", 0 },
 	{"end-time",          		0,    POPT_ARG_STRING,   0, 'I', "time_range, end time", 0 },
 	{"no-merge-datetime",
@@ -174,6 +176,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		break;
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
+		case 'A': { plcdn_la_opt.work_mode = 2; plcdn_la_opt.nginx_rotate_dir = poptGetOptArg(pc); } break;
 		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
 		case 'L': plcdn_la_opt.no_merge_datetime = 1; break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
@@ -243,9 +246,9 @@ void plcdn_la_show_help(FILE * stream)
 	poptPrintHelp(pc, stream, 0);
 	fprintf(stream, "NOTES:\n"
 			"  1.work_mode\n"
-			"    analysis: analysis log files and output result tables, default\n"
-			"    merge_srs_flow: merge srs_flow_table(--merge-srs-flow)\n"
-			"      output format: '${datetime} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
+			"    analysis: analysis log file and output result tables, for a single log file(usually huge), default\n"
+			"    rotate: rotate log file(usually continuous, periodic log pieces from a daemon), analysis and output result tables(update if needed)\n"
+			"    merge_srs_flow: merge srs_flow_table(use --merge-srs-flow). output format: '${datetime} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  2.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
 	        "    ${datetime}   current date time, format YYYYmmDDHHMM\n"
 			"    ${interval}   according to option --interval, in minute, format YYYYmmDDHHMM\n"
@@ -315,7 +318,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		strftime(etime, sizeof(etime), "%Y-%m-%d", localtime_r(&opt.end_time, &etmbuf));
 	}
 	fprintf(stream,
-			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
@@ -329,6 +332,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
+		, "nginx_rotate_dir", opt.nginx_rotate_dir
 		, "begin_time", btime
 		, "end_time", etime
 
@@ -374,7 +378,9 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "output_split_srs_log", opt.output_split_srs_log
 		, "format_split_srs_log", opt.format_split_srs_log
 
-		, "work_mode", (opt.work_mode == 0? "analysis" : (opt.work_mode == 1? "merge_srs_flow" : "<error>"))
+		, "work_mode", (opt.work_mode == 0? "analysis"
+					: (opt.work_mode == 1? "merge_srs_flow"
+					: (opt.work_mode == 2? "rotate" : "<error>")))
 		, "append_flow_nginx", opt.append_flow_nginx
 		, "device_id", opt.device_id
 		, "print_device_id", opt.print_device_id

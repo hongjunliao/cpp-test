@@ -331,3 +331,56 @@ bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end)
 		return t < end;
 	return false;	/* never comes here */
 }
+
+int do_parse_nginx_log_item(char** fields, char*& szitem, char delim/* = '\0'*/)
+{
+//	for(char * ch = szitem; ; ++ch) { fprintf(stdout, "%c", *ch); if(*ch == delim) break; }
+	auto arg_start = false;
+	int field_count = 0;
+
+	auto q = szitem;
+	for(auto p = szitem; ; ++q){
+		if(*q == '"'){
+			if(!arg_start) {
+				arg_start = true;
+				p = q + 1;
+			}
+			else{
+				arg_start = false;
+				if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
+//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
+					goto error_return;
+				}
+				*q = '\0';
+				fields[field_count++] = p;
+				++q;
+				if(*q == delim)
+					break;
+				p = q + 1;
+			}
+			continue;
+		}
+		if(arg_start && *q == delim){
+//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
+			goto error_return;
+		}
+		if(!arg_start && (*q == ' ' || *q == delim)){
+			fields[field_count++] = p;
+			auto c = *q;
+			*q = '\0';
+			if(c == delim){
+				break;
+			}
+			p = q + 1;
+		}
+	}
+	szitem = q;
+//	for(int i  = 0; i < field_count; ++i){
+//		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
+//	}
+
+	return 0;
+error_return:
+	fields[0] = '\0';
+	return -1;
+}

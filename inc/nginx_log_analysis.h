@@ -248,5 +248,23 @@ int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
 
 /* if @param t in [@param begin, @param end) return true */
 bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end);
+
+/*!
+ * parse ' ' splitted nginx log
+ * @NOTE:
+ * 1.current nginx_log format:
+ * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method \
+ * $request_uri $server_protocol" $status $bytes_sent \
+ * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" \
+ * $scheme $request_length $upstream_response_time', total fields == 18
+ *
+ * nginx_log sample:
+ * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
+ * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
+ * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
+
+ * TODO:make it customizable
+ * */
+int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
 #endif /*_NGINX_LOG_ANALYSIS_H_*/
 
