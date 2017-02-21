@@ -56,14 +56,6 @@ static int parse_nginx_log_item_buf(parse_context& ct);
 static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_stat,
 		std::unordered_map<std::string, nginx_domain_stat> & stats);
 
-/* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
- * @param mode:
- * mode 0, url endwith ' ', reserve all, e.g. "POST /zzz.asp;.jpg HTTP/1.1", return "/zzz.asp;.jpg"
- * mode 1, url endwith '?'(if no '?', then endwith ' '), ignore parameters, e.g. "GET /V3/?page_id=1004&cid=1443 HTTP/1.1", return "/V3/"
- * mode 2, custom, @param cache_status required
- * */
-static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode = 2);
-
 /*load devicelist, @param devicelist map<ip, device_id>*/
 static int load_devicelist(char const* file, std::unordered_map<std::string, int>& devicelist);
 
@@ -99,7 +91,7 @@ extern int fwrite_srs_log_by_sid(std::unordered_map<int, srs_sid_log> & slogs, c
 extern int merge_srs_flow_user(int argc, char ** argv);
 
 /* nginx_rotate.cpp */
-extern int nginx_rotate_log(char const * rotate_dir, FILE * logfile, size_t& total_line,
+extern int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, size_t& total_line,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*GLOBAL vars*/
@@ -120,70 +112,6 @@ time_t g_plcdn_la_start_time = 0;
 int g_plcdn_la_device_id = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode/* = 2*/)
-{
-	auto url = strchr(request_uri, '/'); /*"GET /abc?param1=abc"*/
-	if(!url) return NULL;
-	auto pos = strchr(url, ' ');
-	auto m = plcdn_la_opt.parse_url_mode;
-	if(m == 1){
-		auto p = strchr(url, '?');
-		if(p) pos = p;
-	}
-	else if(m == 2){
-		auto miss0 = strrchr(cache_status, '0');
-		auto pos1 = strchr(url, '?'), pos2 = strchr(url, ';');
-		if(miss0 && (pos1 || pos2)){
-			if(pos1 && pos2)
-				pos = std::min(pos1, pos2);
-			else{
-				pos = (pos1? pos1 : pos2);
-			}
-		}
-	}
-	auto length = pos - url;
-	url[length] = '\0';
-	if(len)
-		*len = length;
-	return url;
-}
-
-static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/)
-{
-	memset(&item, 0, sizeof(log_item));
-	item.beg = logitem;
-	char *items[18];
-	int result = do_parse_nginx_log_item(items, logitem, delim);
-	if(result != 0){
-		return 1;
-	}
-	item.end = logitem;
-
-	item.domain = items[0];
-//	item.client_ip_2 = items[1];
-	item.client_ip = netutil_get_ip_from_str(items[1]);
-	if(item.client_ip == 0)
-		return 1;
-
-	char * end;
-	item.request_time = strtoul(items[2], &end, 10);
-	/*format: [17/Sep/2016:00:26:08 +0800]*/
-	tm my_tm;
-	if(!strptime(items[4] + 1, "%d/%b/%Y:%H:%M:%S" , &my_tm))
-		return -1;
-	my_tm.tm_isdst = 0;
-	item.time_local = mktime(&my_tm);
-
-	auto url = parse_nginx_log_request_uri_url(items[6], NULL, items[3]);
-	if(!url) return -1;
-	item.request_url = url;
-
-	char const * p = items[8];
-	item.bytes_sent = strtoul(p, &end, 10);
-	item.status = atoi(items[7]);
-	item.is_hit = (strcmp(items[3],"HIT") == 0);
-	return 0;
-}
 
 int load_devicelist(char const* file, std::unordered_map<std::string, int>& devicelist)
 {
@@ -550,7 +478,10 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		}
 
 		if(plcdn_la_opt.work_mode == 2)	{ /* rotate mode */
-			auto result = nginx_rotate_log(plcdn_la_opt.nginx_rotate_dir, nginx_log_file, g_nginx_total_line, nginx_logstats);
+			auto result = nginx_rotate_log(plcdn_la_opt.nginx_rotate_dir, plcdn_la_opt.nginx_rotate_time,
+							nginx_log_file, g_nginx_total_line, nginx_logstats);
+			if(result != 0 && plcdn_la_opt.verbose)
+				fprintf(stderr, "%s: nginx_rotate_log failed, re-run required\n", __FUNCTION__);
 		}
 		else{	/* analysis mode */
 			auto fno = fileno(nginx_log_file);

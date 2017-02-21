@@ -34,6 +34,12 @@ static std::string parse_nginx_split_filename(char const * fmt,
 static void fwrite_nginx_raw_log(FILE * f, std::vector<nginx_raw_log_t> const& logs, size_t & n)
 {
 	for(auto & item : logs){
+		if(!item.buff.empty()){
+			auto result = fwrite(item.buff.c_str(), sizeof(char), item.buff.size(), f);
+			if(result < item.buff.size() || ferror(f))
+				++n;
+			continue;
+		}
 		//FIXME: is it possible?
 		if(!item.first || !item.second){
 			continue;

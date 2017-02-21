@@ -555,12 +555,22 @@ int merge_nginx_flow_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.datetime, item.site_id, item.device_id, item.user_id);
     	auto & val = merge_map[k];
-    	std::get<0>(val) += item.num_total;
-    	std::get<1>(val) += item.bytes_total;
-    	std::get<2>(val) += item.pvs_m;
-    	std::get<3>(val) += item.px_m;
-    	std::get<4>(val) += item.srs_in;
-    	std::get<5>(val) += item.srs_out;
+    	if(plcdn_la_opt.work_mode == 2){	/* overwrite when work in rotate mode */
+        	std::get<0>(val) = item.num_total;
+        	std::get<1>(val) = item.bytes_total;
+        	std::get<2>(val) = item.pvs_m;
+        	std::get<3>(val) = item.px_m;
+        	std::get<4>(val) = item.srs_in;
+        	std::get<5>(val) = item.srs_out;
+    	}
+    	else{
+			std::get<0>(val) += item.num_total;
+			std::get<1>(val) += item.bytes_total;
+			std::get<2>(val) += item.pvs_m;
+			std::get<3>(val) += item.px_m;
+			std::get<4>(val) += item.srs_in;
+			std::get<5>(val) += item.srs_out;
+    	}
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
@@ -604,14 +614,26 @@ int merge_nginx_url_popular_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.datetime, item.url_key);
     	auto & val = merge_map[k];
-    	std::get<0>(val) += item.num_total;
-    	std::get<1>(val) += item.num_200; std::get<2>(val) += item.size_200;
-    	std::get<3>(val) += item.num_206; std::get<4>(val) += item.size_206;
-    	std::get<5>(val) += item.num_301302; std::get<6>(val) += item.num_304;
-    	std::get<7>(val) += item.num_403; std::get<8>(val) += item.num_404;
-    	std::get<9>(val) += item.num_416; std::get<10>(val) += item.num_499;
-    	std::get<11>(val) += item.num_500; std::get<12>(val) += item.num_502;
-    	std::get<13>(val) += item.num_other;
+    	if(plcdn_la_opt.work_mode == 2){
+        	std::get<0>(val) = item.num_total;
+        	std::get<1>(val) = item.num_200; std::get<2>(val) = item.size_200;
+        	std::get<3>(val) = item.num_206; std::get<4>(val) = item.size_206;
+        	std::get<5>(val) = item.num_301302; std::get<6>(val) = item.num_304;
+        	std::get<7>(val) = item.num_403; std::get<8>(val) = item.num_404;
+        	std::get<9>(val) = item.num_416; std::get<10>(val) = item.num_499;
+        	std::get<11>(val) = item.num_500; std::get<12>(val) = item.num_502;
+        	std::get<13>(val) = item.num_other;
+    	}
+    	else{
+			std::get<0>(val) += item.num_total;
+			std::get<1>(val) += item.num_200; std::get<2>(val) += item.size_200;
+			std::get<3>(val) += item.num_206; std::get<4>(val) += item.size_206;
+			std::get<5>(val) += item.num_301302; std::get<6>(val) += item.num_304;
+			std::get<7>(val) += item.num_403; std::get<8>(val) += item.num_404;
+			std::get<9>(val) += item.num_416; std::get<10>(val) += item.num_499;
+			std::get<11>(val) += item.num_500; std::get<12>(val) += item.num_502;
+			std::get<13>(val) += item.num_other;
+    	}
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
@@ -646,7 +668,12 @@ int merge_nginx_ip_popular_datetime(FILE *& f)
     std::unordered_map<merge_nginx_ip_popular_key_t, size_t> merge_map;
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.site_id, item.device_id, item.ip, item.datetime);
-    	merge_map[k] += item.num;
+    	if(plcdn_la_opt.work_mode == 2){
+    		merge_map[k] = item.num;
+    	}
+    	else{
+    		merge_map[k] += item.num;
+    	}
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
@@ -678,8 +705,15 @@ int merge_nginx_http_stats_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.site_id, item.device_id, item.httpstatus, item.datetime);
     	auto & val = merge_map[k];
-    	std::get<0>(val) += item.num;
-    	std::get<1>(val) += item.num_m;
+    	if(plcdn_la_opt.work_mode == 2){
+        	std::get<0>(val) = item.num;
+        	std::get<1>(val) = item.num_m;
+    	}
+    	else{
+        	std::get<0>(val) += item.num;
+        	std::get<1>(val) += item.num_m;
+    	}
+
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
@@ -712,10 +746,18 @@ int merge_nginx_ip_source_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.datetime, item.local_id, item.isp_id, item.device_id);
     	auto & val = merge_map[k];
-    	std::get<0>(val) += item.pvs;
-    	std::get<1>(val) += item.tx;
-    	std::get<2>(val) += item.pvs_m;
-    	std::get<3>(val) += item.tx_m;
+    	if(plcdn_la_opt.work_mode == 2){
+			std::get<0>(val) = item.pvs;
+			std::get<1>(val) = item.tx;
+			std::get<2>(val) = item.pvs_m;
+			std::get<3>(val) = item.tx_m;
+    	}
+    	else{
+			std::get<0>(val) += item.pvs;
+			std::get<1>(val) += item.tx;
+			std::get<2>(val) += item.pvs_m;
+			std::get<3>(val) += item.tx_m;
+    	}
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
@@ -750,8 +792,13 @@ int merge_nginx_cutip_slowfast_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.device_id, item.datetime, item.ip);
     	auto & val = merge_map[k];
-    	/* FIXME: speed = total_bytes / time_in_sec */
-    	val = std::max(val, item.speed);
+    	if(plcdn_la_opt.work_mode == 2){
+    		val = item.speed;
+    	}
+    	else{
+        	/* FIXME: speed = total_bytes / time_in_sec */
+        	val = std::max(val, item.speed);
+    	}
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
@@ -782,9 +829,14 @@ int merge_nginx_ip_slowfast_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.device_id, item.ip, item.datetime);
     	auto & val = merge_map[k];
-    	/* FIXME: speed = total_bytes / time_in_sec */
-    	std::get<0>(val) = std::max(std::get<0>(val), item.speed);
-    	/* FIXME: type? */
+    	if(plcdn_la_opt.work_mode == 2){
+    		std::get<0>(val) = item.speed;
+    	}
+    	else{
+        	/* FIXME: speed = total_bytes / time_in_sec */
+        	std::get<0>(val) = std::max(std::get<0>(val), item.speed);
+        	/* FIXME: type? */
+    	}
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){

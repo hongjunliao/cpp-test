@@ -177,7 +177,11 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		break;
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
-		case 'A': { plcdn_la_opt.work_mode = 2; plcdn_la_opt.nginx_rotate_dir = poptGetOptArg(pc); } break;
+		case 'A': {
+				plcdn_la_opt.work_mode = 2;
+				plcdn_la_opt.nginx_rotate_dir = poptGetOptArg(pc);
+				plcdn_la_opt.no_merge_datetime = 0;
+			} break;
 		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
 		case 'L': plcdn_la_opt.no_merge_datetime = 1; break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
@@ -248,7 +252,8 @@ void plcdn_la_show_help(FILE * stream)
 	fprintf(stream, "NOTES:\n"
 			"  1.work_mode\n"
 			"    analysis: analysis log file and output result tables, for a single log file(usually huge), default\n"
-			"    rotate: rotate log file(usually continuous, periodic log pieces from a daemon), analysis and output result tables(update if needed)\n"
+			"    rotate: rotate log file(usually continuous, periodic log pieces from a daemon), analysis and output result tables(update it if needed)\n"
+			"            NOTE in this mode, option 'no-merge-datetime' is ignored and always be OFF\n"
 			"    merge_srs_flow: merge srs_flow_table(use --merge-srs-flow). output format: '${datetime} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  2.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
 	        "    ${datetime}   current date time, format YYYYmmDDHHMM\n"
@@ -319,7 +324,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		strftime(etime, sizeof(etime), "%Y-%m-%d", localtime_r(&opt.end_time, &etmbuf));
 	}
 	fprintf(stream,
-			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
@@ -334,6 +339,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "nginx_rotate_dir", opt.nginx_rotate_dir
+		, "nginx_rotate_time", opt.nginx_rotate_time
 		, "begin_time", btime
 		, "end_time", etime
 

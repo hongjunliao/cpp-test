@@ -108,7 +108,7 @@ static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, cha
 	return url;
 }
 
-static int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/)
+static int parse_log_item_2(log_item & item, char *& logitem, char delim /*= '\0'*/)
 {
 	memset(&item, 0, sizeof(log_item));
 	char *items[18];

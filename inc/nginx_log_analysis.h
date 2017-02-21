@@ -36,6 +36,7 @@ struct log_item{
 	int status;
 	bool is_hit;
 };
+
 //////////////////////////////////////////////////////////////////////////////////
 /*@see load_sitelist*/
 struct site_info{
@@ -177,7 +178,20 @@ template<> struct hash<cutip_group>
 
 //////////////////////////////////////////////////////////////////////////////////
 //for nginx origin log, pair<beg, end>
-typedef std::pair<char *, char *> nginx_raw_log_t;
+struct nginx_raw_log: public std::pair<char *, char *>
+{
+	/* a nginx_raw_log is either a std::pair<char *, char *>, which from mmap call
+	 * (the 'first' and 'second' member should always be valid before munmap called)
+	 * or a buffer(std::string),  which from fgets(or getline, etc) call
+	 * */
+	std::string buff;
+
+	nginx_raw_log(std::pair<char *, char *> const& val);
+	nginx_raw_log(std::string const& val);
+	nginx_raw_log(char const* val = "");
+};
+
+typedef nginx_raw_log nginx_raw_log_t;
 
 /*!
  * log statistics
@@ -267,6 +281,13 @@ bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end);
  * TODO:make it customizable
  * */
 int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
+
+/* overloaded version, return array of  std::pair, will NOT modify @param szitem */
+int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, char const * szitem, char delim = '\0');
+
+/* parse ' ' splitted nginx log into log_item @param item
+ * @return 0 on success */
+int parse_log_item(log_item & item, char *& logitem, char delim = '\0', int parse_url_mode = 2);
 
 /*do log statistics with time interval*/
 int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,

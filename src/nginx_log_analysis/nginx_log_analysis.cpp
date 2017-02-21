@@ -10,6 +10,44 @@
 #include "string_util.h"	/* sha1sum_r */
 #include "net_util.h"	/*netutil_get_ip_str*/
 
+
+/* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
+ * @param mode:
+ * mode 0, url endwith ' ', reserve all, e.g. "POST /zzz.asp;.jpg HTTP/1.1", return "/zzz.asp;.jpg"
+ * mode 1, url endwith '?'(if no '?', then endwith ' '), ignore parameters, e.g. "GET /V3/?page_id=1004&cid=1443 HTTP/1.1", return "/V3/"
+ * mode 2, custom, @param cache_status required
+ * */
+static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode = 2);
+
+static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode/* = 2*/)
+{
+	auto url = strchr(request_uri, '/'); /*"GET /abc?param1=abc"*/
+	if(!url) return NULL;
+	auto pos = strchr(url, ' ');
+	if(mode == 1){
+		auto p = strchr(url, '?');
+		if(p) pos = p;
+	}
+	else if(mode == 2){
+		auto miss0 = strrchr(cache_status, '0');
+		auto pos1 = strchr(url, '?'), pos2 = strchr(url, ';');
+		if(miss0 && (pos1 || pos2)){
+			if(pos1 && pos2)
+				pos = std::min(pos1, pos2);
+			else{
+				pos = (pos1? pos1 : pos2);
+			}
+		}
+	}
+	auto length = pos - url;
+	url[length] = '\0';
+	if(len)
+		*len = length;
+	return url;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 int time_group::_sec = 300;
 time_group::time_group(char const * strtime)
 : _t(0)
@@ -200,6 +238,26 @@ std::size_t std::hash<cutip_group>::operator()(cutip_group const& val) const
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+nginx_raw_log::nginx_raw_log(std::pair<char *, char *> const& val)
+/*: first(val.first), second(val.second)*/
+{
+	first = val.first;
+	second = val.second;
+}
+
+nginx_raw_log::nginx_raw_log(std::string const& val)
+: buff(val)
+{
+	first = second = NULL;
+}
+
+nginx_raw_log::nginx_raw_log(char const* val)
+: buff(val)
+{
+	first = second = NULL;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 nginx_log_stat::nginx_log_stat()
 : _bytes_m(0)
 {
@@ -386,6 +444,96 @@ error_return:
 	return -1;
 }
 
+int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, char const * szitem, char delim /*= '\0'*/)
+{
+//	for(char * ch = szitem; ; ++ch) { fprintf(stdout, "%c", *ch); if(*ch == delim) break; }
+	auto arg_start = false;
+	int field_count = 0;
+
+	auto q = szitem;
+	for(auto p = szitem; ; ++q){
+		if(*q == '"'){
+			if(!arg_start) {
+				arg_start = true;
+				p = q + 1;
+			}
+			else{
+				arg_start = false;
+				if(!(*(q + 1) == ' ' || *(q + 1) == delim)){
+//					fprintf(stderr, "%s: parse error at %s\n", __FUNCTION__, q);
+					goto error_return;
+				}
+//				*q = '\0';
+				fields[field_count++] = std::make_pair(p, q);
+				++q;
+				if(*q == delim)
+					break;
+				p = q + 1;
+			}
+			continue;
+		}
+		if(arg_start && *q == delim){
+//			fprintf(stderr, "%s: parse error\n", __FUNCTION__);
+			goto error_return;
+		}
+		if(!arg_start && (*q == ' ' || *q == delim)){
+			fields[field_count++] = std::make_pair(p, q);;
+			auto c = *q;
+//			*q = '\0';
+			if(c == delim){
+				break;
+			}
+			p = q + 1;
+		}
+	}
+//	for(int i  = 0; i < field_count; ++i){
+//		fprintf(stdout, "%s: argv[%02d]:", __FUNCTION__, i);
+//		for(auto p = fields[i].first; p != fields[i].second; ++p)
+//			fprintf(stdout, "%c", *p);
+//		fprintf(stdout, "\n");
+//	}
+	return 0;
+error_return:
+	return -1;
+}
+
+int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int parse_url_mode/* = 2*/)
+{
+	memset(&item, 0, sizeof(log_item));
+	item.beg = logitem;
+	char *items[18];
+	int result = do_parse_nginx_log_item(items, logitem, delim);
+	if(result != 0){
+		return 1;
+	}
+	item.end = logitem;
+
+	item.domain = items[0];
+//	item.client_ip_2 = items[1];
+	item.client_ip = netutil_get_ip_from_str(items[1]);
+	if(item.client_ip == 0)
+		return 1;
+
+	char * end;
+	item.request_time = strtoul(items[2], &end, 10);
+	/*format: [17/Sep/2016:00:26:08 +0800]*/
+	tm my_tm;
+	if(!strptime(items[4] + 1, "%d/%b/%Y:%H:%M:%S" , &my_tm))
+		return -1;
+	my_tm.tm_isdst = 0;
+	item.time_local = mktime(&my_tm);
+
+	auto url = parse_nginx_log_request_uri_url(items[6], NULL, items[3], parse_url_mode);
+	if(!url) return -1;
+	item.request_url = url;
+
+	char const * p = items[8];
+	item.bytes_sent = strtoul(p, &end, 10);
+	item.status = atoi(items[7]);
+	item.is_hit = (strcmp(items[3],"HIT") == 0);
+	return 0;
+}
+
 int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,
 		std::unordered_map<std::string, site_info> const& sitelist,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats)
@@ -436,7 +584,8 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 		}
 	}
 
-	if(item.beg && item.end)
+	/* @NOTES: push only when plcdn_la_opt.work_mode == 0 !!!  */
+	if(plcdn_la_opt.work_mode == 0 && item.beg && item.end)
 		logsstat._logs.push_back(std::make_pair<>(item.beg, item.end));
 	return 0;
 }
@@ -445,18 +594,16 @@ int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
 		std::unordered_map<std::string, site_info> const& sitelist,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats, size_t & failed_line)
 {
+	fprintf(stderr, "%s: file = %p\n", __FUNCTION__, file);
 	if(!file) return -1;
 
 	log_item item;
-    char buf[1024 * 10];	/* 1 row of log */
+    char buf[1024 * 10];	/* max length of 1 row */
     size_t n = 0;
     while (fgets(buf, sizeof(buf), file)){
 		++n;
-		memset(&item, 0, sizeof(log_item));
-    	char * p = buf;
-		item.beg = p;
-		char *items[18];
-		int result = do_parse_nginx_log_item(items, p, '\n');
+		auto * p = buf;
+		int result = parse_log_item(item, p, '\n', plcdn_la_opt.parse_url_mode);
     	if(result != 0){
     		if(plcdn_la_opt.verbose > 4)
     			fprintf(stderr, "%s: do_parse_nginx_log_item failed, line=%zu, skip\n", __FUNCTION__, n);
