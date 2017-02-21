@@ -337,6 +337,8 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 	for(auto const& dstat : stats){
 		auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
 		for(auto const& item : dstat.second._stats){
+			if(item.second.empty())
+				continue;
 			char buft[32];
 			if(plcdn_la_opt.output_nginx_flow){
 				auto outname = std::string(plcdn_la_opt.output_nginx_flow) +

@@ -216,7 +216,7 @@ public:
 	/* @date 2017/02/16 bytes from srs, @see append_flow_nginx */
 	size_t srs_in, srs_out;
 public:
-		std::vector<nginx_raw_log_t> _logs;
+	std::vector<nginx_raw_log_t> _logs;
 public:
 	nginx_log_stat();
 public:
@@ -226,6 +226,8 @@ public:
 	size_t access_m() const;
 	size_t access(int code1, int code2 = -1) const;
 	nginx_log_stat& operator+=(nginx_log_stat const& another);
+public:
+	bool empty() const;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

@@ -320,6 +320,11 @@ nginx_log_stat& nginx_log_stat::operator+=(nginx_log_stat const& another)
 	return *this;
 }
 
+bool nginx_log_stat::empty() const
+{
+	return _url_stats.empty() && _ip_stats.empty() && _cuitip_stats.empty() &&
+			_locisp_stats.empty() && _bytes_m == 0 && _access_m.empty() && srs_in == 0 && srs_out == 0;
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
 		const char* site, int & siteid, int * user_id)

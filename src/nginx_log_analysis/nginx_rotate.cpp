@@ -21,7 +21,6 @@ extern struct plcdn_la_options plcdn_la_opt;
 
 struct rotate_file
 {
-	std::string domain;
 	FILE * file;
 };
 
@@ -43,19 +42,19 @@ static void nginx_rotate_remove_expire(char const * rotate_dir, time_t now, int 
 {
 	if(expire_sec <= 0)
 		return;
-	char buff[32] = "";
-	tm t;
-	strftime(buff, sizeof(buff), "%Y%m%d%H%M%S", localtime_r(&now, &t));
-	auto id_2 = std::stoull(buff);
-
 	std::vector<std::string> vec;
 	for(boost::filesystem::directory_iterator it(rotate_dir), end; it != end; ++it){
 		auto fname = it->path().filename().string();
 		static boost::regex const re("[0-9]{12}");
 		if(!boost::filesystem::is_regular_file(*it) || !boost::regex_match(fname, re))
 			continue;
-		auto id_1 = std::stoull(fname) * 100;	/* x100 for seconds, see nginx_rotate_append_log */
-		if(id_2 - id_1 > (size_t)expire_sec)
+		tm my_tm;
+		char const * result = strptime(fname.c_str(), "%Y%m%d%H%M" , &my_tm);
+		if(!result)
+			continue;
+		my_tm.tm_isdst = 0;
+		auto t = mktime(&my_tm);
+		if(std::difftime(now, t) > (size_t)expire_sec)
 			vec.push_back(it->path().string());
 	}
 	if(!vec.empty() && plcdn_la_opt.verbose > 2){
@@ -121,9 +120,17 @@ static void nginx_rotate_get_lasttime(char const * rotate_dir, time_t & t)
 		static boost::regex const re("[0-9]{12}");
 		if(!boost::filesystem::is_regular_file(*it) || !boost::regex_match(fname, re))
 			continue;
-		auto id = std::stoull(fname) * 100;	/* x100 for seconds, see nginx_rotate_append_log */
-		if(id > t)
-			t = id;
+
+		tm my_tm;
+		char const * result = strptime(fname.c_str(), "%Y%m%d%H%M" , &my_tm);
+		if(!result)
+			continue;
+		my_tm.tm_isdst = 0;
+
+		auto t2 = mktime(&my_tm);
+
+		if(t2 > t)
+			t = t2;
 	}
 }
 
@@ -155,6 +162,7 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
 	}
 	time_t rotatedt = 0;
 	nginx_rotate_get_lasttime(rotate_dir, rotatedt);
+
 	size_t failed_line = 0;	/* total_lines for parse failed */
 	/* append log by time first */
     time_t lastt = 0;	/* last time*/
@@ -172,21 +180,22 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
     		++failed_line;
     		continue;
     	}
-    	/* try to sync rotate_dir with current log */
-    	auto difft = std::difftime(rotatedt, t);
-    	if(difft > (double)rotate_time)
-    		continue;	/* time too old, this row need to be skiped */
-    	if(-difft > (double)rotate_time){	/* rotate_dir too old, clean it */
-    		boost::system::error_code ec;
-    		auto r = boost::filesystem::remove_all(rotate_dir, ec);
-    	}
     	if(t > lastt)
     		lastt  = t;
-
+    	/* try to skip too old log, according to rotate_dir */
+    	if(rotatedt != 0){
+			auto difft = std::difftime(rotatedt, t);
+			if(difft > (double)rotate_time){
+				if(plcdn_la_opt.verbose > 3)
+					fprintf(stdout, "%s: WARNING!!! time too old, skipped. log:\n[%s]\n", __FUNCTION__, buf);
+				continue;	/* time too old, this row need to be skipped */
+			}
+    	}
     	time_group tg(t);
     	/* @NOTES: this is the ONLY place where we save the new comming logs, which is used in @see split_nginx_log
     	 * and we use std::string, NOT std::pair
     	 * TODO: compress buf? */
+    	/* FIXME: tool old log still be added if rodate_dir empty, added temporary */
     	logstats[domain]._stats[tg]._logs.push_back(buf);
 
 		result = nginx_rotate_append_log(rotate_dir, buf, tg, rmap[tg].file);
@@ -207,6 +216,17 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
 		fprintf(stdout, "%s: statistics ...\n", __FUNCTION__);
 	}
     for(auto & item: rmap){
+		char buft[32] = "<error>";
+		item.first.c_str_r(buft, sizeof(buft));
+
+		/* try to skip too old log, according to rotate_dir */
+    	boost::system::error_code ec;
+    	boost::filesystem::path fpath(rotate_dir);
+    	fpath /= buft;
+    	auto r = boost::filesystem::exists(fpath, ec);
+    	if(ec || !r)
+    		continue;
+
     	auto is_time_in = is_time_in_range(item.first.t(), plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
     	if(!is_time_in)
     		continue;
@@ -214,8 +234,6 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
     	f = std::freopen(NULL, "r", f);
 		if(!f){
 			if(plcdn_la_opt.verbose > 4){
-				char buft[32] = "<error>";
-				item.first.c_str_r(buft, sizeof(buft));
 				fprintf(stderr, "%s: freopen failed, skip! rotate_dir = '%s', file = '%s'\n", __FUNCTION__,
 						rotate_dir, buft);
 			}
