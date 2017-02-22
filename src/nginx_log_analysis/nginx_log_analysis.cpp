@@ -599,7 +599,7 @@ int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
 		std::unordered_map<std::string, site_info> const& sitelist,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats, size_t & failed_line)
 {
-	fprintf(stderr, "%s: file = %p\n", __FUNCTION__, file);
+//	fprintf(stderr, "%s: file = %p\n", __FUNCTION__, file);
 	if(!file) return -1;
 
 	log_item item;

@@ -253,7 +253,7 @@ void plcdn_la_show_help(FILE * stream)
 			"  1.work_mode\n"
 			"    analysis: analysis log file and output result tables, for a single log file(usually huge), default\n"
 			"    rotate: rotate log file(usually continuous, periodic log pieces from a daemon), analysis and output result tables(update it if needed)\n"
-			"            NOTE in this mode, option 'no-merge-datetime' is ignored and always be OFF\n"
+			"            NOTES: only available for nginx currently; option 'no-merge-datetime' is ignored and always be OFF in this mode\n"
 			"    merge_srs_flow: merge srs_flow_table(use --merge-srs-flow). output format: '${datetime} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  2.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
 	        "    ${datetime}   current date time, format YYYYmmDDHHMM\n"

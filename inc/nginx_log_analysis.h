@@ -227,6 +227,7 @@ public:
 	size_t access(int code1, int code2 = -1) const;
 	nginx_log_stat& operator+=(nginx_log_stat const& another);
 public:
+	/* if all members empty(except _logs), return true */
 	bool empty() const;
 };
 

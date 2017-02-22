@@ -24,6 +24,8 @@ struct rotate_file
 	FILE * file;
 };
 
+/* convert format "%Y%m%d%H%M" to time_t, return 0 if failed */
+static time_t s_to_time_t(std::string const& s);
 /* get last rotate time, if not exists set @param t to 0 */
 static void nginx_rotate_get_lasttime(char const * rotate_dir, time_t & t);
 
@@ -36,7 +38,21 @@ static void nginx_rotate_remove_expire(char const * rotate_dir, time_t now, int 
  * @return 0 onccess */
 static int nginx_rotate_append_log(char const * rotate_dir, char const * row, time_group const& tg, FILE *& f);
 
+/* save @param now to dir @param rotate_dir/.last_rotate_time
+ * @see nginx_rotate_get_lasttime */
+static void nginx_rotate_save_last_rotate_time(char const * rotate_dir, time_t now);
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static time_t s_to_time_t(std::string const& s)
+{
+	tm my_tm{ 0 };
+	char const * result = strptime(s.c_str(), "%Y%m%d%H%M" , &my_tm);
+	if(!result)
+		return 0;
+	my_tm.tm_isdst = 0;
+	auto ret = mktime(&my_tm);
+	return ret;
+}
 
 static void nginx_rotate_remove_expire(char const * rotate_dir, time_t now, int expire_sec)
 {
@@ -48,12 +64,7 @@ static void nginx_rotate_remove_expire(char const * rotate_dir, time_t now, int 
 		static boost::regex const re("[0-9]{12}");
 		if(!boost::filesystem::is_regular_file(*it) || !boost::regex_match(fname, re))
 			continue;
-		tm my_tm;
-		char const * result = strptime(fname.c_str(), "%Y%m%d%H%M" , &my_tm);
-		if(!result)
-			continue;
-		my_tm.tm_isdst = 0;
-		auto t = mktime(&my_tm);
+		auto t = s_to_time_t(fname);
 		if(std::difftime(now, t) > (size_t)expire_sec)
 			vec.push_back(it->path().string());
 	}
@@ -120,18 +131,13 @@ static void nginx_rotate_get_lasttime(char const * rotate_dir, time_t & t)
 		static boost::regex const re("[0-9]{12}");
 		if(!boost::filesystem::is_regular_file(*it) || !boost::regex_match(fname, re))
 			continue;
-
-		tm my_tm;
-		char const * result = strptime(fname.c_str(), "%Y%m%d%H%M" , &my_tm);
-		if(!result)
+		auto t2 = s_to_time_t(fname);
+		if(t2 == 0)
 			continue;
-		my_tm.tm_isdst = 0;
-
-		auto t2 = mktime(&my_tm);
-
 		if(t2 > t)
 			t = t2;
 	}
+//	fprintf(stdout, "%s: time = %ld\n", __FUNCTION__, t);
 }
 
 /* append log from file @param logfile one by one to dir @param rotate_dir,
@@ -149,7 +155,13 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
 	if(!rotate_dir || rotate_dir[0] == '\0')
 		return -1;
 	boost::system::error_code ec;
-	auto r = boost::filesystem::is_directory(rotate_dir, ec);
+	auto r = boost::filesystem::create_directory(rotate_dir, ec);
+	if(ec){
+		if(!logfile && plcdn_la_opt.verbose > 3)
+			fprintf(stderr, "%s: create_directory '%s' failed\n", __FUNCTION__, rotate_dir);
+		return -1;
+	}
+	r = boost::filesystem::is_directory(rotate_dir, ec);
 	if(!r || ec)
 		return -1;
 
@@ -157,15 +169,14 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
 		fprintf(stderr, "%s: logfile NULL, analysis rotate dir only\n", __FUNCTION__);
 	}
 
-	if(plcdn_la_opt.verbose > 4){
+	if(plcdn_la_opt.verbose > 4)
 		fprintf(stdout, "%s: rotating ...\n", __FUNCTION__);
-	}
-	time_t rotatedt = 0;
-	nginx_rotate_get_lasttime(rotate_dir, rotatedt);
+    time_t lastt = 0;	/* last time*/
+	nginx_rotate_get_lasttime(rotate_dir, lastt);
 
 	size_t failed_line = 0;	/* total_lines for parse failed */
 	/* append log by time first */
-    time_t lastt = 0;	/* last time*/
+    size_t skipped_line = 0;
 	total_line = 0;
 	std::map<time_group, rotate_file> rmap;
     char buf[1024 * 10];	/* max length of 1 row */
@@ -183,11 +194,12 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
     	if(t > lastt)
     		lastt  = t;
     	/* try to skip too old log, according to rotate_dir */
-    	if(rotatedt != 0){
-			auto difft = std::difftime(rotatedt, t);
+    	if(lastt != 0){
+			auto difft = std::difftime(lastt, t);
 			if(difft > (double)rotate_time){
 				if(plcdn_la_opt.verbose > 3)
-					fprintf(stdout, "%s: WARNING!!! time too old, skipped. log:\n[%s]\n", __FUNCTION__, buf);
+					fprintf(stdout, "%s: WARNING!!! time expired, skipped. log:\n%s\n", __FUNCTION__, buf);
+				++skipped_line;
 				continue;	/* time too old, this row need to be skipped */
 			}
     	}
@@ -200,6 +212,9 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
 
 		result = nginx_rotate_append_log(rotate_dir, buf, tg, rmap[tg].file);
     }
+//    nginx_rotate_save_last_rotate_time(rotate_dir, lastt);
+	if(plcdn_la_opt.verbose > 4)
+		fprintf(stdout, "%s: rotate done, total = %zu, skipped = %zu\n", __FUNCTION__, total_line, skipped_line);
 	/* clear expired */
 	nginx_rotate_remove_expire(rotate_dir, lastt, rotate_time);
     /* parse rotate_dir(updated only) and do statistics */
@@ -216,21 +231,25 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
 		fprintf(stdout, "%s: statistics ...\n", __FUNCTION__);
 	}
     for(auto & item: rmap){
+    	auto f = item.second.file;
+    	if(!f) continue;
 		char buft[32] = "<error>";
 		item.first.c_str_r(buft, sizeof(buft));
-
 		/* try to skip too old log, according to rotate_dir */
     	boost::system::error_code ec;
     	boost::filesystem::path fpath(rotate_dir);
     	fpath /= buft;
     	auto r = boost::filesystem::exists(fpath, ec);
-    	if(ec || !r)
+    	if(ec || !r){
+    		fclose(f);
+			if(plcdn_la_opt.verbose > 3)
+				fprintf(stdout, "%s: remove expired rotate file, time='%s'.\n", __FUNCTION__, buft);
     		continue;
+    	}
 
     	auto is_time_in = is_time_in_range(item.first.t(), plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
     	if(!is_time_in)
     		continue;
-    	auto f = item.second.file;
     	f = std::freopen(NULL, "r", f);
 		if(!f){
 			if(plcdn_la_opt.verbose > 4){
