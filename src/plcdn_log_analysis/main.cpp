@@ -503,7 +503,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			}
 		}
 		if(plcdn_la_opt.verbose)
-			fprintf(stdout, "%s: processed '%s', total_line: %zu\n", __FUNCTION__, plcdn_la_opt.nginx_log_file, g_nginx_total_line);
+			fprintf(stdout, "%s: processed nginx log '%s', total_line: %zu\n", __FUNCTION__, plcdn_la_opt.nginx_log_file, g_nginx_total_line);
 		/*split log*/
 		if(plcdn_la_opt.output_split_nginx_log){
 			if(plcdn_la_opt.verbose)
@@ -549,7 +549,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			return 1;
 		}
 		if(plcdn_la_opt.verbose){
-			fprintf(stdout, "%s: processed '%s', total_line = %zu, failed = %zu, trans_log = %zu\n", __FUNCTION__,
+			fprintf(stdout, "%s: processed srs log '%s', total_line = %zu, failed = %zu, trans_log = %zu\n", __FUNCTION__,
 					plcdn_la_opt.srs_log_file,
 					g_srs_total_line, g_srs_failed_line, g_srs_trans_line);
 		}

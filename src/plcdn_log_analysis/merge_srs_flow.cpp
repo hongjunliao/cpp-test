@@ -361,21 +361,12 @@ static int parse_table_row(char const * buf, nginx_flow_table_row & row)
 {
 	if(!buf || buf[0] == '\0')
 		return -1;
-	if(!plcdn_la_opt.append_flow_nginx){
-		int n = sscanf(buf, "%d%ld%d%zu%zu%d%zu%zu",
-							 &row.site_id, &row.datetime, &row.device_id,
-							 &row.num_total, &row.bytes_total, &row.user_id, &row.pvs_m, &row.px_m);
-		if(n != 8)
-			return -1;
-	}
-	else{
-		int n = sscanf(buf, "%d%ld%d%zu%zu%d%zu%zu%zu%zu",
-							 &row.site_id, &row.datetime, &row.device_id,
-							 &row.num_total, &row.bytes_total, &row.user_id, &row.pvs_m, &row.px_m,
-							 &row.srs_in, &row.srs_out);
-		if(n != 10)
-			return -1;
-	}
+	int n = sscanf(buf, "%d%ld%d%zu%zu%d%zu%zu%zu%zu",
+						 &row.site_id, &row.datetime, &row.device_id,
+						 &row.num_total, &row.bytes_total, &row.user_id, &row.pvs_m, &row.px_m,
+						 &row.srs_in, &row.srs_out);
+	if(n != 10)
+		return -1;
 	return 0;
 }
 
@@ -555,13 +546,30 @@ int merge_nginx_flow_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.datetime, item.site_id, item.device_id, item.user_id);
     	auto & val = merge_map[k];
-    	if(plcdn_la_opt.work_mode == 2){	/* overwrite when work in rotate mode */
-        	std::get<0>(val) = item.num_total;
-        	std::get<1>(val) = item.bytes_total;
-        	std::get<2>(val) = item.pvs_m;
-        	std::get<3>(val) = item.px_m;
-        	std::get<4>(val) = item.srs_in;
-        	std::get<5>(val) = item.srs_out;
+
+    	if(plcdn_la_opt.work_mode == 2){
+			/***************************************IMPORTANT!!!************************************/
+			/*  @date 2017/02/23 @author hongjun.liao <docici@126.com>
+			 * in function append_flow_nginx, srs's time_group may add a new key to nginx_domain_stat._stats,
+			 * this is dangerous in rotate_mode(@see --nginx-rotate-dir) */
+			/***************************************************************************************/
+    		/* srs flows are always accumulated */
+        	std::get<4>(val) += item.srs_in;
+        	std::get<5>(val) += item.srs_out;
+
+        	/* @see print_flow_table, there's no nginx flow but srs flow, accumulate(actually all fields should be 0) */
+        	if(item.bytes_total == 0 && (item.srs_in + item.srs_out) >= 0){
+				std::get<0>(val) += item.num_total;
+				std::get<1>(val) += item.bytes_total;
+				std::get<2>(val) += item.pvs_m;
+				std::get<3>(val) += item.px_m;
+        	}
+        	else{
+				std::get<0>(val) = item.num_total;
+				std::get<1>(val) = item.bytes_total;
+				std::get<2>(val) = item.pvs_m;
+				std::get<3>(val) = item.px_m;
+        	}
     	}
     	else{
 			std::get<0>(val) += item.num_total;
@@ -574,23 +582,13 @@ int merge_nginx_flow_datetime(FILE *& f)
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
-		int sz = 0;
-    	if(!plcdn_la_opt.append_flow_nginx){
-    		/* @see nginx/print_flow_table */
-			sz = fprintf(f, "%d %ld %d %zu %zu %d %zu %zu\n", std::get<1>(item.first), std::get<0>(item.first),
-					std::get<2>(item.first),
-					std::get<0>(item.second), std::get<1>(item.second),
-					std::get<3>(item.first), std::get<2>(item.second),
-					std::get<3>(item.second));
-    	}
-    	else{
-			sz = fprintf(f, "%d %ld %d %zu %zu %d %zu %zu %zu %zu\n", std::get<1>(item.first), std::get<0>(item.first),
-					std::get<2>(item.first),
-					std::get<0>(item.second), std::get<1>(item.second),
-					std::get<3>(item.first), std::get<2>(item.second),
-					std::get<3>(item.second),
-					std::get<4>(item.second), std::get<5>(item.second));
-    	}
+		/* @see nginx/print_flow_table */
+		auto sz = fprintf(f, "%d %ld %d %zu %zu %d %zu %zu %zu %zu\n", std::get<1>(item.first), std::get<0>(item.first),
+				std::get<2>(item.first),
+				std::get<0>(item.second), std::get<1>(item.second),
+				std::get<3>(item.first), std::get<2>(item.second),
+				std::get<3>(item.second),
+				std::get<4>(item.second), std::get<5>(item.second));
 		if(sz <= 0)
 			++failed_line;
     }

@@ -305,7 +305,6 @@ int parse_srs_log(std::unordered_map<int, srs_sid_log> & slogs,
 	std::vector<int> skipped_trans;	/*  skipped sids for countof(srs_trans) < 2*/
 	for(auto & item : slogs){
 		auto & slog = item.second;
-		auto & dstat = logstats[slog._domain];
 		bool skip;
 		do_srs_log_sid_stats(item.first, slog, logstats, failed_line, trans_line, skip);
 		if(skip)
