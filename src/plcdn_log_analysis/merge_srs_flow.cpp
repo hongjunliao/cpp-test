@@ -547,24 +547,17 @@ int merge_nginx_flow_datetime(FILE *& f)
     	auto  k = std::make_tuple(item.datetime, item.site_id, item.device_id, item.user_id);
     	auto & val = merge_map[k];
 
+		/***************************************IMPORTANT!!!************************************/
+		/*  @date 2017/02/23 @author hongjun.liao <docici@126.com>
+		 * in function append_flow_nginx, srs's time_group may add a new key to nginx_domain_stat._stats,
+		 * this is dangerous in rotate_mode(@see --nginx-rotate-dir) */
+		/***************************************************************************************/
+		/* srs flows are always accumulated */
+		std::get<4>(val) += item.srs_in;
+		std::get<5>(val) += item.srs_out;
     	if(plcdn_la_opt.work_mode == 2){
-			/***************************************IMPORTANT!!!************************************/
-			/*  @date 2017/02/23 @author hongjun.liao <docici@126.com>
-			 * in function append_flow_nginx, srs's time_group may add a new key to nginx_domain_stat._stats,
-			 * this is dangerous in rotate_mode(@see --nginx-rotate-dir) */
-			/***************************************************************************************/
-    		/* srs flows are always accumulated */
-        	std::get<4>(val) += item.srs_in;
-        	std::get<5>(val) += item.srs_out;
-
         	/* @see print_flow_table, there's no nginx flow but srs flow, accumulate(actually all fields should be 0) */
-        	if(item.bytes_total == 0 && (item.srs_in + item.srs_out) >= 0){
-				std::get<0>(val) += item.num_total;
-				std::get<1>(val) += item.bytes_total;
-				std::get<2>(val) += item.pvs_m;
-				std::get<3>(val) += item.px_m;
-        	}
-        	else{
+        	if(item.num_total > 0 && item.num_total >= std::get<0>(val)){
 				std::get<0>(val) = item.num_total;
 				std::get<1>(val) = item.bytes_total;
 				std::get<2>(val) = item.pvs_m;
@@ -576,9 +569,9 @@ int merge_nginx_flow_datetime(FILE *& f)
 			std::get<1>(val) += item.bytes_total;
 			std::get<2>(val) += item.pvs_m;
 			std::get<3>(val) += item.px_m;
-			std::get<4>(val) += item.srs_in;
-			std::get<5>(val) += item.srs_out;
     	}
+    	if(plcdn_la_opt.append_flow_nginx)
+    		std::get<1>(val) +=(item.srs_in + item.srs_out);
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
@@ -613,14 +606,16 @@ int merge_nginx_url_popular_datetime(FILE *& f)
     	auto  k = std::make_tuple(item.datetime, item.url_key);
     	auto & val = merge_map[k];
     	if(plcdn_la_opt.work_mode == 2){
-        	std::get<0>(val) = item.num_total;
-        	std::get<1>(val) = item.num_200; std::get<2>(val) = item.size_200;
-        	std::get<3>(val) = item.num_206; std::get<4>(val) = item.size_206;
-        	std::get<5>(val) = item.num_301302; std::get<6>(val) = item.num_304;
-        	std::get<7>(val) = item.num_403; std::get<8>(val) = item.num_404;
-        	std::get<9>(val) = item.num_416; std::get<10>(val) = item.num_499;
-        	std::get<11>(val) = item.num_500; std::get<12>(val) = item.num_502;
-        	std::get<13>(val) = item.num_other;
+    		if(item.num_total > 0 && item.num_total >= std::get<0>(val)){
+				std::get<0>(val) = item.num_total;
+				std::get<1>(val) = item.num_200; std::get<2>(val) = item.size_200;
+				std::get<3>(val) = item.num_206; std::get<4>(val) = item.size_206;
+				std::get<5>(val) = item.num_301302; std::get<6>(val) = item.num_304;
+				std::get<7>(val) = item.num_403; std::get<8>(val) = item.num_404;
+				std::get<9>(val) = item.num_416; std::get<10>(val) = item.num_499;
+				std::get<11>(val) = item.num_500; std::get<12>(val) = item.num_502;
+				std::get<13>(val) = item.num_other;
+    		}
     	}
     	else{
 			std::get<0>(val) += item.num_total;
@@ -667,7 +662,8 @@ int merge_nginx_ip_popular_datetime(FILE *& f)
     for(auto const & item : rows){
     	auto  k = std::make_tuple(item.site_id, item.device_id, item.ip, item.datetime);
     	if(plcdn_la_opt.work_mode == 2){
-    		merge_map[k] = item.num;
+    		if(item.num > 0 && item.num >= merge_map[k])
+    			merge_map[k] = item.num;
     	}
     	else{
     		merge_map[k] += item.num;
@@ -704,8 +700,10 @@ int merge_nginx_http_stats_datetime(FILE *& f)
     	auto  k = std::make_tuple(item.site_id, item.device_id, item.httpstatus, item.datetime);
     	auto & val = merge_map[k];
     	if(plcdn_la_opt.work_mode == 2){
-        	std::get<0>(val) = item.num;
-        	std::get<1>(val) = item.num_m;
+    		if(item.num >= std::get<0>(val)){
+				std::get<0>(val) = item.num;
+				std::get<1>(val) = item.num_m;
+    		}
     	}
     	else{
         	std::get<0>(val) += item.num;
@@ -745,10 +743,12 @@ int merge_nginx_ip_source_datetime(FILE *& f)
     	auto  k = std::make_tuple(item.datetime, item.local_id, item.isp_id, item.device_id);
     	auto & val = merge_map[k];
     	if(plcdn_la_opt.work_mode == 2){
-			std::get<0>(val) = item.pvs;
-			std::get<1>(val) = item.tx;
-			std::get<2>(val) = item.pvs_m;
-			std::get<3>(val) = item.tx_m;
+    		if(item.pvs > 0 && item.pvs >= std::get<0>(val)){
+				std::get<0>(val) = item.pvs;
+				std::get<1>(val) = item.tx;
+				std::get<2>(val) = item.pvs_m;
+				std::get<3>(val) = item.tx_m;
+    		}
     	}
     	else{
 			std::get<0>(val) += item.pvs;
@@ -791,7 +791,8 @@ int merge_nginx_cutip_slowfast_datetime(FILE *& f)
     	auto  k = std::make_tuple(item.device_id, item.datetime, item.ip);
     	auto & val = merge_map[k];
     	if(plcdn_la_opt.work_mode == 2){
-    		val = item.speed;
+    		if(!(val > 0.09 && item.speed < 0.09))
+    			val = item.speed;
     	}
     	else{
         	/* FIXME: speed = total_bytes / time_in_sec */
@@ -828,7 +829,8 @@ int merge_nginx_ip_slowfast_datetime(FILE *& f)
     	auto  k = std::make_tuple(item.device_id, item.ip, item.datetime);
     	auto & val = merge_map[k];
     	if(plcdn_la_opt.work_mode == 2){
-    		std::get<0>(val) = item.speed;
+    		if(!(std::get<0>(val) > 0.09 && item.speed < 0.09))
+    			std::get<0>(val) = item.speed;
     	}
     	else{
         	/* FIXME: speed = total_bytes / time_in_sec */

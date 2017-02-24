@@ -5,6 +5,7 @@
  * @date 2016/9
  */
 #include <stdio.h>
+#include <ctime>		/* std::difftime */
 #include <limits.h>		/*PATH_MAX*/
 #include <string.h> 	/*strncpy*/
 #include <netinet/in.h>
@@ -23,6 +24,9 @@ extern struct plcdn_la_options plcdn_la_opt;
 /*main.cpp*/
 extern time_t g_plcdn_la_start_time;
 extern int g_plcdn_la_device_id;
+
+/* nginx_rotate.cpp */
+extern time_t g_nginx_rotate_time;
 
 static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id);
 /*flow table*/
@@ -84,7 +88,7 @@ static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat 
 	if(plcdn_la_opt.append_flow_nginx)
 		bytes_total += (stat.srs_in + stat.srs_out);
 	/* format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m, tx_rtmp_in, tx_rtmp_out */
-	auto sz = fprintf(stdout, "%d %s %d %ld %zu %d %ld %zu %zu %zu\n",
+	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu\n",
 				site_id, g.c_str_r(buft, sizeof(buft)), g_plcdn_la_device_id, stat.access_total()
 				, bytes_total , user_id, stat.access_m(), stat._bytes_m, stat.srs_in, stat.srs_out);
 	if(sz <= 0) ++n;
@@ -333,6 +337,12 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			if(item.second.empty())
 				continue;
 			char buft[32];
+			if(plcdn_la_opt.work_mode == 2 &&
+					std::difftime(g_nginx_rotate_time, item.first.t()) > (double)plcdn_la_opt.nginx_rotate_time){
+				if(plcdn_la_opt.verbose > 3)
+					fprintf(stdout, "%s: WARNING!!! time '%s' expired, skip\n", __FUNCTION__, item.first.c_str_r(buft, sizeof(buft)));
+				continue;
+			}
 			if(plcdn_la_opt.output_nginx_flow){
 				auto outname = std::string(plcdn_la_opt.output_nginx_flow) +
 						parse_nginx_output_filename(plcdn_la_opt.format_nginx_flow, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);

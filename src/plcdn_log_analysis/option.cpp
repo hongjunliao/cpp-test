@@ -77,7 +77,8 @@ static poptContext pc = 0;
 static struct poptOption plcdn_la_popt[] = {
 	  /* longName, shortName, argInfo, argPtr, value, descrip, argDesc */
 	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file", 0 },
-	{"nginx-rotate-dir",        0,    POPT_ARG_STRING,   0, 'A', "directory for rotate, also set work_mode to rotate, see NOTES for details", 0 },
+	{"nginx-rotate-dir",        0,    POPT_ARG_STRING,   0, 'A', "directory for nginx_rotate, also set work_mode to rotate, see NOTES for details", 0 },
+	{"nginx-rotate-time",       0,    POPT_ARG_INT,      0, 'H', "time for nginx_rotate, default 7200 (in seconds)", 0 },
 	{"begin-time",             	0,    POPT_ARG_STRING,   0, 'D', "time_range, begin time, see NOTES for details", 0 },
 	{"end-time",          		0,    POPT_ARG_STRING,   0, 'I', "time_range, end time", 0 },
 	{"no-merge-datetime",
@@ -182,8 +183,13 @@ int plcdn_la_parse_options(int argc, char ** argv)
 				plcdn_la_opt.nginx_rotate_dir = poptGetOptArg(pc);
 				plcdn_la_opt.no_merge_datetime = 0;
 			} break;
+		case 'H': plcdn_la_opt.nginx_rotate_time = atoi(poptGetOptArg(pc)); break;
 		case 'N': plcdn_la_opt.srs_calc_flow_mode = atoi(poptGetOptArg(pc)); break;
-		case 'L': plcdn_la_opt.no_merge_datetime = 1; break;
+		case 'L': {
+			plcdn_la_opt.no_merge_datetime = 1;
+			if(plcdn_la_opt.work_mode == 2)
+				plcdn_la_opt.no_merge_datetime = 0;
+		} break;
 		case 'k': plcdn_la_opt.srs_sid_dir = poptGetOptArg(pc); break;
 		case 'b': plcdn_la_opt.output_srs_flow = poptGetOptArg(pc); break;
 		case 'B': plcdn_la_opt.format_srs_flow = poptGetOptArg(pc); break;

@@ -259,7 +259,13 @@ nginx_raw_log::nginx_raw_log(char const* val)
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 nginx_log_stat::nginx_log_stat()
-: _bytes_m(0)
+/* FIXME: BUG founded!!!
+ * bugname: BUG_srs_in_out_not_init_nginx_flow_table_20170224
+ * @desc: if _bytes_m,srs_in,srs_out NOT init, then value NOT correct in nginx_flow_table for last 2 lines(order by datetime)
+ *        see bugs/BUG_srs_in_out_not_init_nginx_flow_table_20170224
+ * @author: hongjun.liao <docici@126.com>
+ * @date: 2017/02/24 */
+: _bytes_m(0), srs_in(0), srs_out(0)
 {
 	//none
 }

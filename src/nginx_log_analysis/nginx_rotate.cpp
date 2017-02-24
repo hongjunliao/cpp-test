@@ -19,6 +19,9 @@ extern std::unordered_map<std::string, site_info> g_sitelist;
 /*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;
 
+/* this var is valid only when plcdn_la_options.work_mode == 2, @see nginx_rotate_log */
+time_t g_nginx_rotate_time = 0;
+
 struct rotate_file
 {
 	FILE * file;
@@ -39,7 +42,8 @@ static void nginx_rotate_remove_expire(char const * rotate_dir, time_t now, int 
 static int nginx_rotate_append_log(char const * rotate_dir, char const * row, time_group const& tg, FILE *& f);
 
 /* save @param now to dir @param rotate_dir/.last_rotate_time
- * @see nginx_rotate_get_lasttime */
+ * @see nginx_rotate_get_lasttime,
+ * TODO: impliment it */
 static void nginx_rotate_save_last_rotate_time(char const * rotate_dir, time_t now);
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -212,6 +216,7 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
 
 		result = nginx_rotate_append_log(rotate_dir, buf, tg, rmap[tg].file);
     }
+    g_nginx_rotate_time = lastt;
 //    nginx_rotate_save_last_rotate_time(rotate_dir, lastt);
 	if(plcdn_la_opt.verbose > 4)
 		fprintf(stdout, "%s: rotate done, total = %zu, skipped = %zu\n", __FUNCTION__, total_line, skipped_line);
@@ -264,3 +269,4 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
     }
 	return 0;
 }
+

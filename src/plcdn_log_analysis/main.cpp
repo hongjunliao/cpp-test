@@ -386,6 +386,8 @@ static void append_flow_nginx(
 		std::unordered_map<std::string, nginx_domain_stat> & nginx_stats,
 		std::unordered_map<std::string, srs_domain_stat> const& srs_stats)
 {
+	if(plcdn_la_opt.verbose)
+		fprintf(stdout, "%s: appending srs flow to nginx ...\n", __FUNCTION__);
 	for(auto srs_domain_pair : srs_stats){
 		auto & dstat = nginx_stats[srs_domain_pair.first];
 		if(dstat._site_id == 0 || dstat._user_id == 0){
