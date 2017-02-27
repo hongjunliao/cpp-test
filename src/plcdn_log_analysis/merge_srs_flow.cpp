@@ -571,7 +571,7 @@ int merge_nginx_flow_datetime(FILE *& f)
 			std::get<3>(val) += item.px_m;
     	}
     	if(plcdn_la_opt.append_flow_nginx)
-    		std::get<1>(val) +=(item.srs_in + item.srs_out);
+    		std::get<1>(val) +=(std::get<4>(val) + std::get<5>(val));
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
