@@ -63,6 +63,7 @@ extern int merge_nginx_http_stats_datetime(FILE *& f);
 extern int merge_nginx_ip_source_datetime(FILE *& f);
 extern int merge_nginx_cutip_slowfast_datetime(FILE *& f);
 extern int merge_nginx_ip_slowfast_datetime(FILE *& f);
+extern int merge_nginx_url_key(FILE *& f);
 
 static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {
@@ -295,8 +296,9 @@ static void print_url_key_table(FILE * stream, int site_id, int user_id,nginx_lo
 		for(auto const & url_item : stat._url_stats){
 			auto const & url=url_item.first;
 			std::string surl = (urlkey.count(url)  !=  0 ? urlkey.at(url)  : "invalid parameter");
-			/* format: 'url_key, url' */
+			/* format: 'url_key url' */
 			auto sz = fprintf(stream,"%s %s\n", url.c_str(),  surl.c_str() );
+			if(sz <= 0) ++n;
 		}
 }
 
@@ -403,7 +405,7 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			if(plcdn_la_opt.output_file_url_key){
 				auto outname = std::string( plcdn_la_opt.output_file_url_key) +
 				parse_nginx_output_filename(plcdn_la_opt.format_file_url_key, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
-				auto stream = append_stream(filemap, outname);
+				auto stream = append_stream(filemap, outname, merge_nginx_url_key);
 				if(stream)
 					print_url_key_table(stream, site_id, user_id, item.second, urlkey, n);
 			}
@@ -413,7 +415,9 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 		auto & f = std::get<0>(it.second);
 		auto fn = std::get<1>(it.second);
 		if(f){
-			if(!plcdn_la_opt.no_merge_datetime && fn){
+			/* NOTE: currenlty nginx/url_key_table don't have 'datetime', merge operation should always requrired
+			 * @author hongjun.liao <docici@126.com>  @date 2017/03/03 */
+			if(fn == merge_nginx_url_key || (!plcdn_la_opt.no_merge_datetime && fn)){
 				std::fseek(f, 0, SEEK_SET);	/* move to start */
 				auto r = fn(f);
 				if(r != 0 && plcdn_la_opt.verbose > 4){
