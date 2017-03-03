@@ -118,7 +118,7 @@ int load_devicelist(char const* file, std::unordered_map<std::string, int>& devi
 	if(!file) return -1;
 	FILE * f = fopen(file, "r");
 	if(!f) {
-		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
+		fprintf(stderr, "%s: fopen file '%s' failed\n", __FUNCTION__, file);
 		return 1;
 	}
 	char data[1024] = "";

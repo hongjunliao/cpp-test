@@ -541,7 +541,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 	char const * p = items[8];
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
-	item.is_hit = (strcmp(items[3],"HIT") == 0);
+	item.is_hit = (strncmp(items[3],"HIT", 3) == 0);
 	return 0;
 }
 
