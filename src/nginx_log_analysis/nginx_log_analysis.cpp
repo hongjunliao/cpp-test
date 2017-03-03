@@ -541,7 +541,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 	char const * p = items[8];
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
-	item.is_hit = (strcmp(items[3],"HIT") == 0);
+	item.is_hit = (strncmp(items[3],"HIT", 3) == 0);
 	return 0;
 }
 
@@ -553,6 +553,11 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 	if(dstat._site_id == 0)
 		find_site_id(sitelist, item.domain, dstat._site_id, &dstat._user_id);
 
+	auto len = strlen(item.request_url);
+	char buff[64] = "";
+	sha1sum_r(item.request_url, len, buff);
+	dstat._url_key[buff] = item.request_url;
+
 	auto & logsstat = dstat._stats[item.time_local];
 	if(!item.is_hit){
 		logsstat._bytes_m += item.bytes_sent;
@@ -561,10 +566,6 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 
 	/*if NOT required, we needn't statistics it*/
 	if(plcdn_la_opt.output_nginx_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
-		//FIXME: test me! @date 2016/11
-		auto len = strlen(item.request_url);
-		char buff[64];
-		sha1sum_r(item.request_url, len, buff);
 		url_stat& urlstat = logsstat._url_stats[buff];
 		++urlstat._status[item.status];
 		urlstat._bytes[item.status] += item.bytes_sent;

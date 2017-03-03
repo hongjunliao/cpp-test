@@ -59,7 +59,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.format_ip_source = DEF_FORMAT_IP_SOURCE,
 		//SUN ADD IN 2017 03 02
 		.output_file_url_key = NULL,
-		.format_file_url_key =DEF_FORMAT_FILE_URL_KEY,
+		.format_file_url_key = DEF_FORMAT_FILE_URL_KEY,
 		.output_split_nginx_log = NULL,
 		.format_split_nginx_log = DEF_FORMAT_SPLIT_NGINX_LOG,
 
@@ -112,8 +112,8 @@ static struct poptOption plcdn_la_popt[] = {
 	{"output-file-url-popular", 'u',  POPT_ARG_STRING,   0, 'u', "output_folder for url_popular_table, disabled if NULL", 0 },
 	{"format-url-popular",      'U',   POPT_ARG_STRING,   0, 'U', "filename format for url_popular table, default '" DEF_FORMAT_URL_POPULAR "'", 0 },
 //FIX ME :2017 03 03 SUN
-	{"output-file-url-key",       'y',  POPT_ARG_STRING,   0, 'y', "output_format for output_file_url_key,disable if NULL",0},
-	{"format-file-url-key",       'Y',  POPT_ARG_STRING,   0, 'Y', "filename format for format_file_url_key,disable if NULL",0},
+	{"output-file-url-key",       'y',  POPT_ARG_STRING,   0, 'y', "output_folder for url_key_table, disabled if NULL",0},
+	{"format-file-url-key",       'Y',  POPT_ARG_STRING,   0, 'Y', "filename format for url_key_table, default '" DEF_FORMAT_FILE_URL_KEY "'", 0},
 
 
 	{"output-file-ip-popular",  'p',  POPT_ARG_STRING,   0, 'p', "output folder for ip_popular_table, disabled if NULL", 0 },
@@ -218,9 +218,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'U': { plcdn_la_opt.format_url_popular= poptGetOptArg(pc); }; break;
 		//THE ADD POSITION
 		case 'y': { plcdn_la_opt.output_file_url_key = poptGetOptArg(pc); }; break;
-
-		//THE ADD POSITION
-
+		case 'Y': { plcdn_la_opt.format_file_url_key = poptGetOptArg(pc); }; break;
 		case 'p': { plcdn_la_opt.output_file_ip_popular = poptGetOptArg(pc); } break;
 		case 'P': { plcdn_la_opt.format_ip_popular = poptGetOptArg(pc); } break;
 		case 'Q': { plcdn_la_opt.min_ip_popular = atoi(poptGetOptArg(pc)); } break;
@@ -302,6 +300,7 @@ $scheme $request_length $upstream_response_time\n"
 			"    (5)ip_slowfast_table:    '${device_id} ${ip} ${datetime} ${speed} ${type}'\n"
 			"    (6)cutip_slowfast_table: '${device_id} ${datetime} ${ip} ${speed}'\n"
 			"    (7)ip_source_table:      '${datetime} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
+            "    (8)url_key_table:        '${url_key} ${url}'\n"
 			"    for srs:\n"
 			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  9.for srs log, currently supports 2 formats of trans_log, 0: official , 1: custom\n"
