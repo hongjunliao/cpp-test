@@ -47,8 +47,11 @@ static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx
 		int site_id, int user_id, size_t& n, int topn);
 
 /*url_key*/
-static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
+//static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*ip_source*/
+static void print_url_key_table(FILE * stream, int site_id, int user_id,nginx_log_stat const& stat,
+		std::unordered_map<std::string, std::string> const & urlkey, size_t& n);
+
 static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 
 /* merge tables for same datetime */
@@ -288,9 +291,16 @@ inline void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx
 	}
 }
 
-static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
+static void print_url_key_table(FILE * stream, int site_id, int user_id,nginx_log_stat const& stat,
+		std::unordered_map<std::string, std::string> const & urlkey, size_t& n)
 {
-	//NOT implement yet
+		for(auto const & url_item : stat._url_stats){
+			auto const & url=url_item.first;
+			std::string surl = (urlkey.count(url)  !=  0 ? urlkey.at(url)  : "invalid parameter");
+			auto sz = fprintf(stream,"+ %s %s\n", url.c_str(),  surl.c_str() );
+
+		}
+
 }
 
 void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
@@ -333,6 +343,7 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 	size_t n = 0;
 	for(auto const& dstat : stats){
 		auto site_id = dstat.second._site_id, user_id = dstat.second._user_id;
+		auto & urlkey = dstat.second._url_key;
 		for(auto const& item : dstat.second._stats){
 			if(item.second.empty())
 				continue;
@@ -391,6 +402,13 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 				auto stream = append_stream(filemap, outname, merge_nginx_ip_source_datetime);
 				if(stream)
 					print_ip_source_table(stream, item.first, item.second, site_id, user_id, n);
+			}
+			if(plcdn_la_opt.output_file_url_key){
+				auto outname = std::string( plcdn_la_opt.output_file_url_key) +
+				parse_nginx_output_filename(plcdn_la_opt.format_file_url_key, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
+				auto stream = append_stream(filemap, outname);
+				if(stream)
+					print_url_key_table(stream, site_id, user_id, item.second, urlkey, n);
 			}
 		}
 	}

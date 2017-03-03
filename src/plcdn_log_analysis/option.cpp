@@ -17,9 +17,12 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_SPLIT_SRS_LOG   	"${site_id}/${day}"
 #define DEF_SRS_SID_DIR				"srs_sid_log/"
 #define DEF_FORMAT_SRS_FLOW			"srscountfile.${day}.${site_id}.${device_id}"
+#define DEF_FORMAT_FILE_URL_KEY  "urlkey.${interval}.${device_id}.${site_id}"
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
+		//ADD POSITION
+
 		.nginx_log_file = NULL,
 		.nginx_rotate_dir = NULL,
 		.nginx_rotate_time = 7200,
@@ -37,7 +40,6 @@ struct plcdn_la_options plcdn_la_opt = {
 		.format_srs_flow = DEF_FORMAT_SRS_FLOW,
 		.srs_sid_dir = DEF_SRS_SID_DIR,
 		.output_split_srs_log_by_sid = NULL,
-
 		.interval = 300,
 		.output_nginx_flow = NULL,
 		.format_nginx_flow = DEF_FORMAT_FLOW,
@@ -55,7 +57,9 @@ struct plcdn_la_options plcdn_la_opt = {
 		.format_cutip_slowfast = DEF_FORMAT_CUTIP_SLOWFAST,
 		.output_file_ip_source = NULL,
 		.format_ip_source = DEF_FORMAT_IP_SOURCE,
-
+		//SUN ADD IN 2017 03 02
+		.output_file_url_key = NULL,
+		.format_file_url_key =DEF_FORMAT_FILE_URL_KEY,
 		.output_split_nginx_log = NULL,
 		.format_split_nginx_log = DEF_FORMAT_SPLIT_NGINX_LOG,
 
@@ -69,6 +73,8 @@ struct plcdn_la_options plcdn_la_opt = {
 		.append_flow_nginx = 0,
 		.show_help = 0,
 		.show_version = 0,
+		//ADD POSITION
+
 
 		.verbose = 0,
 };
@@ -105,6 +111,10 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"output-file-url-popular", 'u',  POPT_ARG_STRING,   0, 'u', "output_folder for url_popular_table, disabled if NULL", 0 },
 	{"format-url-popular",      'U',   POPT_ARG_STRING,   0, 'U', "filename format for url_popular table, default '" DEF_FORMAT_URL_POPULAR "'", 0 },
+//FIX ME :2017 03 03 SUN
+	{"output-file-url-key",       'y',  POPT_ARG_STRING,   0, 'y', "output_format for output_file_url_key,disable if NULL",0},
+	{"format-file-url-key",       'Y',  POPT_ARG_STRING,   0, 'Y', "filename format for format_file_url_key,disable if NULL",0},
+
 
 	{"output-file-ip-popular",  'p',  POPT_ARG_STRING,   0, 'p', "output folder for ip_popular_table, disabled if NULL", 0 },
 	{"format-ip-popular",       'P',  POPT_ARG_STRING,   0, 'P', "filename format for ip_popular table, default '" DEF_FORMAT_IP_POPULAR "'", 0 },
@@ -205,7 +215,11 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'O': { plcdn_la_opt.format_nginx_flow = poptGetOptArg(pc); } break;
 
 		case 'u': { plcdn_la_opt.output_file_url_popular = poptGetOptArg(pc); }; break;
-		case 'U': { plcdn_la_opt.format_url_popular = poptGetOptArg(pc); }; break;
+		case 'U': { plcdn_la_opt.format_url_popular= poptGetOptArg(pc); }; break;
+		//THE ADD POSITION
+		case 'y': { plcdn_la_opt.output_file_url_key = poptGetOptArg(pc); }; break;
+
+		//THE ADD POSITION
 
 		case 'p': { plcdn_la_opt.output_file_ip_popular = poptGetOptArg(pc); } break;
 		case 'P': { plcdn_la_opt.format_ip_popular = poptGetOptArg(pc); } break;
@@ -340,6 +354,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
@@ -383,6 +398,9 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "format_cutip_slowfast", opt.format_cutip_slowfast
 		, "output_file_ip_source", opt.output_file_ip_source
 		, "format_ip_source", opt.format_ip_source
+
+		, "output_file_url_key", opt.output_file_url_key
+		, "format_file_url_key", opt.format_file_url_key
 
 		, "output_split_nginx_log", opt.output_split_nginx_log
 		, "format_split_nginx_log", opt.format_split_nginx_log

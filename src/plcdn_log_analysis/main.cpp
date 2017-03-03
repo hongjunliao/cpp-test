@@ -424,6 +424,12 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 				plcdn_la_show_usage(stdout);
 		return 0;
 	}
+	const char* str;
+	str="version 2.0 Build in 2017 02 28 Februaary 18:15";
+	if(plcdn_la_opt.show_version){
+		fprintf(stdout,"%s:%s\n",__FUNCTION__,str);
+		return 0;
+	};
 	if(plcdn_la_opt.verbose)
 		plcdn_la_options_fprint(stdout, &plcdn_la_opt);
 	if(plcdn_la_opt.print_device_id){	//query device_id and return
@@ -564,7 +570,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		fprint_srs_log_stats(srs_logstats);
 	}
 	if(!nginx_log_file && !srs_log_file){
-		fprintf(stderr, "%s: none of nginx, srs log file specified or can be read, exit\n", __FUNCTION__);
+		fprintf(stderr,  "%s: none of nginx, srs log file specified or can be read\n", __FUNCTION__);
 		return 1;
 	}
 	if(plcdn_la_opt.append_flow_nginx)

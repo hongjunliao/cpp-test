@@ -40,7 +40,11 @@ static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx
 /*url_key*/
 static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*ip_source*/
-static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
+/*static void print_url_key_table(FILE * stream, int site_id, int user_id,nginx_log_stat const& stat,
+		std::unordered_map<std::string, std::string> const & urlkey, size_t& n);*/
+
+static void print_ip_source_table(FILE * stream, int site_id, int user_id,nginx_log_stat const& stat,
+		std::unordered_map<std::string, std::string> const & urlkey, size_t& n);
 
 static std::string parse_fmt_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {

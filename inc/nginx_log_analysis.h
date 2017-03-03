@@ -236,6 +236,7 @@ public:
 struct nginx_domain_stat
 {
 	std::map<time_group, nginx_log_stat> _stats;
+	std::unordered_map<std::string, std::string> _url_key;	/* url_md5 : url */
 	int _site_id;
 	int _user_id;
 };

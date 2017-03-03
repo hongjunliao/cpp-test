@@ -117,6 +117,9 @@ struct plcdn_la_options
 
 	char const * output_file_ip_source;
 	char const * format_ip_source;
+
+	char const *output_file_url_key;
+	char const *format_file_url_key;
 /*split log by domain*/
 	char const * output_split_nginx_log;
 	char const * format_split_nginx_log;
