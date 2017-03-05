@@ -91,7 +91,8 @@ extern int fwrite_srs_log_by_sid(std::unordered_map<int, srs_sid_log> & slogs, c
 extern int merge_srs_flow_user(int argc, char ** argv);
 
 /* nginx_rotate.cpp */
-extern int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, size_t& total_line,
+extern int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile,
+		size_t& total_line, size_t & failed_line,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*GLOBAL vars*/
@@ -101,7 +102,7 @@ extern struct plcdn_la_options plcdn_la_opt;
 static std::unordered_map<std::string, int> g_devicelist;
 /*map<domain, site_info>*/
 std::unordered_map<std::string, site_info> g_sitelist;
-static size_t g_nginx_total_line = 0;
+static size_t g_nginx_total_line = 0, g_nginx_failed_line = 0;
 /*srs_log_analysis/split_log.cpp*/
 extern size_t g_srs_total_line;
 extern size_t g_srs_failed_line;
@@ -206,6 +207,7 @@ int parse_nginx_log_item_buf(parse_context& ct)
 	auto & len = ct.len;
 	auto & logstats = ct.logstats;
 	auto & total_lines = ct.total_lines = 0;
+	auto & failed_lines = ct.failed_lines = 0;
 
 	log_item item;
 	for(char * p = buf; p != buf + len; ++p){
@@ -223,6 +225,7 @@ int parse_nginx_log_item_buf(parse_context& ct)
 				do_nginx_log_stats(item, plcdn_la_opt, g_sitelist, logstats);
 		}
 		else {
+			++failed_lines;
 			//current line failed, move to next line
 			while(p != buf + len && !(*p == '\0' || *p == '\n')) { ++p; }
 		}
@@ -315,6 +318,7 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 		auto & ct = *(parse_context * )tret;
 		log_stats_append(stats, ct.logstats);
 		g_nginx_total_line += ct.total_lines;
+		g_nginx_failed_line += ct.failed_lines;
 	}
 	if(parallel_count == 0){
 		/*FIXME: NOT needed? just for speed*/
@@ -324,6 +328,7 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 		log_stats_append(stats, parse_args[parallel_count].logstats);
 	}
 	g_nginx_total_line += parse_args[parallel_count].total_lines;
+	g_nginx_failed_line += parse_args[parallel_count].failed_lines;
 	return 0;
 }
 
@@ -487,7 +492,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 
 		if(plcdn_la_opt.work_mode == 2)	{ /* rotate mode */
 			auto result = nginx_rotate_log(plcdn_la_opt.nginx_rotate_dir, plcdn_la_opt.nginx_rotate_time,
-							nginx_log_file, g_nginx_total_line, nginx_logstats);
+							nginx_log_file, g_nginx_total_line, g_nginx_failed_line, nginx_logstats);
 			if(result != 0 && plcdn_la_opt.verbose)
 				fprintf(stderr, "%s: nginx_rotate_log failed, re-run required\n", __FUNCTION__);
 		}
@@ -510,8 +515,11 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 				return 1;
 			}
 		}
-		if(plcdn_la_opt.verbose)
-			fprintf(stdout, "%s: processed nginx log '%s', total_line: %zu\n", __FUNCTION__, plcdn_la_opt.nginx_log_file, g_nginx_total_line);
+		if(plcdn_la_opt.verbose){
+			auto color = g_nginx_failed_line > 0? 31 : 0;
+			fprintf(stdout, "%s: processed nginx log '%s', total=%zu, failed=%zu, \e[%dm%.1f%%\e[0m failed\n", __FUNCTION__,
+					plcdn_la_opt.nginx_log_file, g_nginx_total_line, g_nginx_failed_line, color, g_nginx_failed_line * 100.0 / g_nginx_total_line);
+		}
 		/*split log*/
 		if(plcdn_la_opt.output_split_nginx_log){
 			if(plcdn_la_opt.verbose)

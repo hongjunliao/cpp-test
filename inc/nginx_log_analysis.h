@@ -252,6 +252,7 @@ struct parse_context
 /*output*/
 	std::unordered_map<std::string, nginx_domain_stat> logstats;	/*domain : domain_stat*/
 	size_t total_lines;
+	size_t failed_lines;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

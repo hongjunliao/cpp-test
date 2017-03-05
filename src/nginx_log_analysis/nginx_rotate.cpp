@@ -153,7 +153,8 @@ static void nginx_rotate_get_lasttime(char const * rotate_dir, time_t & t)
  *   /tmp/rotate_dir/201602140930, 201602140935, 201602140940, ...
  *   @see plcdn_la_options.interval
  * @return 0 on success */
-int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, size_t& total_line,
+int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile,
+		size_t& total_line, size_t & failed_line,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats)
 {
 	if(!rotate_dir || rotate_dir[0] == '\0')
@@ -178,10 +179,9 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
     time_t lastt = 0;	/* last time*/
 	nginx_rotate_get_lasttime(rotate_dir, lastt);
 
-	size_t failed_line = 0;	/* total_lines for parse failed */
 	/* append log by time first */
     size_t skipped_line = 0;
-	total_line = 0;
+    std::vector<size_t> failednums;
 	std::map<time_group, rotate_file> rmap;
     char buf[1024 * 10];	/* max length of 1 row */
     while (fgets(buf, sizeof(buf), logfile)){
@@ -191,7 +191,7 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
     	int result = parse_nginx_log_item_time_and_domain(buf, t, domain);
     	if(result != 0){
     		if(plcdn_la_opt.verbose > 4)
-    			fprintf(stderr, "%s: parse_nginx_log_item_time failed, line=%zu, skip\n", __FUNCTION__, total_line);
+    			failednums.push_back(total_line);
     		++failed_line;
     		continue;
     	}
@@ -215,6 +215,12 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile, s
     	logstats[domain]._stats[tg]._logs.push_back(buf);
 
 		result = nginx_rotate_append_log(rotate_dir, buf, tg, rmap[tg].file);
+    }
+    if(!failednums.empty() && plcdn_la_opt.verbose > 4){
+		fprintf(stdout, "%s: parse_nginx_log_item_time failed lines: [", __FUNCTION__);
+		for(auto const & item : failednums)
+			fprintf(stdout, "%zu,", item);
+		fprintf(stdout, "]\n");
     }
     g_nginx_rotate_time = lastt;
 //    nginx_rotate_save_last_rotate_time(rotate_dir, lastt);
