@@ -81,6 +81,9 @@ int test_srs_log_stats_main(int argc, char ** argv);
 int test_plcdn_log_analysis_main(int argc, char ** argv);
 /*plcdn_log_split/main.cpp*/
 int test_plcdn_log_split_main(int argc, char ** argv);
+
+/* test_opencv.cpp */
+int test_opencv_main(int argc, char ** argv);
 /**
  * xlib util
  */
