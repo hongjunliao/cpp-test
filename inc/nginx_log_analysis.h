@@ -290,6 +290,9 @@ int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
 /* overloaded version, return array of  std::pair, will NOT modify @param szitem */
 int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, char const * szitem, char delim = '\0');
 
+/* overloaded version, sample @param v: char const * v[2] = { "[\"", "]\"" }; */
+int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], char delim/* = '\0'*/);
+
 /* parse ' ' splitted nginx log into log_item @param item
  * @return 0 on success */
 int parse_log_item(log_item & item, char *& logitem, char delim = '\0', int parse_url_mode = 2);

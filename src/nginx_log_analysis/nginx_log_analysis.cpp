@@ -508,6 +508,50 @@ error_return:
 	return -1;
 }
 
+int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], char delim/* = '\0'*/)
+{
+	char const * ch = 0;
+	int field_count = 0;
+	auto q = szitem;
+	for(auto p = q; *q != delim; ++q){
+		auto c = strchr(v[0], *q);
+		if(c){ /* border_begin */
+			if(!ch){
+				ch = c;
+				p = q + 1;
+				printf("__border_begin__%c__%c__\n", *p, *q);
+			}
+			continue;
+		}
+		if(ch && *q == v[1][ch - v[0]]){ /* border_end */
+			printf("__border_end__\n");
+			ch = 0;
+			*q = '\0';
+			fields[field_count++] = p;
+			if(*(q + 1) == ' '){
+				++q;
+				p = q + 1;
+				printf("___%c____%c___\n", *q, *p);
+			}
+			continue;
+		}
+		if(*q == ' '){	/* separator */
+			if(ch)
+				continue;
+			*q = '\0';
+			fields[field_count++] = p;
+			p = q + 1;
+		}
+	}
+	if(ch){
+		fprintf(stderr, "%s: parse error, '%s'\n", __FUNCTION__, ch);
+	}
+	for(int i  = 0; i < field_count; ++i){
+		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
+	}
+	return ch? -1 : 0;
+}
+
 int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int parse_url_mode/* = 2*/)
 {
 	memset(&item, 0, sizeof(log_item));
