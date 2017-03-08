@@ -24,6 +24,18 @@ int parse_fmt(char const * in, std::string& out,
 	return 0;
 }
 
+int parse_fmt(char *in_out, std::unordered_map<std::string, std::string> const& argmap)
+{
+	if(!in_out || in_out[0] == '\0')
+		return -1;
+	std::string out = in_out;
+	for(auto it : argmap){
+		boost::regex re(it.first);
+		out = boost::regex_replace(out, re, it.second);
+	}
+	strcpy(in_out, out.c_str());
+	return 0;
+}
 
 int test_nginx_log_parse_fmt_main(int argc, char ** argv)
 {

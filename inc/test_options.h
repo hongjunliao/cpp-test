@@ -126,6 +126,8 @@ struct plcdn_la_options
 
 	char const * output_split_srs_log;
 	char const * format_split_srs_log;
+/* for transform log */
+	int nginx_trans_log;	/* transform nginx log? default 0(disabled) */
 /**/
 	int device_id;		/*if not provided, find it in devicelist_file by local machine ip*/
 	int print_device_id;
