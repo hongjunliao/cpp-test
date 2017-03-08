@@ -94,6 +94,9 @@ extern int merge_srs_flow_user(int argc, char ** argv);
 extern int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile,
 		size_t& total_line, size_t & failed_line,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats);
+
+/* plcdn_log_transform.cpp */
+extern int nginx_transform_log(FILE * in, FILE * out, int fmt);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*GLOBAL vars*/
 /*plcdn_log_analysis/option.cpp*/
@@ -429,10 +432,8 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 				plcdn_la_show_usage(stdout);
 		return 0;
 	}
-	const char* str;
-	str="version 2.0 Build in 2017 02 28 Februaary 18:15";
 	if(plcdn_la_opt.show_version){
-		fprintf(stdout,"%s:%s\n",__FUNCTION__,str);
+		fprintf(stdout,"build at %s %s\n", __DATE__, __TIME__);
 		return 0;
 	};
 	if(plcdn_la_opt.verbose)
@@ -443,6 +444,8 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		fprintf(stdout, "%d\n", id);
 		return result == 0? 0 : 1;
 	}
+	if(plcdn_la_opt.nginx_trans_log)
+		return nginx_transform_log(stdin, stdout, plcdn_la_opt.nginx_trans_log);
 	if(plcdn_la_opt.work_mode == 1)
 		return merge_srs_flow_user(argc, argv);
 	g_plcdn_la_start_time = time(NULL);

@@ -2,8 +2,8 @@
  * test for opencv
  * @author hongjun.liao <docici@126.com>*/
 #include "bd_test.h"
-#ifdef TEST_OPENCV
 #include <stdio.h>
+#ifdef TEST_OPENCV
 #include <iostream>
 #include <opencv2/opencv.hpp>
 using namespace std;

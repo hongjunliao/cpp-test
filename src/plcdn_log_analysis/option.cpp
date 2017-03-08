@@ -66,6 +66,8 @@ struct plcdn_la_options plcdn_la_opt = {
 		.output_split_srs_log = NULL,
 		.format_split_srs_log = DEF_FORMAT_SPLIT_SRS_LOG,
 
+		.nginx_trans_log = 0,
+
 		.device_id = 0,
 		.print_device_id = 0,
 		.enable_multi_thread = 0,
@@ -139,6 +141,9 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"output-split-srs-log",    'j',  POPT_ARG_STRING,   0, 'j', "output folder for split_srs_log, disabled if NULL", 0 },
 	{"format-split-srs-log",    'J',  POPT_ARG_STRING,   0, 'J', "filename format for split_srs_log, default '" DEF_FORMAT_SPLIT_SRS_LOG "'", 0 },
+
+/* for transform log */
+	{"nginx-transform-log",         0,  POPT_ARG_INT,    0, '1', "transform nginx log, disabled if 0, ${site_id}", 0 },
 
 	{"device-id",                 0,  POPT_ARG_INT,      0, 'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
@@ -242,6 +247,8 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'j': plcdn_la_opt.output_split_srs_log = poptGetOptArg(pc); break;
 		case 'J': plcdn_la_opt.format_split_srs_log = poptGetOptArg(pc); break;
 
+		case '1': plcdn_la_opt.nginx_trans_log = atoi(poptGetOptArg(pc)); break;
+
 		case 'c': plcdn_la_opt.print_device_id = 1; break;
 		case 'a': plcdn_la_opt.enable_multi_thread = 1; break;
 		case 'E': plcdn_la_opt.work_mode = 1; break;
@@ -285,10 +292,9 @@ void plcdn_la_show_help(FILE * stream)
 			"    default disabled, applied for both nginx and srs log if enabled\n"
 			"  4.use ulimit(or other command) to increase 'open files', or may crash!\n"
 			"  5.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
-			"  6.nginx_log_format: $host $remote_addr $request_time_msec $cache_status [$time_local] \"$request_method \
-$request_uri $server_protocol\" $status $bytes_sent \
-\"$http_referer" "$remote_user" "$http_cookie" "$http_user_agent\" \
-$scheme $request_length $upstream_response_time\n"
+			"  6.nginx_log_format: '$host $remote_addr $request_time $upstream_cache_status [$time_local] \"$request_method $request_uri \\"
+		    "    \"$server_protocol\" $status $bytes_sent \"$http_referer\" \"$remote_user\" \"$http_cookie\" \"$http_user_agent\" $scheme \\"
+			"      $request_length $upstream_response_time $body_bytes_sent \"$http_x_forwarded_for\" \"$connection\" \"$server_addr\"'\n"
 			"  7.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
 			"  8.output table formats\n"
 			"    for nginx:\n"
@@ -354,7 +360,8 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
+			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
+			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "nginx_rotate_dir", opt.nginx_rotate_dir
@@ -412,6 +419,8 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 					: (opt.work_mode == 2? "rotate" : "<error>")))
 		, "append_flow_nginx", opt.append_flow_nginx
 		, "device_id", opt.device_id
+		, "nginx_trans_log", opt.nginx_trans_log
+
 		, "print_device_id", opt.print_device_id
 		, "parse_url_mode", opt.parse_url_mode
 		, "show_help", opt.show_help
