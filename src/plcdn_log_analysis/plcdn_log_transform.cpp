@@ -61,23 +61,14 @@ static int do_nginx_transform_log(char** m, char * fmt, char const * s /*= "-"*/
 		return -1;
 	std::unordered_map<std::string, std::string> argmap{
 		{ "\\$host", (m[0]? m[0] : s) },  { "\\$remote_addr", (m[1]? m[1] : s) },  { "\\$request_time", (m[2]? m[2] : s) },
-		{ "\\$upstream_cache_status", (m[3]? m[3] : s) }, /* { "\\$time_local", (m[0]? m[0] : s) },*/  { "\\$request_method", (m[0]? m[0] : s) },
-		{ "\\$request_uri", (m[6]? m[6] : s) },  { "\\$server_protocol", (m[0]? m[0] : s) },  { "\\$status", (m[0]? m[0] : s) },
-		{ "\\$bytes_sent", (m[9]? m[9] : s) },  { "\\$http_referer", (m[0]? m[0] : s) },  { "\\$remote_user", (m[0]? m[0] : s) },
-		{ "\\$http_cookie", (m[12]? m[12] : s) },  { "\\$http_user_agent", (m[0]? m[0] : s) },  { "\\$scheme", (m[0]? m[0] : s) },
-		{ "\\$request_length", (m[15]? m[15] : s) },  { "\\$upstream_response_time", (m[0]? m[0] : s) },  { "\\$body_bytes_sent", (m[0]? m[0] : s) },
-		{ "\\$http_x_forwarded_for", (m[18]? m[18] : s) },  { "\\$connection", (m[0]? m[0] : s) },  { "\\$server_addr", (m[0]? m[0] : s) },
+		{ "\\$upstream_cache_status", (m[3]? m[3] : s) },  { "\\$time_local", (m[4]? m[4] : s) },  { "\\$request_method", (m[5]? m[5] : s) },
+		{ "\\$request_uri", (m[6]? m[6] : s) },  { "\\$server_protocol", (m[7]? m[7] : s) },  { "\\$status", (m[8]? m[8] : s) },
+		{ "\\$bytes_sent", (m[9]? m[9] : s) },  { "\\$http_referer", (m[10]? m[10] : s) },  { "\\$remote_user", (m[11]? m[11] : s) },
+		{ "\\$http_cookie", (m[12]? m[12] : s) },  { "\\$http_user_agent", (m[13]? m[13] : s) },  { "\\$scheme", (m[14]? m[14] : s) },
+		{ "\\$request_length", (m[15]? m[15] : s) },  { "\\$upstream_response_time", (m[16]? m[16] : s) },  { "\\$body_bytes_sent", (m[17]? m[17] : s) },
+		{ "\\$http_x_forwarded_for", (m[18]? m[18] : s) },  { "\\$connection", (m[19]? m[19] : s) },  { "\\$server_addr", (m[20]? m[20] : s) },
 		{ "HIT", "HIT" },
 	};
-
-	/* FIXME: ugly */
-	char time_local[sizeof("07/Oct/2016:22:32:16 +0800") + 1];
-	strcpy(time_local, s);
-	if(m[4] && m[5]){
-		*(m[5] + 5) = '\0'; 	/* delete ']'*/
-		sprintf(time_local, "%s %s", m[4] + 1, m[5]);
-	}
-	argmap["\\$time_local"] = time_local;
 	parse_fmt(fmt, argmap);
 	return 0;
 }
@@ -98,15 +89,6 @@ static int do_nginx_transform_log(char** m, char const * fmt, std::string& out, 
 		{ "http_x_forwarded_for", (m[18]? m[18] : s) },  { "connection", (m[19]? m[19] : s) },  { "server_addr", (m[20]? m[20] : s) },
 		{ "HIT", "HIT" },
 	};
-	/* FIXME: ugly */
-	char time_local[sizeof("07/Oct/2016:22:32:16 +0800") + 1];
-	strcpy(time_local, s);
-	if(m[4] && m[5]){
-		*(m[5] + 5) = '\0'; 	/* delete ']'*/
-		sprintf(time_local, "%s %s", m[4] + 1, m[5]);
-	}
-	argmap["time_local"] = time_local;
-
 #ifdef USE_FACEBOOK_FOLLY
 	out = folly::svformat(CUSTOME_FORMAT_YUNDUAN_FOLLY, argmap);
 #endif /* USE_FACEBOOK_FOLLY */
