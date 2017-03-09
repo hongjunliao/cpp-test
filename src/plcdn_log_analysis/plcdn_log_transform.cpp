@@ -19,7 +19,9 @@
 #include <string.h>				/* strcpy */
 #include "nginx_log_analysis.h"	/* do_parse_nginx_log_item */
 #include "test_options.h"	/* plcdn_la_options */
+#ifdef USE_FACEBOOK_FOLLY
 #include "folly/Format.h"	/* folly::svformat */
+#endif /* USE_FACEBOOK_FOLLY */
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /* custom/user-defined nginx log format
  *
@@ -105,7 +107,9 @@ static int do_nginx_transform_log(char** m, char const * fmt, std::string& out, 
 	}
 	argmap["time_local"] = time_local;
 
+#ifdef USE_FACEBOOK_FOLLY
 	out = folly::svformat(CUSTOME_FORMAT_YUNDUAN_FOLLY, argmap);
+#endif /* USE_FACEBOOK_FOLLY */
 	return 0;
 }
 
@@ -124,22 +128,27 @@ int nginx_transform_log(FILE * in, FILE * out, int fmt)
 				fprintf(stderr, "%s: parse failed, skip:\n%s", __FUNCTION__, buff);
 			continue;
 		}
+#ifndef USE_FACEBOOK_FOLLY
 		/*use boost::regex_replace */
-//		char fmtstr = "05 07 \"08.1://08.2";
-//		char outbuff[1024 * 64];
-//		strcpy(outbuff, (fmt == 2? CUSTOME_FORMAT_YUNDUAN_REGEX : ""));
-//		result = do_nginx_transform_log(items, outbuff);
-
+		fprintf(stdout, "%s: WARNING, facebook.folly disabled, use boost.regex instead(poor efficiency)\n", __FUNCTION__);
+//		char const * fmtstr = "05 07 \"08.1://08.2";
+		char outbuff[1024 * 64];
+		strcpy(outbuff, (fmt == 2? CUSTOME_FORMAT_YUNDUAN_REGEX : ""));
+		result = do_nginx_transform_log(items, outbuff);
+#else
 		/*use folly::svformat */
 		std::string outstr;
 		result = do_nginx_transform_log(items, CUSTOME_FORMAT_YUNDUAN_FOLLY, outstr);
+		auto outbuff = outstr.c_str();
+#endif /* USE_FACEBOOK_FOLLY */
+
+
 
 		if(result != 0){
 			if(plcdn_la_opt.verbose > 3)
 				fprintf(stderr, "%s: transform failed, skip:\n%s", __FUNCTION__, buff);
 			continue;
 		}
-		auto outbuff = outstr.c_str();
 		if(fprintf(out, "%s\n", outbuff) == EOF){
 			if(plcdn_la_opt.verbose > 3)
 				fprintf(stderr, "%s: fputs failed, skip:\n%s", __FUNCTION__, outbuff);
