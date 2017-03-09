@@ -271,6 +271,16 @@ bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end);
 
 /*!
  * parse ' ' splitted nginx log
+ * parse rule
+ * 1.format:
+ * [border_begin]{field}[border_end] [border_begin]{field}[border_end] ...
+ *    |            |          |     |
+ *    |            |          |     |____ blank, 1 char, separator
+ *    |            |          |__________ 1 char, optional, e.g. ']', '"'
+ *    |            |_____________________ field
+ *    |__________________________________ 1 char, optional, e.g. '[', '"'
+ * 2.characters between border_begin and border_end are integral, treated as one field
+ * 3.(border_begin, border_end) is symmetrical, e.g. '[]', '""'
  * @NOTE:
  * 1.current nginx_log format:
  * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method \
@@ -282,16 +292,22 @@ bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end);
  * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
  * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
  * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
-
- * TODO:make it customizable
  * */
+
+/* NOTE: border is '"' */
 int do_parse_nginx_log_item(char ** fields, char *& szitem, char delim = '\0');
 
-/* overloaded version, return array of  std::pair, will NOT modify @param szitem */
+/* NOTE border is '"'
+ * overloaded version, return array of  std::pair, will NOT modify @param szitem */
 int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, char const * szitem, char delim = '\0');
 
-/* overloaded version, sample @param v: char const * v[2] = { "[\"", "]\"" }; */
+/* overloaded version, custom border char in @param v
+ * sample @param v: char const * v[2] = { "[\"", "]\"" }; */
 int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], char delim/* = '\0'*/);
+
+/* overloaded version, parse sub field in @param n, non-recursive
+ * NOTE: border in sub-field ignored!!! */
+int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std::vector<int> const& n, char delim/* = '\0'*/);
 
 /* parse ' ' splitted nginx log into log_item @param item
  * @return 0 on success */

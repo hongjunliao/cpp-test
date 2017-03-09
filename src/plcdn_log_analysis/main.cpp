@@ -435,7 +435,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	if(plcdn_la_opt.show_version){
 		fprintf(stdout,"build at %s %s\n", __DATE__, __TIME__);
 		return 0;
-	};
+	}
 	if(plcdn_la_opt.verbose)
 		plcdn_la_options_fprint(stdout, &plcdn_la_opt);
 	if(plcdn_la_opt.print_device_id){	//query device_id and return
@@ -581,7 +581,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		fprint_srs_log_stats(srs_logstats);
 	}
 	if(!nginx_log_file && !srs_log_file){
-		fprintf(stderr,  "%s: none of nginx, srs log file specified or can be read\n", __FUNCTION__);
+		fprintf(stderr,  "%s: none of nginx, srs log file specified or can be read, exit\n", __FUNCTION__);
 		return 1;
 	}
 	if(plcdn_la_opt.append_flow_nginx)

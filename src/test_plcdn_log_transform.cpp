@@ -43,7 +43,7 @@ $http_user_agent \"$http_x_forwarded_for\"  \"$connection\" \"$HIT\" $server_add
 {http_user_agent} \"{http_x_forwarded_for}\" \"{connection}\" \"{HIT}\" {server_addr}"
 
 /*plcdn_log_analysis/option.cpp*/
-extern struct plcdn_la_options plcdn_la_opt;
+//extern struct plcdn_la_options plcdn_la_opt;
 
 /*parse_fmt.cpp*/
 extern int parse_fmt(char *in_out, std::unordered_map<std::string, std::string> const& argmap);
@@ -96,15 +96,27 @@ static int do_nginx_transform_log(char** m, char const * fmt, std::string& out, 
 		{ "http_x_forwarded_for", (m[18]? m[18] : s) },  { "connection", (m[19]? m[19] : s) },  { "server_addr", (m[20]? m[20] : s) },
 	};
 	argmap["HIT"] = m[3]? (strncmp(m[3], "HIT", 3) == 0? "HIT" : "MISS") : s;
-	argmap["request"] = folly::svformat("{request_method} {scheme}://{host}{request_uri} {server_protocol}", argmap);
 #ifdef USE_FACEBOOK_FOLLY
+	argmap["request"] = folly::svformat("{request_method} {scheme}://{host}{request_uri} {server_protocol}", argmap);
 	out = folly::svformat(CUSTOME_FORMAT_YUNDUAN_FOLLY, argmap);
 #endif /* USE_FACEBOOK_FOLLY */
 	return 0;
 }
 
-int nginx_transform_log(FILE * in, FILE * out, int fmt)
+int test_nginx_transform_log_main(int argc, char ** argv)
 {
+//	std::string stest = (argc > 1 ? argv[1] : "");
+//	if(stest.empty() || stest == "help" || stest == "?" || stest == "-h" || stest == "--help"
+//			|| stest == "-v" || stest == "--version"){
+//		fprintf(stdout, "nginx log format transform tool, build at %s %s\n", __DATE__, __TIME__);
+//		fprintf(stdout, "currently only for speed test. usage:\n");
+//		fprintf(stdout, "cat bdrz.log | ./plcdn_logtrans > outfile\n");
+//		return 0;
+//	}
+
+	FILE * in = stdin;
+	FILE * out = stdout;
+	int fmt = 2;
 	if(!in || !out || fmt <= 0)
 		return -1;
 	char const * v[2] = { "[\"", "]\"" };
@@ -114,8 +126,8 @@ int nginx_transform_log(FILE * in, FILE * out, int fmt)
 		char *items[60] = { 0 };
 		int result = do_parse_nginx_log_item(items, p, v, {5}, '\n');
 		if(result != 0){
-			if(plcdn_la_opt.verbose > 3)
-				fprintf(stderr, "%s: parse failed, skip:\n%s", __FUNCTION__, buff);
+//			if(plcdn_la_opt.verbose > 3)
+//				fprintf(stderr, "%s: parse failed, skip:\n%s", __FUNCTION__, buff);
 			continue;
 		}
 #ifndef USE_FACEBOOK_FOLLY
@@ -132,13 +144,13 @@ int nginx_transform_log(FILE * in, FILE * out, int fmt)
 		auto outbuff = outstr.c_str();
 #endif /* USE_FACEBOOK_FOLLY */
 		if(result != 0){
-			if(plcdn_la_opt.verbose > 3)
-				fprintf(stderr, "%s: transform failed, skip:\n%s", __FUNCTION__, buff);
+//			if(plcdn_la_opt.verbose > 3)
+//				fprintf(stderr, "%s: transform failed, skip:\n%s", __FUNCTION__, buff);
 			continue;
 		}
 		if(fprintf(out, "%s\n", outbuff) == EOF){
-			if(plcdn_la_opt.verbose > 3)
-				fprintf(stderr, "%s: fputs failed, skip:\n%s", __FUNCTION__, outbuff);
+//			if(plcdn_la_opt.verbose > 3)
+//				fprintf(stderr, "%s: fputs failed, skip:\n%s", __FUNCTION__, outbuff);
 		}
 	}
 	return 0;

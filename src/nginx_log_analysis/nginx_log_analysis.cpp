@@ -7,6 +7,7 @@
 #include <time.h> /*strptime*/
 #include <string.h> /*strncpy*/
 #include <time.h> /*strptime*/
+#include <algorithm> /* std::find */
 #include "string_util.h"	/* sha1sum_r */
 #include "net_util.h"	/*netutil_get_ip_str*/
 
@@ -545,6 +546,78 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], cha
 			p = q + 1;
 		}
 	}
+//	for(int i  = 0; i < field_count; ++i){
+//		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
+//	}
+	return ch? -1 : 0;
+}
+
+/* split @param szitem, by ' ', insert '\0' and append to @param fields[n] */
+static void split_string(char ** fields, int& n, char *& szitem, char delim = '\0')
+{
+	auto q = szitem;
+	for(auto p = q; ; ++q){
+		if(*q == delim){
+			*q = '\0';
+			fields[n++] = p;
+			break;
+		}
+		if(*q != ' ')
+			continue;
+		*q = '\0';
+		fields[n++] = p;
+		p = q + 1;
+	}
+}
+
+
+int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std::vector<int> const& n, char delim/* = '\0'*/)
+{
+	char const * ch = 0;
+	int field_count = 0;
+	auto q = szitem;
+	for(auto p = q; ; ++q){
+		if(*q == delim){
+			*q = '\0';
+			if(std::find(n.begin(), n.end(), field_count) != std::end(n))
+				split_string(fields, field_count, p, '\0');
+			else
+				fields[field_count++] = p;
+			break;
+		}
+		auto c = strchr(v[0], *q);
+		if(c && !ch){ /* border_begin */
+			if(!ch){
+				ch = c;
+				p = q + 1;
+			}
+			continue;
+		}
+		if(ch && *q == v[1][ch - v[0]]){ /* border_end */
+			ch = 0;
+			*q = '\0';
+			if(std::find(n.begin(), n.end(), field_count) != std::end(n))
+				split_string(fields, field_count, p, '\0');
+			else
+				fields[field_count++] = p;
+			if(*(q + 1) == ' '){
+				++q;
+				p = q + 1;
+			}
+			continue;
+		}
+		if(*q == ' '){	/* separator */
+			if(ch)
+				continue;
+			*q = '\0';
+			if(std::find(n.begin(), n.end(), field_count) != std::end(n))
+				split_string(fields, field_count, p, '\0');
+			else
+				fields[field_count++] = p;
+			p = q + 1;
+		}
+	}
+
 //	for(int i  = 0; i < field_count; ++i){
 //		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
 //	}

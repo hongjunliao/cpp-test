@@ -80,7 +80,6 @@ static int test_cpp11_unicode(int argc, char ** argv)
 			anscii_str, utf8, utf16, utf32);
 	return 0;
 }
-
 /////////////////////////////////////////////////////////////////////////////
 int test_cpp11_main(int argc, char ** argv)
 {
@@ -88,5 +87,6 @@ int test_cpp11_main(int argc, char ** argv)
 	test_atomic(argc, argv);
 //	test_atomic_flag(argc, argv);
 	test_cpp11_unicode(argc, argv);
+	std::initializer_list<int> i {3, 4, 5};
 	return 0;
 }
