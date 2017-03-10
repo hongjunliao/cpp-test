@@ -108,9 +108,11 @@ struct locisp_stat
 	size_t bytes; 	/*bytes total*/
 	size_t access;	/*access count*/
 	size_t bytes_m;			/*bytes total for nginx 'MISS' */
-	size_t access_m;		/*access_count for nginx 'MISS'*/
+	size_t access_m;	  		/*access_count for nginx 'MISS'*/
+	std::vector <double> _svg; /* user/yunduan SVG_SPEED */
 };
 
+double locisp_stat_svg(locisp_stat const& stat);
 //////////////////////////////////////////////////////////////////////////////////
 /* group by local_id and isp: locisp
  * @note: define ENABLE_IPMAP to enable ipmap*/
