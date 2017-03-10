@@ -155,7 +155,7 @@ url_stat& url_stat::operator+=(url_stat const& another)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 double locisp_stat_svg(locisp_stat const& stat)
 {
-	return std::accumlate(stat.begin(), stat.begin(), 0.0) / stat._svg.size();
+	return !stat._svg.empty()? std::accumulate(stat._svg.begin(), stat._svg.end(), 0.0) / stat._svg.size() : 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -713,16 +713,14 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 		auto s = item.bytes_sent * 1.0  / item.request_time;
 		listat._svg.push_back(s);
 	}
-	if(plcdn_la_opt.output_file_ip_source){
-		/*FIXME, @date 2016/11/11*/
+	/*FIXME, @date 2016/11/11*/
 //		if(plcdn_la_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
 //			return 0;
-		listat.bytes += item.bytes_sent;
-		++listat.access;
-		if(!item.is_hit){
-			listat.bytes_m += item.bytes_sent;
-			++listat.access_m;
-		}
+	listat.bytes += item.bytes_sent;
+	++listat.access;
+	if(!item.is_hit){
+		listat.bytes_m += item.bytes_sent;
+		++listat.access_m;
 	}
 
 	/* @NOTES: push only when plcdn_la_opt.work_mode == 0 !!!  */

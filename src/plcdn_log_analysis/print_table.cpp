@@ -85,15 +85,31 @@ static std::string parse_nginx_output_filename(char const * fmt, char const *int
 
 static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
-	/* @NOTES: @date 2017/02/16,
-	 * add 2 new fields: tx_rtmp_in(srs ibytes), tx_rtmp_out(srs obytes) @see append_flow_nginx */
-	char buft[32];
-	auto bytes_total = stat.bytes_total();
-	/* format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m, tx_rtmp_in, tx_rtmp_out */
-	auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu\n",
-				site_id, g.c_str_r(buft, sizeof(buft)), g_plcdn_la_device_id, stat.access_total()
-				, bytes_total , user_id, stat.access_m(), stat._bytes_m, stat.srs_in, stat.srs_out);
-	if(sz <= 0) ++n;
+	/* @NOTES: @date 2017/02/16:
+	 * add 2 new fields: tx_rtmp_in(srs ibytes), tx_rtmp_out(srs obytes) @see append_flow_nginx
+	 *
+	 * @NOTES: @date 2017/03//10:
+	 * add 4 new fields: loc, isp, fst_pkg_time, svg_speed. for user/yunduan,
+	 * 1.see https://www.isurecloud.com/
+	 * 2.see plcdn_log_transform.cpp
+	 * */
+	char buft[32] = "(error)";
+	g.c_str_r(buft, sizeof(buft));
+	for(auto const& li_item : stat._locisp_stats){
+		auto const & li = li_item.first;
+		auto const & listat = li_item.second;
+		char loc_isp[7 + 1 + 3 + 1 + 20] = "- -"; /*<loc><blank><isp><NULL><?>*/
+		/* format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m,
+		 * tx_rtmp_in, tx_rtmp_out,
+		 * loc, isp, fst_pkg_time, svg_speed */
+		/* FIXME: fst_pkg_time? */
+		auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu %s %d %.0f\n",
+					site_id, buft, g_plcdn_la_device_id, listat.access
+					, listat.bytes , user_id, listat.access_m, listat.bytes_m
+					, stat.srs_in, stat.srs_out
+					, li.loc_isp_c_str(loc_isp, sizeof(loc_isp)), 0/*fst_pkg_time*/, locisp_stat_svg(listat));
+		if(sz <= 0) ++n;
+	}
 }
 
 void print_url_popular_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)

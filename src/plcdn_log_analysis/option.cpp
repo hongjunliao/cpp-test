@@ -143,7 +143,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"format-split-srs-log",    'J',  POPT_ARG_STRING,   0, 'J', "filename format for split_srs_log, default '" DEF_FORMAT_SPLIT_SRS_LOG "'", 0 },
 
 /* for transform log */
-	{"nginx-transform-log",         0,  POPT_ARG_INT,    0, '1', "transform nginx log, disabled if 0, ${site_id}", 0 },
+	{"nginx-transform-log",         0,  POPT_ARG_INT,    0, '1', "transform nginx log, disabled if 0, ${user_id}", 0 },
 
 	{"device-id",                 0,  POPT_ARG_INT,      0, 'e', "device_id integer(> 0)", 0 },
 	{"print-divice-id",         'c',  POPT_ARG_NONE,     0, 'c', "print device_id and exit", 0 },
@@ -273,6 +273,9 @@ void plcdn_la_show_help(FILE * stream)
 {
 	fprintf(stream, "analysis log file, print result tables, or merge results. currently support nginx, srs log files. build at %s %s\n"
 			, __DATE__, __TIME__);
+	fprintf(stream, "\n****************************************************************************************************************\n");
+	fprintf(stream, "YOU are on branch 'user/yunduan', specific for user 'yunduan', '--nginx-transform-log 2', see https://www.isurecloud.com/\n");
+	fprintf(stream, "****************************************************************************************************************\n\n");
 	poptPrintHelp(pc, stream, 0);
 	fprintf(stream, "NOTES:\n"
 			"  1.work_mode\n"
@@ -292,14 +295,15 @@ void plcdn_la_show_help(FILE * stream)
 			"    default disabled, applied for both nginx and srs log if enabled\n"
 			"  4.use ulimit(or other command) to increase 'open files', or may crash!\n"
 			"  5.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
-			"  6.nginx_log_format: '$host $remote_addr $request_time $upstream_cache_status [$time_local] \"$request_method $request_uri \\"
-		    "    \"$server_protocol\" $status $bytes_sent \"$http_referer\" \"$remote_user\" \"$http_cookie\" \"$http_user_agent\" $scheme \\"
+			"  6.nginx_log_format: '$host $remote_addr $request_time $upstream_cache_status [$time_local] \"$request_method $request_uri \\\n"
+		    "      \"$server_protocol\" $status $bytes_sent \"$http_referer\" \"$remote_user\" \"$http_cookie\" \"$http_user_agent\" $scheme \\\n"
 			"      $request_length $upstream_response_time $body_bytes_sent \"$http_x_forwarded_for\" \"$connection\" \"$server_addr\"'\n"
 			"  7.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
 			"  8.output table formats\n"
 			"    for nginx:\n"
-			"    (1)nginx_flow_table:     '${site_id} ${datetime} ${device_id} ${num_total} ${bytes_total} ${user_id} ${pvs_m} ${px_m} ${tx_rtmp_in} ${tx_rtmp_out}'\n"
-			"    (2)url_popular_table:    '${datetime} ${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302}\n"
+			"    (1)nginx_flow_table:     '${site_id} ${datetime} ${device_id} ${num_total} ${bytes_total} ${user_id} \\\n"
+			"                                ${pvs_m} ${px_m} ${tx_rtmp_in} ${tx_rtmp_out} ${loc} ${isp} ${fst_pkg_time} ${svg_speed}'\n"
+			"    (2)url_popular_table:    '${datetime} ${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302} \\\n"
 		    "                                ${num_304} ${num_403} ${num_404} ${num_416} ${num_499} ${num_500} ${num_502} ${num_other}'\n"
 			"    (3)ip_popular_table:     '${site_id} ${device_id} ${ip} ${datetime} ${num}'\n"
 			"    (4)http_stats_table:     '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m}'\n"
