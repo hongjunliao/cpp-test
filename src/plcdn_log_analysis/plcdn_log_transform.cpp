@@ -96,8 +96,8 @@ static int do_nginx_transform_log(char** m, char const * fmt, std::string& out, 
 		{ "http_x_forwarded_for", (m[18]? m[18] : s) },  { "connection", (m[19]? m[19] : s) },  { "server_addr", (m[20]? m[20] : s) },
 	};
 	argmap["HIT"] = m[3]? (strncmp(m[3], "HIT", 3) == 0? "HIT" : "MISS") : s;
-	argmap["request"] = folly::svformat("{request_method} {scheme}://{host}{request_uri} {server_protocol}", argmap);
 #ifdef USE_FACEBOOK_FOLLY
+	argmap["request"] = folly::svformat("{request_method} {scheme}://{host}{request_uri} {server_protocol}", argmap);
 	out = folly::svformat(CUSTOME_FORMAT_YUNDUAN_FOLLY, argmap);
 #endif /* USE_FACEBOOK_FOLLY */
 	return 0;

@@ -311,6 +311,23 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], cha
  * NOTE: border in sub-field ignored!!! */
 int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std::vector<int> const& n, char delim/* = '\0'*/);
 
+/* overloaded version, parse sub field in @param n, non-recursive, will NOT modify @param szitem
+ * @param fields: out, fields
+ * @param fl:     in_out, count of fields
+ * @param rn:     in, field_count of 1 row
+ * @param szitem: in, buffer
+ * @param bl:     in, length of buffer
+ * @param v:      in, border for parse, sample: char const * v[2] = { "[\"", "]\"" };
+ * @param n:      in, index of sub-field, currently only support 1 sub-field
+ * sub-field sample
+ * "$request" =  "$request_method $scheme://$host$request_uri $server_protocol"
+ * @param delim:  in, delim char for end of line
+ *
+ * @return:       0 on success
+ * */
+int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, size_t & fl, int rn, char const * szitem, size_t bl,
+		char const * v[2], int n, char delim = '\n');
+
 /* parse ' ' splitted nginx log into log_item @param item
  * @return 0 on success */
 int parse_log_item(log_item & item, char *& logitem, char delim = '\0', int parse_url_mode = 2);

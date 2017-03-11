@@ -577,7 +577,6 @@ static void split_string(char ** fields, int& n, char *& szitem, char delim = '\
 	}
 }
 
-
 int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std::vector<int> const& n, char delim/* = '\0'*/)
 {
 	char const * ch = 0;
@@ -624,10 +623,115 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std
 			p = q + 1;
 		}
 	}
+	return ch? -1 : 0;
+}
 
-//	for(int i  = 0; i < field_count; ++i){
-//		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
+static int split_string(std::pair<char const *, char const *> * fields, size_t  fl, size_t & fc, char const * szitem, size_t bl)
+{
+	auto q = szitem;
+	for(auto p = q; ; ++q){
+		if(q == szitem + bl){
+			if(fc == fl)
+				return -1;
+			fields[fc++] = std::make_pair(p, q);
+			break;
+		}
+		if(*q != ' ')
+			continue;
+		if(fc == fl)
+			return -1;
+		fields[fc++] = std::make_pair(p, q);
+		p = q + 1;
+	}
+	return 0;
+}
+
+static int append_fields(std::pair<char const *, char const *> * fields, size_t fl, size_t & fc)
+{
+
+}
+
+static inline int int_cmp(void const * a, void const * b)
+{
+	return *(int const *)a - *(int const *)b;
+}
+
+int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, size_t & fl, int rn,
+		char const * szitem, size_t bl,
+		char const * v[2], int n, char delim/* = '\n'*/)
+{
+	char const * ch = 0;
+	size_t fc = 0;
+	auto q = szitem;
+	for(auto p = q; ; ++q){
+		if(q == szitem + bl){
+			if(p != q)
+				return -1;
+			break;
+		}
+		auto c = strchr(v[0], *q);
+		if(c && !ch){ /* border_begin */
+			if(!ch){
+				ch = c;
+				p = q + 1;
+			}
+			continue;
+		}
+		if(ch && *q == v[1][ch - v[0]]){ /* border_end */
+			ch = 0;
+			if(fc == fl)
+				return -2;
+			if((int)fc % rn == n)
+				split_string(fields, fl, fc, p, q - p);
+			else
+				fields[fc++] = std::make_pair(p, q);
+			if(*(q + 1) == ' '){
+				++q;
+				p = q + 1;
+			}
+			continue;
+		}
+		if(*q == ' '){	/* separator */
+			if(ch)
+				continue;
+			if(fc == fl)
+				return -2;
+			fields[fc++] = std::make_pair(p, q);;
+			p = q + 1;
+		}
+		if(*q == delim){	/* end of line */
+			if(ch)
+				return -1;
+			if(fc == fl)
+				return -2;
+			fields[fc++] = std::make_pair(p, q + 1);
+			auto lrn = (int)fc % rn;
+			if(lrn > 0){
+				for(; lrn != rn; ++lrn){
+					fields[fc++] = std::make_pair<char const *, char const *>(0, 0);
+					if(fc == fl)
+						return -2;
+				}
+			}
+			p = q + 1;
+		}
+	}
+	fl = fc;
+//	for(size_t i  = 0; i < fc; ++i){
+//		fprintf(stdout, "%s: argv[%zu]:", __FUNCTION__, i);
+//		if(!fields[i].first){
+//			fprintf(stdout, "\\0\n");
+//			continue;
+//		}
+//		for(auto p = fields[i].first; p != fields[i].second; ++p){
+//			if(*p == '\n')
+//				fprintf(stdout, "\\n");
+//			else
+//				fprintf(stdout, "%c", *p);
+//		}
+//		fprintf(stdout, "\n");
 //	}
+
 	return ch? -1 : 0;
 }
 
