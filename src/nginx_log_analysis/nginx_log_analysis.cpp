@@ -704,7 +704,7 @@ int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, size
 				return -1;
 			if(fc == fl)
 				return -2;
-			fields[fc++] = std::make_pair(p, q + 1);
+			fields[fc++] = std::make_pair(p, q);
 			auto lrn = (int)fc % rn;
 			if(lrn > 0){
 				for(; lrn != rn; ++lrn){

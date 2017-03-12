@@ -316,8 +316,8 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 	auto iov_max = sysconf(_SC_IOV_MAX);
 	if(iov_max == -1)
 		iov_max = IOV_MAX;
-	fprintf(stdout, "%s: fmtf_m=%zu, arg_n=%zu, rn=%d, def='%s', iov_max=%ld, k=%zu\n", __FUNCTION__,
-			m, n, rn, def, iov_max, k);
+//	fprintf(stdout, "%s: fmtf_m=%zu, arg_n=%zu, rn=%d, def='%s', iov_max=%ld, k=%zu\n", __FUNCTION__,
+//			m, n, rn, def, iov_max, k);
 
 	/* write to file */
 	size_t w = 0;
@@ -402,6 +402,6 @@ int test_nginx_transform_log_main_2(int argc, char ** argv)
 {
 	size_t RN = 21;	/* field count for original file line */
 	/* "%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20\n" */
-	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20", RN, stdin, stdout);
+	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20\n", RN, stdin, stdout);
 }
 
