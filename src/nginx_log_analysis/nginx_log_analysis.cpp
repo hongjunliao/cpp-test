@@ -646,11 +646,6 @@ static int split_string(std::pair<char const *, char const *> * fields, size_t  
 	return 0;
 }
 
-static int append_fields(std::pair<char const *, char const *> * fields, size_t fl, size_t & fc)
-{
-
-}
-
 static inline int int_cmp(void const * a, void const * b)
 {
 	return *(int const *)a - *(int const *)b;

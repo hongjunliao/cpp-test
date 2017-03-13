@@ -462,7 +462,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		return 1;
 	}
 #ifdef ENABLE_IPMAP
-	if(plcdn_la_opt.output_file_ip_source && 0 != locisp_group::load_ipmap_file(plcdn_la_opt.ipmap_file))  {
+	if(0 != locisp_group::load_ipmap_file(plcdn_la_opt.ipmap_file))  {
 		fprintf(stderr, "%s: ipmap_load(%s) failed\n", __FUNCTION__, plcdn_la_opt.ipmap_file);
 		return 1;
 	}

@@ -46,6 +46,10 @@ struct nginx_flow_table_row
 	 size_t px_m;
 
 	 size_t srs_in, srs_out;
+/* for user/yunduan */
+	 char loc[16], isp[8];
+	 int fst_pkg_time;
+	 double svg_speed;
 };
 
 struct nginx_url_popular_table_row
@@ -110,10 +114,12 @@ static int parse_table_row(char const * buf, std::string& urlkey, std::string& u
 typedef std::tuple<time_t, int> srs_user_flow_key_t; /* std::tuple<datetime, user_id> */
 typedef std::tuple<size_t, size_t, double, double> srs_user_flow_value_t;	/* std::tuple<obytes, ibytes, obps, ibps> */
 typedef std::tuple<time_t, int, int, int> merge_key_t; 	/* std::tuple<datetime, site_id, device_id, user_id> */
+/* std::tuple<datetime, site_id, device_id, user_id, loc, isp> */
+typedef std::tuple<time_t, int, int, int, std::string, std::string> merge_nginx_flow_key_t;
 typedef std::tuple<time_t, std::string> merge_nginx_url_popular_key_t; 	/* std::tuple<datetime, url_key> */
 
-/* std::tuple<num_total, bytes_total, pvs_m, px_m, srs_in, srs_out> */
-typedef std::tuple<size_t, size_t, size_t, size_t, size_t, size_t> nginx_flow_value_t;
+/* std::tuple<num_total, bytes_total, pvs_m, px_m, srs_in, srs_out, fst_pkg_time, svg_speed> */
+typedef std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, int, double> nginx_flow_value_t;
 /* std::tuple<num_total, num_200, size_200, num_206, size_206, num_301302, num_304,
 			 num_403, num_404, num_416, num_499, num_500, num_502, num_other> */
 typedef std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t,
@@ -185,6 +191,37 @@ std::size_t std::hash<merge_key_t>::operator()(
 	boost::hash_combine(ret, h1);
 	boost::hash_combine(ret, h2);
 	boost::hash_combine(ret, h3);
+	return ret;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace std{
+template<> struct hash<merge_nginx_flow_key_t>
+{
+	typedef merge_nginx_flow_key_t argument_type;
+	typedef std::size_t result_type;
+	result_type operator()(argument_type const& s) const;
+};
+
+}	//namespace std
+
+std::size_t std::hash<merge_nginx_flow_key_t>::operator()(
+		merge_nginx_flow_key_t const& val) const
+{
+	size_t ret = 0;
+	size_t const h0 ( std::hash<time_t>{}(std::get<0>(val)) );
+	size_t const h1 ( std::hash<int>{}(std::get<1>(val)) );
+	size_t const h2 ( std::hash<int>{}(std::get<2>(val)) );
+	size_t const h3 ( std::hash<int>{}(std::get<3>(val)) );
+	size_t const h4 ( std::hash<std::string>{}(std::get<4>(val)) );
+	size_t const h5 ( std::hash<std::string>{}(std::get<5>(val)) );
+
+	boost::hash_combine(ret, h0);
+	boost::hash_combine(ret, h1);
+	boost::hash_combine(ret, h2);
+	boost::hash_combine(ret, h3);
+	boost::hash_combine(ret, h4);
+	boost::hash_combine(ret, h5);
 	return ret;
 }
 
@@ -361,11 +398,13 @@ static int parse_table_row(char const * buf, nginx_flow_table_row & row)
 {
 	if(!buf || buf[0] == '\0')
 		return -1;
-	int n = sscanf(buf, "%d%ld%d%zu%zu%d%zu%zu%zu%zu",
+	/* @see nginx/print_flow_table */
+	int n = sscanf(buf, "%d%ld%d%zu%zu%d%zu%zu%zu%zu%s%s%d%lf",
 						 &row.site_id, &row.datetime, &row.device_id,
 						 &row.num_total, &row.bytes_total, &row.user_id, &row.pvs_m, &row.px_m,
-						 &row.srs_in, &row.srs_out);
-	if(n != 10)
+						 &row.srs_in, &row.srs_out,
+						 row.loc, row.isp, &row.fst_pkg_time, &row.svg_speed);
+	if(n != 14)
 		return -1;
 	return 0;
 }
@@ -554,10 +593,9 @@ int merge_nginx_flow_datetime(FILE *& f)
 
     f = std::freopen(NULL, "w", f);
     if(!f) return -1;
-    /* '${site_id} ${device_id} ${num_total} ${bytes_total} ${user_id} ${pvs_m} ${px_m} (${tx_rtmp_in} ${tx_rtmp_out})' */
-    std::unordered_map<merge_key_t, nginx_flow_value_t> merge_map;
+    std::unordered_map<merge_nginx_flow_key_t, nginx_flow_value_t> merge_map;
     for(auto const & item : rows){
-    	auto  k = std::make_tuple(item.datetime, item.site_id, item.device_id, item.user_id);
+    	auto  k = std::make_tuple(item.datetime, item.site_id, item.device_id, item.user_id, item.loc, item.isp);
     	auto & val = merge_map[k];
 
 		/***************************************IMPORTANT!!!************************************/
@@ -582,17 +620,24 @@ int merge_nginx_flow_datetime(FILE *& f)
 			std::get<1>(val) += item.bytes_total;
 			std::get<2>(val) += item.pvs_m;
 			std::get<3>(val) += item.px_m;
+
+			/* FIXME: is avg all-right? */
+			std::get<6>(val) = ((item.fst_pkg_time + std::get<6>(val)) / 2.0);
+			std::get<7>(val) = ((item.svg_speed + std::get<7>(val)) / 2.0);
     	}
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
 		/* @see nginx/print_flow_table */
-		auto sz = fprintf(f, "%d %ld %d %zu %zu %d %zu %zu %zu %zu\n", std::get<1>(item.first), std::get<0>(item.first),
+		auto sz = fprintf(f, "%d %ld %d %zu %zu %d %zu %zu %zu %zu %s %s %d %.0f\n", std::get<1>(item.first), std::get<0>(item.first),
 				std::get<2>(item.first),
 				std::get<0>(item.second), std::get<1>(item.second),
 				std::get<3>(item.first), std::get<2>(item.second),
 				std::get<3>(item.second),
-				std::get<4>(item.second), std::get<5>(item.second));
+				std::get<4>(item.second), std::get<5>(item.second),
+				std::get<4>(item.first).c_str(), std::get<5>(item.first).c_str(),
+				std::get<6>(item.second), std::get<7>(item.second)
+				);
 		if(sz <= 0)
 			++failed_line;
     }
