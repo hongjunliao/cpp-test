@@ -306,7 +306,7 @@ void plcdn_la_show_help(FILE * stream)
 			"    (2)url_popular_table:    '${datetime} ${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302} \\\n"
 		    "                                ${num_304} ${num_403} ${num_404} ${num_416} ${num_499} ${num_500} ${num_502} ${num_other}'\n"
 			"    (3)ip_popular_table:     '${site_id} ${device_id} ${ip} ${datetime} ${num}'\n"
-			"    (4)http_stats_table:     '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m}'\n"
+			"    (4)http_stats_table:     '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m} ${loc} ${isp}'\n"
 			"    (5)ip_slowfast_table:    '${device_id} ${ip} ${datetime} ${speed} ${type}'\n"
 			"    (6)cutip_slowfast_table: '${device_id} ${datetime} ${ip} ${speed}'\n"
 			"    (7)ip_source_table:      '${datetime} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"

@@ -98,14 +98,18 @@ static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat 
 	for(auto const& li_item : stat._locisp_stats){
 		auto const & li = li_item.first;
 		auto const & listat = li_item.second;
+
+		size_t access = 0, bytes = 0, access_m = 0, bytes_m = 0;
+		locisp_stat_access_bytes(listat, access, bytes, access_m, bytes_m);
+
 		char loc_isp[7 + 1 + 3 + 1 + 20] = "- -"; /*<loc><blank><isp><NULL><?>*/
 		/* format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m,
 		 * tx_rtmp_in, tx_rtmp_out,
 		 * loc, isp, fst_pkg_time, svg_speed */
 		/* FIXME: fst_pkg_time? */
 		auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu %s %d %.0f\n",
-					site_id, buft, g_plcdn_la_device_id, listat.access
-					, listat.bytes , user_id, listat.access_m, listat.bytes_m
+					site_id, buft, g_plcdn_la_device_id, access
+					, bytes, user_id, access_m, bytes_m
 					, stat.srs_in, stat.srs_out
 					, li.loc_isp_c_str(loc_isp, sizeof(loc_isp)), 0/*fst_pkg_time*/, locisp_stat_svg(listat));
 		if(sz <= 0) ++n;
@@ -160,21 +164,24 @@ inline void print_ip_popular_table(FILE * stream, time_group const& g, nginx_log
 
 inline void print_http_stats_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n)
 {
-	std::unordered_map<int, size_t> st;	/*http_status_code: access_count*/
-	for(auto const& url_item : stat._url_stats){
-		for(auto const& httpcode_item : url_item.second._status){
-			st[httpcode_item.first] += httpcode_item.second;
+
+	char buft[32] = "(error)";
+	g.c_str_r(buft, sizeof(buft));
+	for(auto const& li_item : stat._locisp_stats){
+		auto const & li = li_item.first;
+		auto const & listat = li_item.second;
+
+		char loc_isp[7 + 1 + 3 + 1 + 20] = "- -"; /*<loc><blank><isp><NULL><?>*/
+		li.loc_isp_c_str(loc_isp, sizeof(loc_isp));
+
+		for(auto & c_item : listat._code){
+			auto & cstat = c_item.second;
+			/* NOTE: num_m, loc, isp are new added for user/yunduan, @author hongjun.liao <docici@126.com> @date 2017/03 */
+			/* format: site_id, device_id, httpstatus, datetime, num, num_m, loc, isp */
+			auto sz = fprintf(stream, "%d %d %d %s %zu %zu %s\n",
+					site_id, g_plcdn_la_device_id, c_item.first, buft, cstat.access, cstat.access_m, loc_isp);
+			if(sz <= 0) ++n;
 		}
-	}
-	char buft[32];
-	for(auto const& st_item : st){
-		/*note: num_m column is new added, @author hongjun.liao <docici@126.com> @date 2016/12/28*/
-		/*format: site_id, device_id, httpstatus, datetime, num, num_m*/
-		auto sz = fprintf(stream, "%d %d %d %s %zu %zu\n",
-				site_id, g_plcdn_la_device_id, st_item.first, g.c_str_r(buft, sizeof(buft)), st_item.second,
-				(stat._access_m.count(st_item.first) != 0? stat._access_m.at(st_item.first) : 0)
-				);
-		if(sz <= 0) ++n;
 	}
 }
 
@@ -311,9 +318,10 @@ static void print_url_key_table(FILE * stream, int site_id, int user_id,nginx_lo
 {
 		for(auto const & url_item : stat._url_stats){
 			auto const & url=url_item.first;
-			std::string surl = (urlkey.count(url)  !=  0 ? urlkey.at(url)  : "invalid parameter");
+			if(urlkey.count(url) == 0)
+				continue;	/* this should never happen */
 			/* format: 'url_key url' */
-			auto sz = fprintf(stream,"%s %s\n", url.c_str(),  surl.c_str() );
+			auto sz = fprintf(stream,"%s %s\n", url.c_str(),  urlkey.at(url).c_str() );
 			if(sz <= 0) ++n;
 		}
 }
@@ -322,15 +330,18 @@ void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat co
 {
 	for(auto const& li_item : stat._locisp_stats){
 		auto const & li = li_item.first;
-		auto const & listat = li_item.second;
 		char loc_isp[7 + 1 + 3 + 1 + 20]; /*<loc><blank><isp><NULL><?>*/
+		li.loc_isp_c_str(loc_isp, sizeof(loc_isp));
+
+		auto const & listat = li_item.second;
+		size_t access = 0, bytes = 0, access_m = 0, bytes_m = 0;
+		locisp_stat_access_bytes(listat, access, bytes, access_m, bytes_m);
 		/*format: bw_time, local_id, isp_id, pvs, tx, pvs_m, tx_m, device_id*/
 		char buft[32];
 		auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %d\n",
 						g.c_str_r(buft, sizeof(buft)),
-						li.loc_isp_c_str(loc_isp, sizeof(loc_isp)),
-						listat.access, listat.bytes,
-						listat.access_m, listat.bytes_m, g_plcdn_la_device_id);
+						loc_isp,
+						access, bytes, access_m, bytes_m, g_plcdn_la_device_id);
 		if(sz <= 0) ++n;
 	}
 }

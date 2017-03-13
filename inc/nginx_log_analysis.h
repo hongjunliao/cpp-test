@@ -102,16 +102,25 @@ struct ip_stat
 	size_t access;	/*access count*/
 };
 
-//////////////////////////////////////////////////////////////////////////////////
-struct locisp_stat
+struct pv_stats
 {
 	size_t bytes; 	/*bytes total*/
 	size_t access;	/*access count*/
 	size_t bytes_m;			/*bytes total for nginx 'MISS' */
-	size_t access_m;	  		/*access_count for nginx 'MISS'*/
+	size_t access_m;	  	/*access_count for nginx 'MISS'*/
+};
+//////////////////////////////////////////////////////////////////////////////////
+struct locisp_stat
+{
+	/* http_status_code: stats */
+	std::unordered_map<int, pv_stats> _code;
 	std::vector <double> _svg; /* user/yunduan SVG_SPEED */
+	locisp_stat& operator+=(locisp_stat const& another);
 };
 
+void locisp_stat_access_bytes(locisp_stat const& stat,
+		size_t & access, size_t & bytes, size_t & access_m, size_t & bytes_m);
+void locisp_stat_access_bytes_m(locisp_stat const& stat, size_t & access_m, size_t & bytes_m);
 double locisp_stat_svg(locisp_stat const& stat);
 //////////////////////////////////////////////////////////////////////////////////
 /* group by local_id and isp: locisp
@@ -211,10 +220,6 @@ public:
 	std::unordered_map<uint32_t, ip_stat> _ip_stats;				/*ip:ip_stat*/
 	std::unordered_map<cutip_group, ip_stat> _cuitip_stats;			/*cutip: ip_stat*/
 	std::unordered_map<locisp_group, locisp_stat> _locisp_stats;	/*locisp:locisp_stat*/
-	size_t _bytes_m;		/*bytes for nginx 'MISS' */
-	/* http_status_code: access_count,
-	 * access_count for nginx 'MISS', grouped by http_status_code*/
-	std::unordered_map<int, size_t> _access_m;
 	/* @date 2017/02/16 bytes from srs, @see append_flow_nginx */
 	size_t srs_in, srs_out;
 public:

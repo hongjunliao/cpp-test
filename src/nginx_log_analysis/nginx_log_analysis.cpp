@@ -153,9 +153,43 @@ url_stat& url_stat::operator+=(url_stat const& another)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+locisp_stat& locisp_stat::operator+=(locisp_stat const& another)
+{
+	for(auto const& item : another._code){
+		auto & s = _code[item.first];
+		s.access += item.second.access;
+		s.bytes += item.second.bytes;
+		s.access_m += item.second.access_m;
+		s.bytes_m += item.second.bytes_m;
+	}
+	_svg.insert(_svg.end(), another._svg.begin(), another._svg.end());
+	return *this;
+}
+
 double locisp_stat_svg(locisp_stat const& stat)
 {
 	return !stat._svg.empty()? std::accumulate(stat._svg.begin(), stat._svg.end(), 0.0) / stat._svg.size() : 0;
+}
+
+void locisp_stat_access_bytes(locisp_stat const& stat,
+		size_t & access, size_t & bytes, size_t & access_m, size_t & bytes_m)
+{
+	for(auto & item : stat._code){
+		auto & i = item.second;
+		access += i.access;
+		bytes += i.bytes;
+		access_m += i.access_m;
+		bytes_m += i.bytes_m;
+	}
+}
+
+void locisp_stat_access_bytes_m(locisp_stat const& stat, size_t & access_m, size_t & bytes_m)
+{
+	for(auto & item : stat._code){
+		auto & i = item.second;
+		access_m += i.access_m;
+		bytes_m += i.bytes_m;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -269,11 +303,11 @@ nginx_raw_log::nginx_raw_log(char const* val)
 nginx_log_stat::nginx_log_stat()
 /* FIXME: BUG founded!!!
  * bugname: BUG_srs_in_out_not_init_nginx_flow_table_20170224
- * @desc: if _bytes_m,srs_in,srs_out NOT init, then value NOT correct in nginx_flow_table for last 2 lines(order by datetime)
+ * @desc: if srs_in,srs_out NOT init, then value NOT correct in nginx_flow_table for last 2 lines(order by datetime)
  *        see bugs/BUG_srs_in_out_not_init_nginx_flow_table_20170224
  * @author: hongjun.liao <docici@126.com>
  * @date: 2017/02/24 */
-: _bytes_m(0), srs_in(0), srs_out(0)
+: srs_in(0), srs_out(0)
 {
 	//none
 }
@@ -316,11 +350,11 @@ size_t nginx_log_stat::access(int code1, int code2/* = -1*/) const
 
 size_t nginx_log_stat::access_m() const
 {
-	size_t ret = 0;
-	for(auto & item : _access_m){
-		ret += item.second;
+	size_t access_m = 0, bytes_m = 0;
+	for(auto & item : _locisp_stats){
+		locisp_stat_access_bytes_m(item.second, access_m, bytes_m);
 	}
-	return ret;
+	return access_m;
 }
 
 nginx_log_stat& nginx_log_stat::operator+=(nginx_log_stat const& another)
@@ -328,16 +362,15 @@ nginx_log_stat& nginx_log_stat::operator+=(nginx_log_stat const& another)
 	for(auto const& item : another._url_stats){
 		_url_stats[item.first] += item.second;
 	}
-	for(auto & item : another._access_m)
-		_access_m[item.first] += item.second;
-	_bytes_m += another._bytes_m;
+	for(auto const& item : another._locisp_stats)
+		_locisp_stats[item.first] += item.second;
 	return *this;
 }
 
 bool nginx_log_stat::empty() const
 {
 	return _url_stats.empty() && _ip_stats.empty() && _cuitip_stats.empty() &&
-			_locisp_stats.empty() && _bytes_m == 0 && _access_m.empty() && srs_in == 0 && srs_out == 0;
+			_locisp_stats.empty() && srs_in == 0 && srs_out == 0;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
@@ -781,10 +814,6 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 	dstat._url_key[buff] = item.request_url;
 
 	auto & logsstat = dstat._stats[item.time_local];
-	if(!item.is_hit){
-		logsstat._bytes_m += item.bytes_sent;
-		++logsstat._access_m[item.status];
-	}
 
 	/*if NOT required, we needn't statistics it*/
 	if(plcdn_la_opt.output_nginx_flow || plcdn_la_opt.output_file_url_popular || plcdn_la_opt.output_file_http_stats){
@@ -815,11 +844,12 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 	/*FIXME, @date 2016/11/11*/
 //		if(plcdn_la_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
 //			return 0;
-	listat.bytes += item.bytes_sent;
-	++listat.access;
+	auto & cstats = listat._code[item.status];
+	cstats.bytes += item.bytes_sent;
+	++cstats.access;
 	if(!item.is_hit){
-		listat.bytes_m += item.bytes_sent;
-		++listat.access_m;
+		cstats.bytes_m += item.bytes_sent;
+		++cstats.access_m;
 	}
 
 	/* @NOTES: push only when plcdn_la_opt.work_mode == 0 !!!  */
