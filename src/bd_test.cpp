@@ -50,7 +50,6 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"cygwin_posix_ipc", test_cygwin_posix_ipc_main},
 #endif /*__CYGWIN_GCC__*/
 			{"nginx_log_split", test_nginx_log_split_main},
-			{"nginx_log_stats", test_nginx_log_stats_main},
 			{"srs_log_stats", test_srs_log_stats_main},
 			{"plcdn_log_analysis", test_plcdn_log_analysis_main},
 			{"plcdn_log_split", test_plcdn_log_split_main},

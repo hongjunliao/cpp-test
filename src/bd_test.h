@@ -74,7 +74,6 @@ int mykeys_main(int argc, char ** argv);
 
 /*nginx_log_analysis/main.cpp*/
 int test_nginx_log_split_main(int argc, char ** argv);
-int test_nginx_log_stats_main(int argc, char ** argv);
 /*srs_log_analysis/main.cpp*/
 int test_srs_log_stats_main(int argc, char ** argv);
 /*plcdn_log_analysis/main.cpp*/
