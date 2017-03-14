@@ -18,7 +18,25 @@
  * mode 1, url endwith '?'(if no '?', then endwith ' '), ignore parameters, e.g. "GET /V3/?page_id=1004&cid=1443 HTTP/1.1", return "/V3/"
  * mode 2, custom, @param cache_status required
  * */
+static int parse_nginx_log_request_uri_method(char * buf,  char const * & request_method, int * mlen, char const *& request_uri, int * len,
+		char const * cache_status, int mode = 2);
 static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode = 2);
+
+static int parse_nginx_log_request_uri_method(char * buf,  char  const  * & request_method, int * mlen, char const  *& request_uri, int * len,
+		char const * cache_status, int mode /*= 2*/)
+{
+	request_uri = parse_nginx_log_request_uri_url(buf, len, cache_status, mode);
+	if(!request_uri)
+		return -1;
+	request_method = buf;
+	auto c = strchr(buf, ' ');
+	if(!c)
+		return -1;
+	*c = '\0';
+	if(mlen)
+		*mlen = c - buf;
+	return 0;
+}
 
 static char * parse_nginx_log_request_uri_url(char * request_uri, int * len, char const * cache_status, int mode/* = 2*/)
 {
@@ -769,7 +787,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 	item.beg = logitem;
 	char *items[18];
 	int result = do_parse_nginx_log_item(items, logitem, delim);
-	if(result != 0){
+	if (result != 0) {
 		return 1;
 	}
 	item.end = logitem;
@@ -777,26 +795,27 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 	item.domain = items[0];
 //	item.client_ip_2 = items[1];
 	item.client_ip = netutil_get_ip_from_str(items[1]);
-	if(item.client_ip == 0)
+	if (item.client_ip == 0)
 		return 1;
 
 	char * end;
 	item.request_time = strtoul(items[2], &end, 10);
 	/*format: [17/Sep/2016:00:26:08 +0800]*/
 	tm my_tm;
-	if(!strptime(items[4] + 1, "%d/%b/%Y:%H:%M:%S" , &my_tm))
+	if (!strptime(items[4] + 1, "%d/%b/%Y:%H:%M:%S", &my_tm))
 		return -1;
 	my_tm.tm_isdst = 0;
 	item.time_local = mktime(&my_tm);
 
-	auto url = parse_nginx_log_request_uri_url(items[6], NULL, items[3], parse_url_mode);
-	if(!url) return -1;
-	item.request_url = url;
+	auto ret = parse_nginx_log_request_uri_method(items[6], item.request_method,
+			NULL, item.request_url, NULL, items[3], parse_url_mode);
+	if (ret != 0)
+		return -1;
 
 	char const * p = items[8];
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
-	item.is_hit = (strncmp(items[3],"HIT", 3) == 0);
+	item.is_hit = (strncmp(items[3], "HIT", 3) == 0);
 	return 0;
 }
 
@@ -837,7 +856,7 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 	locisp_stat& listat = logsstat._locisp_stats[item.client_ip];
 	/* svg_speed */
 	if(item.client_ip != netutil_get_ip_from_str("127.0.0.1") && item.request_time != 0
-			&& ! (item.status < 200 || item.status > 299 || strncmp(item.request_url, "GET", 3)  != 0) ){
+			&& ! (item.status < 200 || item.status > 299 || strncmp(item.request_method, "GET", 3)  != 0) ){
 		auto s = item.bytes_sent * 1.0  / item.request_time;
 		listat._svg.push_back(s);
 	}
