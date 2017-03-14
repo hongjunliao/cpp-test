@@ -75,6 +75,8 @@ struct nginx_http_stats_table_row
 	time_t datetime;
 	size_t num;
 	size_t num_m;
+	/* for user/yunduan */
+	char loc[16], isp[8];
 };
 
 struct nginx_ip_source_table_row
@@ -128,8 +130,8 @@ typedef std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, size_t,
 /* site_id, device_id, ip, datetime */
 typedef std::tuple<int, int, std::string, time_t> merge_nginx_ip_popular_key_t;
 
-/* site_id, device_id, httpstatus, datetime */
-typedef std::tuple<int, int, size_t, time_t> merge_nginx_http_stats_key_t;
+/* site_id, device_id, httpstatus, datetime, loc, isp */
+typedef std::tuple<int, int, size_t, time_t, std::string, std::string> merge_nginx_http_stats_key_t;
 
 /* datetime, local_id, isp_id, device_id */
 typedef std::tuple<time_t, std::string, std::string, int>  merge_nginx_ip_source_key_t;
@@ -371,11 +373,15 @@ std::size_t std::hash<merge_nginx_http_stats_key_t>::operator()(
 	size_t const h1 ( std::hash<int>{}(std::get<1>(val)) );
 	size_t const h2 ( std::hash<size_t>{}(std::get<2>(val)) );
 	size_t const h3 ( std::hash<time_t>{}(std::get<3>(val)) );
+	size_t const h4 ( std::hash<std::string>{}(std::get<4>(val)) );
+	size_t const h5 ( std::hash<std::string>{}(std::get<5>(val)) );
 
 	boost::hash_combine(ret, h0);
 	boost::hash_combine(ret, h1);
 	boost::hash_combine(ret, h2);
 	boost::hash_combine(ret, h3);
+	boost::hash_combine(ret, h4);
+	boost::hash_combine(ret, h5);
 	return ret;
 }
 
@@ -443,9 +449,10 @@ static int parse_table_row(char const * buf, nginx_http_stats_table_row & row)
 	if(!buf || buf[0] == '\0')
 		return -1;
 	/* @see nginx/print_http_stats_table */
-	int n = sscanf(buf, "%d%d%zu%ld%zu%zu",
-			&row.site_id, &row.device_id, &row.httpstatus, &row.datetime, &row.num, &row.num_m);
-	if(n != 6)
+	int n = sscanf(buf, "%d%d%zu%ld%zu%zu%s%s",
+			&row.site_id, &row.device_id, &row.httpstatus, &row.datetime, &row.num, &row.num_m
+			, row.loc, row.isp);
+	if(n != 8)
 		return -1;
 	return 0;
 }
@@ -753,7 +760,7 @@ int merge_nginx_http_stats_datetime(FILE *& f)
     if(!f) return -1;
     std::unordered_map<merge_nginx_http_stats_key_t, std::tuple<size_t, size_t>> merge_map;
     for(auto const & item : rows){
-    	auto  k = std::make_tuple(item.site_id, item.device_id, item.httpstatus, item.datetime);
+    	auto  k = std::make_tuple(item.site_id, item.device_id, item.httpstatus, item.datetime, item.loc, item.isp);
     	auto & val = merge_map[k];
     	if(plcdn_la_opt.work_mode == 2){
     		if(item.num >= std::get<0>(val)){
@@ -771,9 +778,10 @@ int merge_nginx_http_stats_datetime(FILE *& f)
     for(auto const & item : merge_map){
     	auto & k = item.first;
     	/* @see nginx/print_http_stats_table */
-		auto sz = fprintf(f, "%d %d %zu %ld %zu %zu\n",
+		auto sz = fprintf(f, "%d %d %zu %ld %zu %zu %s %s\n",
 				std::get<0>(k), std::get<1>(k), std::get<2>(k), std::get<3>(k)
 				, std::get<0>(item.second), std::get<1>(item.second)
+				, std::get<4>(k).c_str(), std::get<5>(k).c_str()
 					);
 		if(sz <= 0)
 			++failed_line;
