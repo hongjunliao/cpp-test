@@ -28,7 +28,7 @@ struct log_item{
 	char * beg, * end;	/*raw*/
 	char const * domain;
 	time_t time_local;
-	char const *request_url;
+	char const *request_method, * request_url;
 	size_t request_time;
 	uint32_t client_ip;
 //	char const * client_ip_2;	/*same as client_ip*/
