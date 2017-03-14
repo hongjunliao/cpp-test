@@ -35,6 +35,7 @@ struct log_item{
 	size_t bytes_sent;
 	int status;
 	bool is_hit;
+	int response_time;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -115,6 +116,7 @@ struct locisp_stat
 	/* http_status_code: stats */
 	std::unordered_map<int, pv_stats> _code;
 	std::vector <double> _svg; /* user/yunduan SVG_SPEED */
+	std::vector <int>  _fpt;   /* user/yunduan FST_PKG_TIME */
 	locisp_stat& operator+=(locisp_stat const& another);
 };
 
@@ -122,6 +124,7 @@ void locisp_stat_access_bytes(locisp_stat const& stat,
 		size_t & access, size_t & bytes, size_t & access_m, size_t & bytes_m);
 void locisp_stat_access_bytes_m(locisp_stat const& stat, size_t & access_m, size_t & bytes_m);
 double locisp_stat_svg(locisp_stat const& stat);
+double locisp_stat_fpt(locisp_stat const& stat);
 //////////////////////////////////////////////////////////////////////////////////
 /* group by local_id and isp: locisp
  * @note: define ENABLE_IPMAP to enable ipmap*/

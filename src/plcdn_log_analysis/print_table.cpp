@@ -106,12 +106,11 @@ static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat 
 		/* format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m,
 		 * tx_rtmp_in, tx_rtmp_out,
 		 * loc, isp, fst_pkg_time, svg_speed */
-		/* FIXME: fst_pkg_time? */
-		auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu %s %d %.0f\n",
+		auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu %s %.0f  %.0f\n",
 					site_id, buft, g_plcdn_la_device_id, access
 					, bytes, user_id, access_m, bytes_m
 					, stat.srs_in, stat.srs_out
-					, li.loc_isp_c_str(loc_isp, sizeof(loc_isp)), 0/*fst_pkg_time*/, locisp_stat_svg(listat));
+					, li.loc_isp_c_str(loc_isp, sizeof(loc_isp)), locisp_stat_fpt(listat), locisp_stat_svg(listat));
 		if(sz <= 0) ++n;
 	}
 }

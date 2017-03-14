@@ -11,7 +11,6 @@
 #include "string_util.h"	/* sha1sum_r */
 #include "net_util.h"	/*netutil_get_ip_str*/
 
-
 /* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
  * @param mode:
  * mode 0, url endwith ' ', reserve all, e.g. "POST /zzz.asp;.jpg HTTP/1.1", return "/zzz.asp;.jpg"
@@ -182,6 +181,10 @@ locisp_stat& locisp_stat::operator+=(locisp_stat const& another)
 	}
 	_svg.insert(_svg.end(), another._svg.begin(), another._svg.end());
 	return *this;
+}
+double locisp_stat_fpt(locisp_stat const& stat)
+{
+	return !stat._fpt.empty()? std::accumulate(stat._fpt.begin(), stat._fpt.end(), 0.0) / stat._fpt.size() : 0;
 }
 
 double locisp_stat_svg(locisp_stat const& stat)
@@ -785,7 +788,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 {
 	memset(&item, 0, sizeof(log_item));
 	item.beg = logitem;
-	char *items[18];
+	char *items[18] = { 0 };
 	int result = do_parse_nginx_log_item(items, logitem, delim);
 	if (result != 0) {
 		return 1;
@@ -816,6 +819,8 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
 	item.is_hit = (strncmp(items[3], "HIT", 3) == 0);
+	if(items[16])
+		item.response_time =  atoi(items[16]);
 	return 0;
 }
 
@@ -859,6 +864,7 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 			&& ! (item.status < 200 || item.status > 299 || strncmp(item.request_method, "GET", 3)  != 0) ){
 		auto s = item.bytes_sent * 1.0  / item.request_time;
 		listat._svg.push_back(s);
+		listat. _fpt.push_back(item.response_time);
 	}
 	/*FIXME, @date 2016/11/11*/
 //		if(plcdn_la_opt.enable_devicelist_filter &&  g_devicelist[item.client_ip_2] != 0)
