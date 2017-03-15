@@ -2,3 +2,6 @@
 *.cpp~
 *.h~
 /mingw_release/
+*.swo
+*.swp
+*.sh~
