@@ -6,7 +6,6 @@ build_plcdn_la()
 {
 	[ "$1" = "debug" ] && CPP_FLAGS+=" -g3 -O0" || CPP_FLAGS+=" -O3";
 
-	[ -f "$HOME/ws/debug/linux/plcdn_la" ] && mv $HOME/ws/debug/linux/plcdn_la /tmp/plcdn_la.1;
 	local ws_dir="/tmp/plcdn_la/";
 	local id_str="`date +%Y%m%d%H%M%S`";
 	local src_file="${ws_dir}src/${id_str}.cpp";

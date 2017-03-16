@@ -23,7 +23,18 @@ struct logtrans_fmt
 {
 	char const * beg, * end;
 	int i;	/* -1: use [beg, end); -3: use '%', >=0: use i*/
+	void * arg;
+	int (*fn)(char const * beg, char const * end, void * arg, char const *& vec, size_t & len);
 };
+
+/* user-defiend functions for logtrans_fmt.fn */
+struct logtrans_match_arg
+{
+	char const * left, *lend;
+	char const * right, * rend;
+
+};
+static int logtrans_match(char const * beg, char const * end, void * arg, char const *& vec, size_t & len);
 
 static char const * array_rchr(char const * buf, int sz, char ch = '\n');
 static int myatoi(char const * beg, char const * end);
@@ -41,6 +52,27 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 		int rn, FILE * f, char const * def = "-");
 /* compile format string, sample "%1 - [%2] \"%3\" %% %4" */
 static int pl_logtrans_compile_format(char const * fmt, int rn, logtrans_fmt * fmtf, size_t & m);
+
+static int logtrans_match(char const * beg, char const * end, void * arg, char const *& vec, size_t & len)
+{
+	auto argv = (logtrans_match_arg *)arg;
+	if(!argv)
+		return -1;
+	auto flen = end - beg;
+	auto llen = argv->lend - argv->left;
+	auto rlen = argv->rend - argv->right;
+	if(llen <= 0 || flen < llen || rlen <= 0)
+		return -1;
+	if(memcmp(beg, argv->left, llen) == 0){
+		vec = argv->left;
+		len = llen;
+	}
+	else{
+		vec = argv->right;
+		len = rlen;
+	}
+	return 0;
+}
 
 static char const * array_rchr(char const * buf, int sz, char ch /*= '\n'*/)
 {
@@ -78,13 +110,37 @@ static int pl_logtrans_compile_format(char const * fmt, int rn, logtrans_fmt * f
 				auto i = myatoi(q + 1, s);
 				if(i + 1 > rn)
 					return -3; /* out of range */
+				if(*s == '?'){
+					auto lend = strchr(s + 1, ':');
+					/* found ':' and length(left) > 0 and length(right) > 0 */
+					if(!lend || (lend - (s + 1)) <= 0 || (lend + 1 == end)) continue;
+					auto rend = strchr(lend + 1, ' ');
 
-				if(p != q)
-					fmtf[m++] = logtrans_fmt{p, q, -1};
-				fmtf[m++] = logtrans_fmt{0, 0, i};
-				p = s;
-				q = s - 1;
-				continue;	/* in next loop p == q */
+					if(!rend)
+						rend = end;
+					if(p != q)
+						fmtf[m++] = logtrans_fmt{p, q, -1};
+//					auto left = std::make_pair(s + 1, lend),
+//							right = std::make_pair(lend + 1, rend);
+					logtrans_match_arg arg0{s + 1, lend, lend + 1, rend};
+					auto arg = (logtrans_match_arg * )malloc(sizeof(logtrans_match_arg));
+					if(!arg) return -2;
+					*arg = arg0;
+					fmtf[m++] = logtrans_fmt{0, 0, i, arg, logtrans_match};
+					if(rend == end)
+						break;
+					p = rend + 1;
+					q = rend;
+					continue;
+				}
+				else{
+					if(p != q)
+						fmtf[m++] = logtrans_fmt{p, q, -1};
+					fmtf[m++] = logtrans_fmt{0, 0, i};
+					p = s;
+					q = s - 1;
+					continue;	/* in next loop p == q */
+				}
 			}
 			if(*s == '%'){	/* %% as % */
 				if(p != q)
@@ -158,6 +214,11 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 			else if(fmtf[j].i == -3){
 				base = ch;
 				len = 1;
+			}
+			else if(fmtf[j].i == -2){
+				auto ii = fmtf[j].i +  i * rn;
+				if(fmtf[j].fn)
+					fmtf[j].fn(arg[ii].first, arg[ii].second, fmtf[j].arg, base, len);
 			}
 			if(base && len > 0){
 				vec[k].iov_base = const_cast<char *>(base);
@@ -255,6 +316,6 @@ int test_nginx_transform_log_main_2(int argc, char ** argv)
 {
 	size_t RN = 21;	/* field count for original file line */
 	/* "%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20\n" */
-	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20\n", RN, stdin, stdout);
+	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS\" %20\n", RN, stdin, stdout);
 }
 
