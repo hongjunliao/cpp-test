@@ -788,7 +788,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 {
 	memset(&item, 0, sizeof(log_item));
 	item.beg = logitem;
-	char *items[18] = { 0 };
+	char *items[32] = { 0 };
 	int result = do_parse_nginx_log_item(items, logitem, delim);
 	if (result != 0) {
 		return 1;

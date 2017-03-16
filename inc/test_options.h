@@ -120,6 +120,7 @@ struct plcdn_la_options
 
 	char const *output_file_url_key;
 	char const *format_file_url_key;
+	char const * local_url_key;
 /*split log by domain*/
 	char const * output_split_nginx_log;
 	char const * format_split_nginx_log;
@@ -140,6 +141,8 @@ struct plcdn_la_options
 /*version and help*/
 	int show_help;
 	int show_version;
+/* log file */
+	char const * log_file;
 /*debug, 0: close, >=1: verbose*/
 	int verbose;
 

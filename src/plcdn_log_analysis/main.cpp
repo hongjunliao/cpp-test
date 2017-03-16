@@ -50,6 +50,9 @@ extern int test_nginx_log_analysis_main(int argc, char ** argv);
 extern int split_nginx_log(std::unordered_map<std::string, nginx_domain_stat> const& stats,
 		char const * folder, char const * fmt);
 
+/* nginx_local_url_key.cpp */
+extern int fwrite_nginx_local_url_key(std::unordered_map<std::string, nginx_domain_stat> const& stats, char const * fmt);
+
 /*parse nginx_log buffer @apram ct, and output results*/
 static int parse_nginx_log_item_buf(parse_context& ct);
 /* split file @param f into parts, use pthread to parallel parse*/
@@ -436,6 +439,17 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		fprintf(stdout,"build at %s %s\n", __DATE__, __TIME__);
 		return 0;
 	}
+	if(plcdn_la_opt.log_file){
+		if(!freopen(plcdn_la_opt.log_file, "a", stderr)){
+#ifdef __GNUC__
+			char DEV_STDERR[] = "/dev/tty";
+#else
+			char DEV_STDERR[] = "CON";
+#endif
+			stderr = freopen(DEV_STDERR, "w", stderr);
+			fprintf(stderr, "%s: <WARNING> redirect stderr to file '%s' failed\n", __FUNCTION__, plcdn_la_opt.log_file);
+		}
+	}
 	if(plcdn_la_opt.verbose)
 		plcdn_la_options_fprint(stdout, &plcdn_la_opt);
 	if(plcdn_la_opt.print_device_id){	//query device_id and return
@@ -520,7 +534,8 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		}
 		if(plcdn_la_opt.verbose){
 			auto color = g_nginx_failed_line > 0? 31 : 0;
-			fprintf(stdout, "%s: processed nginx log '%s', total=%zu, failed=%zu, \e[%dm%.1f%%\e[0m failed\n", __FUNCTION__,
+			auto s = g_nginx_failed_line > 0? stderr : stdout;
+			fprintf(s, "%s: processed nginx log '%s', total=%zu, failed=%zu, \e[%dm%.1f%%\e[0m failed\n", __FUNCTION__,
 					plcdn_la_opt.nginx_log_file, g_nginx_total_line, g_nginx_failed_line, color, g_nginx_failed_line * 100.0 / g_nginx_total_line);
 		}
 		/*split log*/
@@ -529,6 +544,11 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 				fprintf(stdout, "%s: splitting nginx log file: '%s'...\n", __FUNCTION__, plcdn_la_opt.nginx_log_file);
 			auto status = split_nginx_log(nginx_logstats,
 					plcdn_la_opt.output_split_nginx_log, plcdn_la_opt.format_split_nginx_log);
+		}
+		if(plcdn_la_opt.local_url_key){
+			auto result = fwrite_nginx_local_url_key(nginx_logstats, plcdn_la_opt.local_url_key);
+			if(result != 0 && plcdn_la_opt.verbose)
+				fprintf(stderr, "%s: fwrite_nginx_local_url_key failed, ret=%d\n", __FUNCTION__, result);
 		}
 	}
 

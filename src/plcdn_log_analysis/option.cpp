@@ -60,6 +60,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		//SUN ADD IN 2017 03 02
 		.output_file_url_key = NULL,
 		.format_file_url_key = DEF_FORMAT_FILE_URL_KEY,
+		.local_url_key = NULL,
 		.output_split_nginx_log = NULL,
 		.format_split_nginx_log = DEF_FORMAT_SPLIT_NGINX_LOG,
 
@@ -75,9 +76,8 @@ struct plcdn_la_options plcdn_la_opt = {
 		.append_flow_nginx = 0,
 		.show_help = 0,
 		.show_version = 0,
-		//ADD POSITION
 
-
+		.log_file = NULL,
 		.verbose = 0,
 };
 
@@ -116,6 +116,7 @@ static struct poptOption plcdn_la_popt[] = {
 //FIX ME :2017 03 03 SUN
 	{"output-file-url-key",       'y',  POPT_ARG_STRING,   0, 'y', "output_folder for url_key_table, disabled if NULL",0},
 	{"format-file-url-key",       'Y',  POPT_ARG_STRING,   0, 'Y', "filename format for url_key_table, default '" DEF_FORMAT_FILE_URL_KEY "'", 0},
+	{"local-url-key",            0,   POPT_ARG_STRING,   0, '2', "output_folder for local_url_key, disabled if NULL, see NOTES for details",0},
 
 
 	{"output-file-ip-popular",  'p',  POPT_ARG_STRING,   0, 'p', "output folder for ip_popular_table, disabled if NULL", 0 },
@@ -152,6 +153,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"append-flow-nginx",       0,  POPT_ARG_NONE,       0, 'X', "if set, append other(currently srs) flows to nginx", 0 },
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",                   0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
+	{"log-file",                0,    POPT_ARG_STRING,   0, '3', "log file for error(default to stderr)", 0},
 	{"verbose",                 'v',  POPT_ARG_INT,     0, 'v', "verbose, >=0, print more details, 0 for close", 0},
 	NULL	/*required!!!*/
 };
@@ -224,6 +226,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		//THE ADD POSITION
 		case 'y': { plcdn_la_opt.output_file_url_key = poptGetOptArg(pc); }; break;
 		case 'Y': { plcdn_la_opt.format_file_url_key = poptGetOptArg(pc); }; break;
+		case '2': { plcdn_la_opt.local_url_key = poptGetOptArg(pc); }; break;
 		case 'p': { plcdn_la_opt.output_file_ip_popular = poptGetOptArg(pc); } break;
 		case 'P': { plcdn_la_opt.format_ip_popular = poptGetOptArg(pc); } break;
 		case 'Q': { plcdn_la_opt.min_ip_popular = atoi(poptGetOptArg(pc)); } break;
@@ -256,6 +259,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'X': plcdn_la_opt.append_flow_nginx = 1; break;
 		case 'h': plcdn_la_opt.show_help = 1; break;
 		case 'V': plcdn_la_opt.show_version = 1; break;
+		case '3': plcdn_la_opt.log_file = poptGetOptArg(pc); break;
 		case 'v': plcdn_la_opt.verbose = atoi(poptGetOptArg(pc)); break;
 		default:
 			break;
@@ -321,6 +325,8 @@ void plcdn_la_show_help(FILE * stream)
 			"  10.about option --srs-calc-flow-mode, 0: use obytes/ibytes, 1: use okbps/ikbps\n"
 			"  11.file '--device-list-file' format: '${device_id} ${device_ip}'\n"
 			"  12.file '--siteuid-list-file' format: '${site_id} ${user_id} ${domain}'\n"
+			"  13.option '--local-url-key' only support ${site_id}(default if no filename), ${user_id} in filename(NOT folder name), create dirs if NOT exist.\n"
+			"     sample: '/tmp/LocalUrlKey/${site_id}', '/tmp/LocalUrlKey/'(use default ${site_id} as filename)\n"
 	);
 }
 
@@ -361,11 +367,11 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
-			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
+			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "nginx_rotate_dir", opt.nginx_rotate_dir
@@ -411,6 +417,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "output_file_url_key", opt.output_file_url_key
 		, "format_file_url_key", opt.format_file_url_key
+		, "local_url_key", opt.local_url_key
 
 		, "output_split_nginx_log", opt.output_split_nginx_log
 		, "format_split_nginx_log", opt.format_split_nginx_log
@@ -429,6 +436,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "parse_url_mode", opt.parse_url_mode
 		, "show_help", opt.show_help
 		, "show_version", opt.show_version
+		, "log_file", opt.log_file
 
 		, "verbose", opt.verbose
 	);
