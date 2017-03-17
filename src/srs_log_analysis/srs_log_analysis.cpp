@@ -136,12 +136,18 @@ int parse_srs_log_header_sid(char const * buff, char const * end)
 int parse_srs_log_header_time(char const * buff, char const * end, time_t & t)
 {
 	//'[2016-11-15 18:05:02.665]'
-	if(!buff || !end || end - buff - 1 < 19 || *buff != '['){	/*'2016-11-15 18:05:02'*/
-		if(plcdn_la_opt.verbose > 3){
-			fprintf(stdout, "%s: failed: [%s]\n", __FUNCTION__, buff);
+	if((!buff || !end || end - buff - 1 < 19 || *buff != '['))/*'2016-11-15 18:05:02'*/
+		{
+			if(plcdn_la_opt.verbose > 3)
+			{
+					fprintf(stdout, "%s: failed: [%s]\n", __FUNCTION__, buff);
+			}
+			return -1;
+
 		}
-		return -1;
-	}
+
+
+
 //	fprintf(stdout, "%s: __len=%ld__", __FUNCTION__, end - buff);
 //	for(auto p = buff; p != end; ++p){
 //		fprintf(stdout, "%c", *p);
@@ -158,7 +164,10 @@ int parse_srs_log_header_time(char const * buff, char const * end, time_t & t)
 //	char buft1[32];
 //	fprintf(stdout, "%s: _____%s_____\n", __FUNCTION__, time_group(t).c_str_r(buft1, sizeof(buft1)));
 	return 0;
+
+
 }
+
 
 int parse_srs_log_header(char *& buff, time_t & time_stamp, int & sid)
 {
@@ -381,10 +390,10 @@ int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::st
 		auto & dstat = logstats[slog._domain];
 		for(auto a = vec.begin(), b = ++vec.begin(); b != vec.end(); ++a, ++b){
 			/* @NOTE: there IS 'time' in official trans_log, parse and use that one!!!*/
-			auto difft = difftime(b->time_stamp, a->time_stamp);
+			//auto difft = difftime(b->time_stamp, a->time_stamp);
 			/* use time in official trans_log, after a lot of test for yixin 2016-12,
 			 * @author hongjun.liao <docici@126.com>, @date 2016/12 */
-			difft = (b->msec - a->msec) / 1000.0;
+			auto difft = (b->msec - a->msec) / 1000.0;
 			auto okbps = (difft < 30.001? b->okbps_30s : b->okbps_5min);
 			auto ikpbs = (difft < 30.001? b->ikbps_30s : b->ikbps_5min);
 			auto obytes = 1024.0 * difft * okbps / 8.0;

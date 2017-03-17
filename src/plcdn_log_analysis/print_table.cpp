@@ -106,7 +106,7 @@ static void print_flow_table(FILE * stream, time_group const& g, nginx_log_stat 
 		/* format: site_id, datetime, device_id, num_total, bytes_total, user_id, pvs_m, px_m,
 		 * tx_rtmp_in, tx_rtmp_out,
 		 * loc, isp, fst_pkg_time, svg_speed */
-		auto sz = fprintf(stream, "%d %s %d %ld %zu %d %ld %zu %zu %zu %s %.0f  %.0f\n",
+		auto sz = fprintf(stream, "%d %s %d %zu %zu %d %zu %zu %zu %zu %s %.0f  %.0f\n",
 					site_id, buft, g_plcdn_la_device_id, access
 					, bytes, user_id, access_m, bytes_m
 					, stat.srs_in, stat.srs_out
