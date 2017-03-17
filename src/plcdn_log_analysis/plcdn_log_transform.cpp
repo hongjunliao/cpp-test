@@ -187,8 +187,8 @@ int nginx_transform_log(FILE * in, FILE * out, int fmt)
 {
 	if(fmt == 2){	/* user/yunduan */
 		size_t RN = 21;	/* field count for original file line */
-		/* "%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20\n" */
-		return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20\n",
+		/* "%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS%\" %20\n" */
+		return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS%\" %20\n",
 				RN, stdin, stdout);
 	}
 	if(plcdn_la_opt.verbose)
