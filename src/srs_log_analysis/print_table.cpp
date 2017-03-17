@@ -64,8 +64,8 @@ void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const
 		auto user_id = dstat_it.second._user_id;
 		for(auto const& stat_it : dstat_it.second._stats){
 			auto & stat = stat_it.second;
-			char buft[32], buft2[32];;
 			if(plcdn_la_opt.output_srs_flow){
+				char buft[32], buft2[32];
 				auto outname = std::string(plcdn_la_opt.output_srs_flow) +
 						parse_srs_output_filename(plcdn_la_opt.format_srs_flow,
 								stat_it.first.c_str_r(buft, sizeof(buft)),

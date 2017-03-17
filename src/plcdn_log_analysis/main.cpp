@@ -141,6 +141,7 @@ int load_devicelist(char const* file, std::unordered_map<std::string, int>& devi
 //	for(auto const& item : devicelist){
 //		fprintf(stdout, "[%s]--[%d]\n", item.first.c_str(), item.second);
 //	}
+	fclose(f);
 	return 0;
 }
 

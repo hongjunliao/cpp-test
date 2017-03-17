@@ -448,6 +448,7 @@ int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& 
 		token = strtok(NULL, " ");
 		sitelist[token] = sitel;
 	}
+	fclose(f);
 	return 0;
 }
 
