@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include "bd_test.h"			/*test_srs_log_stats_main*/
+#include "plcdn_la_errno.h"		/* error codes, PLA_ERR_OK, ... */
 #include "test_options.h" 		/*sla_options*/
 
 #include <stdio.h>
@@ -433,11 +434,11 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	if(result != 0 || plcdn_la_opt.show_help){
 		plcdn_la_opt.show_help? plcdn_la_show_help(stdout) :
 				plcdn_la_show_usage(stdout);
-		return 0;
+		return PLA_ERR_OK;
 	}
 	if(plcdn_la_opt.show_version){
 		fprintf(stdout,"build at %s %s\n", __DATE__, __TIME__);
-		return 0;
+		return PLA_ERR_OK;
 	}
 	if(plcdn_la_opt.log_file){
 		if(!freopen(plcdn_la_opt.log_file, "a", stderr)){
@@ -456,29 +457,29 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		int result = load_devicelist(plcdn_la_opt.devicelist_file, g_devicelist);
 		int id = result == 0? get_device_id(g_devicelist) : 0;
 		fprintf(stdout, "%d\n", id);
-		return result == 0? 0 : 1;
+		return result == 0? PLA_ERR_OK : PLA_ERR_DEVICLIST;
 	}
 	if(plcdn_la_opt.nginx_trans_log)
-		return nginx_transform_log(stdin, stdout, plcdn_la_opt.nginx_trans_log);
+		return nginx_transform_log(stdin, stdout, plcdn_la_opt.nginx_trans_log) == 0? PLA_ERR_OK : PLA_ERR_LOG_TRANS;
 	if(plcdn_la_opt.work_mode == 1)
-		return merge_srs_flow_user(argc, argv);
+		return merge_srs_flow_user(argc, argv) == 0? PLA_ERR_OK : PLA_ERR_SRS_MERGE_USER;
 	g_plcdn_la_start_time = time(NULL);
 	result = load_devicelist(plcdn_la_opt.devicelist_file, g_devicelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);
-		return 1;
+		return PLA_ERR_DEVICLIST;
 	}
 	g_plcdn_la_device_id = plcdn_la_opt.device_id > 0? plcdn_la_opt.device_id : get_device_id(g_devicelist);
 
 	result = load_sitelist(plcdn_la_opt.siteuidlist_file, g_sitelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_sitelist() failed\n", __FUNCTION__);
-		return 1;
+		return PLA_ERR_SITEUIDLIST;
 	}
 #ifdef ENABLE_IPMAP
 	if(0 != locisp_group::load_ipmap_file(plcdn_la_opt.ipmap_file))  {
 		fprintf(stderr, "%s: ipmap_load(%s) failed\n", __FUNCTION__, plcdn_la_opt.ipmap_file);
-		return 1;
+		return PLA_ERR_IPMAP;
 	}
 #else
 	fprintf(stdout, "%s: ipmap DISABLED on this platform\n", __FUNCTION__);
@@ -504,7 +505,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		nginx_log_file = fopen(plcdn_la_opt.nginx_log_file, "r");
 		if(!nginx_log_file) {
 			fprintf(stderr, "%s: fopen file '%s' failed\n", __FUNCTION__, plcdn_la_opt.nginx_log_file);
-			return 1;
+			return PLA_ERR_NGX_FILE;
 		}
 
 		if(plcdn_la_opt.work_mode == 2)	{ /* rotate mode */
@@ -517,19 +518,19 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 			auto fno = fileno(nginx_log_file);
 			if(fstat(fno, &nginx_file_stat) < 0){
 				fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "nginx_log_file");
-				return 1;
+				return PLA_ERR_NGX_FILE;
 			}
 			/*FIXME: PAGE_SIZE?*/
 			nginx_file_addr = (char *)mmap(NULL, nginx_file_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fno, 0);
 			if(!nginx_file_addr || nginx_file_addr == MAP_FAILED){
 				fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "nginx_log_file");
-				return 1;
+				return PLA_ERR_NGX_FILE;
 			}
 
 			auto status = parallel_parse_nginx_log(nginx_file_addr, nginx_file_stat, nginx_logstats);
 			if(status != 0){
 				fprintf(stderr, "%s: parallel_parse_nginx_log failed, exit\n", __FUNCTION__);
-				return 1;
+				return PLA_ERR_NGX_ANALYSIS;
 			}
 		}
 		if(plcdn_la_opt.verbose){
@@ -557,18 +558,18 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		srs_log_file = fopen(plcdn_la_opt.srs_log_file, "r");
 		if(!srs_log_file) {
 			fprintf(stderr, "%s: fopen file '%s' failed\n", __FUNCTION__, plcdn_la_opt.srs_log_file);
-			return 1;
+			return PLA_ERR_SRS_FILE;
 		}
 		auto fno = fileno(srs_log_file);
 		if(fstat(fno, &srs_file_stat) < 0){
 			fprintf(stderr, "%s: fstat() failed for %s\n", __FUNCTION__, "srs_log_file");
-			return 1;
+			return PLA_ERR_SRS_FILE;
 		}
 		/*FIXME: PAGE_SIZE?*/
 		srs_file_addr = (char *)mmap(NULL, srs_file_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fno, 0);
 		if(!srs_file_addr || srs_file_addr == MAP_FAILED){
 			fprintf(stderr, "%s: mmap() failed for %s\n", __FUNCTION__, "srs_log_file");
-			return 1;
+			return PLA_ERR_SRS_FILE;
 		}
 
 		/*FIXME: the return value is wired, we NOT use it yet*/
@@ -585,7 +586,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		auto status = parse_srs_log(slogs, srs_logstats);
 		if(status != 0){
 			fprintf(stderr, "%s: parse_srs_log failed, exit\n", __FUNCTION__);
-			return 1;
+			return PLA_ERR_SRS_ANALYSIS;
 		}
 		if(plcdn_la_opt.verbose){
 			fprintf(stdout, "%s: processed srs log '%s', total_line = %zu, failed = %zu, trans_log = %zu\n", __FUNCTION__,
@@ -602,7 +603,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	}
 	if(!nginx_log_file && !srs_log_file){
 		fprintf(stderr,  "%s: none of nginx, srs log file specified or can be read, exit\n", __FUNCTION__);
-		return 1;
+		return PLA_ERR_LOG_FILE;
 	}
 	if(plcdn_la_opt.append_flow_nginx)
 		append_flow_nginx(nginx_logstats, srs_logstats);
@@ -615,5 +616,5 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		munmap(nginx_file_addr, nginx_file_stat.st_size);
 	if(srs_file_addr)
 		munmap(srs_file_addr, srs_file_stat.st_size);
-	return 0;
+	return PLA_ERR_OK;
 }
