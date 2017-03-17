@@ -16,6 +16,7 @@
 #include <string.h>		/* strncpy */
 #include <utility>		/* std::pair */
 #include <ctype.h>		/* isdigit */
+#include<iostream>
 typedef std::pair<char const *, char const *> field_t;
 #define spair_size(p)  (p.second - p.first)
 
@@ -90,7 +91,7 @@ static inline int myatoi(char const * begin, char const * end)
 	return atoi(buf);
 }
 
-/* sample "%1 - [%2] \"%3\" %% %4a %1" */
+/* sample "%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS\" %20\n" */
 static int pl_logtrans_compile_format(char const * fmt, int rn, logtrans_fmt * fmtf, size_t & m)
 {
 	auto end = fmt + strlen(fmt);
@@ -108,14 +109,17 @@ static int pl_logtrans_compile_format(char const * fmt, int rn, logtrans_fmt * f
 			if(isdigit((int)*s)){
 				do{ ++s; } while(isdigit((int)*s));
 				auto i = myatoi(q + 1, s);
+				fprintf(stderr, "%s_______i=%d_____%s_________________\n", __FUNCTION__, i, s);
 				if(i + 1 > rn)
 					return -3; /* out of range */
-				if(*s == '?'){
+				if(*s == '?')
+				{
+					fprintf(stderr, "%s_____________________________\n", __FUNCTION__);
 					auto lend = strchr(s + 1, ':');
 					/* found ':' and length(left) > 0 and length(right) > 0 */
 					if(!lend || (lend - (s + 1)) <= 0 || (lend + 1 == end)) continue;
 					auto rend = strchr(lend + 1, ' ');
-
+					fprintf(stderr, "%s_____________________________\n", __FUNCTION__);
 					if(!rend)
 						rend = end;
 					if(p != q)
@@ -129,8 +133,9 @@ static int pl_logtrans_compile_format(char const * fmt, int rn, logtrans_fmt * f
 					fmtf[m++] = logtrans_fmt{0, 0, i, arg, logtrans_match};
 					if(rend == end)
 						break;
-					p = rend + 1;
+					p = rend;
 					q = rend;
+					fprintf(stderr, "%s_____________________________\n", __FUNCTION__);
 					continue;
 				}
 				else{
@@ -153,28 +158,28 @@ static int pl_logtrans_compile_format(char const * fmt, int rn, logtrans_fmt * f
 			return -1;	/* syntax error: '%' or '%a' NOT allowed */
 		}
 	}
-//	for(size_t i = 0; i < m; ++i){
-//		if(fmtf[i].i >= 0){
-//			fprintf(stderr, "%zu, use index %d\n", i, fmtf[i].i);
-//		}
-//		else if(fmtf[i].i == -1){
-//			fprintf(stderr, "%zu, use [beg, end):'", i);
-//			for(auto it = fmtf[i].beg; it != fmtf[i].end; ++it)
-//				switch(*it){
-//				case '\n':
-//					fprintf(stderr, "\\n");
-//					break;
-//				default:
-//					fprintf(stderr, "%c", *it);
-//				}
-//			fprintf(stderr, "'\n");
-//		}
-//		else if(fmtf[i].i == -3){
-//			fprintf(stderr, "%zu, use '%%'\n", i);
-//		}
-//		else
-//			fprintf(stderr, "%zu, error %d\n", i, fmtf[i].i);
-//	}
+	for(size_t i = 0; i < m; ++i){
+		if(fmtf[i].i >= 0){
+			fprintf(stderr,"%zu, use index %d, fn=%p, arg=%p\n",i,fmtf[i].i, fmtf[i].fn, fmtf[i].arg);
+		}
+		else if(fmtf[i].i == -1){
+			fprintf(stderr, "%zu, use [beg, end):'", i);
+			for(auto it = fmtf[i].beg; it != fmtf[i].end; ++it)
+				switch(*it){
+				case '\n':
+					fprintf(stderr, "\\n");
+					break;
+				default:
+					fprintf(stderr, "%c", *it);
+				}
+			fprintf(stderr, "'\n");
+		}
+		else if(fmtf[i].i == -3){
+			fprintf(stderr, "%zu, use '%%'\n", i);
+		}
+		else
+			fprintf(stderr, "%zu, error %d\n", i, fmtf[i].i);
+	}
 //	exit(0);
 	return 0;
 }
@@ -185,6 +190,7 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 	auto DEF_LEN = strlen(def);
 	size_t VEC = rn * 2 * (n / rn);
 	auto vec = (iovec * )malloc(sizeof(iovec) * VEC);
+	//std::cout<<vec<<std::endl;
 	if(!vec){
 		fprintf(stderr, "%s: malloc for %zu iovec failed, exit\n", __FUNCTION__, VEC);
 		return -2;
@@ -198,13 +204,17 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 			size_t len = 0;
 			if(fmtf[j].i >= 0){
 				auto ii = fmtf[j].i +  i * rn;
-				if(arg[ii].first){
-					base = arg[ii].first;
-					len = arg[ii].second - arg[ii].first;
-				}
+				if(fmtf[j].fn)
+					fmtf[j].fn(arg[ii].first, arg[ii].second, fmtf[j].arg, base, len);
 				else{
-					base = def;
-					len = DEF_LEN;
+					if(arg[ii].first){
+						base = arg[ii].first;
+						len = arg[ii].second - arg[ii].first;
+					}
+					else{
+						base = def;
+						len = DEF_LEN;
+					}
 				}
 			}
 			else if(fmtf[j].i == -1){
@@ -214,11 +224,6 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 			else if(fmtf[j].i == -3){
 				base = ch;
 				len = 1;
-			}
-			else if(fmtf[j].i == -2){
-				auto ii = fmtf[j].i +  i * rn;
-				if(fmtf[j].fn)
-					fmtf[j].fn(arg[ii].first, arg[ii].second, fmtf[j].arg, base, len);
 			}
 			if(base && len > 0){
 				vec[k].iov_base = const_cast<char *>(base);
@@ -251,6 +256,7 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 
 int pl_logtrans_trans_file(char const * fmt, int rn, FILE * in, FILE * out)
 {
+	fprintf(stderr, "%s______________%s_______________\n", __FUNCTION__, fmt);
 	size_t arn = rn * 8;
 	logtrans_fmt fmtf[arn];	/* FIXME: rn * 8 at max */
 	auto result = pl_logtrans_compile_format(fmt, rn, fmtf, arn);
@@ -316,6 +322,6 @@ int test_nginx_transform_log_main_2(int argc, char ** argv)
 {
 	size_t RN = 21;	/* field count for original file line */
 	/* "%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"HIT\" %20\n" */
-	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS\" %20\n", RN, stdin, stdout);
+	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS\" \"%20\n", RN, stdin, stdout);
 }
 
