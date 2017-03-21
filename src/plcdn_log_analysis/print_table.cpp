@@ -316,11 +316,12 @@ static void print_url_key_table(FILE * stream, int site_id, int user_id,nginx_lo
 		std::unordered_map<std::string, std::string> const & urlkey, size_t& n)
 {
 		for(auto const & url_item : stat._url_stats){
-			auto const & url=url_item.first;
+			auto const & url = url_item.first;
 			if(urlkey.count(url) == 0)
 				continue;	/* this should never happen */
 			/* format: 'url_key url' */
-			auto sz = fprintf(stream,"%s %s\n", url.c_str(),  urlkey.at(url).c_str() );
+			char c = (url_item.second.status == 0? '+' : '-');
+			auto sz = fprintf(stream,"%c\"%s\"%s\n", c, url.c_str(),  urlkey.at(url).c_str());
 			if(sz <= 0) ++n;
 		}
 }

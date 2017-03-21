@@ -136,18 +136,11 @@ int parse_srs_log_header_sid(char const * buff, char const * end)
 int parse_srs_log_header_time(char const * buff, char const * end, time_t & t)
 {
 	//'[2016-11-15 18:05:02.665]'
-	if((!buff || !end || end - buff - 1 < 19 || *buff != '['))/*'2016-11-15 18:05:02'*/
-		{
-			if(plcdn_la_opt.verbose > 3)
-			{
-					fprintf(stdout, "%s: failed: [%s]\n", __FUNCTION__, buff);
-			}
-			return -1;
-
-		}
-
-
-
+	if((!buff || !end || end - buff - 1 < 19 || *buff != '[')){/*'2016-11-15 18:05:02'*/
+		if(plcdn_la_opt.verbose > 3)
+			fprintf(stdout, "%s: failed: [%s]\n", __FUNCTION__, buff);
+		return -1;
+	}
 //	fprintf(stdout, "%s: __len=%ld__", __FUNCTION__, end - buff);
 //	for(auto p = buff; p != end; ++p){
 //		fprintf(stdout, "%c", *p);
@@ -164,8 +157,6 @@ int parse_srs_log_header_time(char const * buff, char const * end, time_t & t)
 //	char buft1[32];
 //	fprintf(stdout, "%s: _____%s_____\n", __FUNCTION__, time_group(t).c_str_r(buft1, sizeof(buft1)));
 	return 0;
-
-
 }
 
 

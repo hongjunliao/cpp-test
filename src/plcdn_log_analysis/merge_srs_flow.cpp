@@ -111,7 +111,7 @@ static int parse_table_row(char const * buf, nginx_url_popular_table_row & row);
 static int parse_table_row(char const * buf, nginx_ip_popular_table_row & row);
 static int parse_table_row(char const * buf, nginx_http_stats_table_row & row);
 static int parse_table_row(char const * buf, nginx_cutip_slowfast_table_row & row);
-static int parse_table_row(char const * buf, std::string& urlkey, std::string& url);
+static int parse_table_row(char const * buf, size_t len, std::string& urlkey, std::string& url, char& status);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef std::tuple<time_t, int> srs_user_flow_key_t; /* std::tuple<datetime, user_id> */
 typedef std::tuple<size_t, size_t, double, double> srs_user_flow_value_t;	/* std::tuple<obytes, ibytes, obps, ibps> */
@@ -491,16 +491,17 @@ static int parse_table_row(char const * buf, nginx_ip_slowfast_table_row & row)
 	return 0;
 }
 
-static int parse_table_row(char const * buf, std::string& urlkey, std::string& url)
+static int parse_table_row(char const * buf, size_t len, std::string& urlkey, std::string& url, char& status)
 {
 	/* @see nginx/print_url_key_table */
-	char szurlkey[128] = "", szurl[1024 * 50];
-	szurl[0] = '\0';
-	int n = sscanf(buf, "%s%s", szurlkey, szurl);
-	if(n != 2)
+	if(!buf)
 		return -1;
-	urlkey = szurlkey;
-	url = szurl;
+	status = buf[0];
+	auto c = strchr(buf + 2, '"');
+	if(!c)
+		return -1;
+	urlkey.assign(buf + 2, c - (buf + 2));
+	url.assign(c + 1, buf + len);
 	return 0;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -917,20 +918,24 @@ int merge_nginx_ip_slowfast_datetime(FILE *& f)
 
 int merge_nginx_url_key(FILE *& f)
 {
-	std::unordered_map<std::string, std::string> rows;
+	std::unordered_map<std::string, std::tuple<std::string, char>> rows;
     char buf[1024 * 50];
     while (fgets(buf, sizeof buf, f)){
-    	std::string urlkey, url;
-    	if(parse_table_row(buf, urlkey, url) != 0)
+    	auto len = strlen(buf) - 1;
+    	std::string urlkey, url; char c;
+    	if(parse_table_row(buf, len, urlkey, url, c) != 0)
     		continue;
-    	rows[urlkey] = url;
+    	auto & val = rows[urlkey];
+    	std::get<0>(val) = url;
+    	std::get<1>(val) = c;
     }
     f = std::freopen(NULL, "w", f);
     if(!f) return -1;
     size_t failed_line = 0;
     for(auto const & item : rows){
+    	auto & val = item.second;
     	/* @see nginx/print_url_key_table */
-		auto sz = fprintf(f, "%s %s\n", item.first.c_str(), item.second.c_str());
+		auto sz = fprintf(f, "%c\"%s\"%s\n", std::get<1>(val), item.first.c_str(), std::get<0>(val).c_str());
 		if(sz <= 0)
 			++failed_line;
     }
