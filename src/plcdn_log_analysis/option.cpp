@@ -314,7 +314,7 @@ void plcdn_la_show_help(FILE * stream)
 			"    (5)ip_slowfast_table:    '${device_id} ${ip} ${datetime} ${speed} ${type}'\n"
 			"    (6)cutip_slowfast_table: '${device_id} ${datetime} ${ip} ${speed}'\n"
 			"    (7)ip_source_table:      '${datetime} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
-            "    (8)url_key_table:        '${url_key} ${url}'\n"
+            "    (8)url_key_table:        '$[+-]\"{url_key}\"${url}'(note: '\"' separated)\n"
 			"    for srs:\n"
 			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  9.for srs log, currently supports 2 formats of trans_log, 0: official , 1: custom\n"

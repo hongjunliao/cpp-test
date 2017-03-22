@@ -49,14 +49,22 @@ static void fwrite_nginx_raw_log(FILE * f, std::vector<nginx_raw_log_t> const& l
 		if(len <= 0){
 			continue;
 		}
+		/* for debug only */
+//		fprintf(stdout, "%s:log=[", __FUNCTION__);
+//		for(auto p = item.first; p != item.second; ++p)
+//			if(*p == '\0') fprintf(stdout, "\\0");
+//			else if(*p == '\n') fprintf(stdout, "\\n");
+//			else fprintf(stdout, "%c", *p);
+//		fprintf(stdout, "]\n");
+
 		char buff[len + 1];	/*endwith \n*/
 
 		/*!
 		 * FIXME: @see do_parse_nginx_log_item, I haven't found a better way yet
 		 */
 		memcpy(buff, item.first, len);	/*@note: NOT strcpy*/
-		for(auto p = buff; p + 1 != buff + len; ++p){
-			if(*p == '\0' && *(p + 1) == ' '){
+		for(auto p = buff; p != buff + len; ++p){
+			if(*p == '\0' && (p + 1 == buff + len || *(p + 1) == ' ')){
 				*p = '"';
 			}
 		}
