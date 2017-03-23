@@ -339,7 +339,7 @@ int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, size
 
 /* parse ' ' splitted nginx log into log_item @param item
  * @return 0 on success */
-int parse_log_item(log_item & item, char *& logitem, char delim = '\0', int parse_url_mode = 2);
+int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_mode, char const * nginx_hit);
 
 /*do log statistics with time interval*/
 int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,

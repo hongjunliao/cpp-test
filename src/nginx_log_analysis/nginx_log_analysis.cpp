@@ -785,7 +785,23 @@ int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, size
 	return ch? -1 : 0;
 }
 
-int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int parse_url_mode/* = 2*/)
+/* @param hits sample value: 'STALE|UPDATING|REVALIDATED|HIT', @see plcdn_la_options.nginx_hit
+ * NOTE: '|' separated
+ * @return 0 on YES */
+static int nginx_log_item_is_hit(char const * hits, char const * hit)
+{
+	auto end = hits + strlen(hits);
+	for(auto p = hits, q = p; q != end; p = q + 1){
+		q = strchr(p, '|');
+		if(!q)
+			q = end;
+		if(strncmp(hit, p, q - p) == 0)
+			return 0;
+	}
+	return -1;
+}
+
+int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_mode, char const * nginx_hit)
 {
 	memset(&item, 0, sizeof(log_item));
 	item.beg = logitem;
@@ -819,7 +835,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim /*= '\0'*/, int 
 	char const * p = items[8];
 	item.bytes_sent = strtoul(p, &end, 10);
 	item.status = atoi(items[7]);
-	item.is_hit = (strncmp(items[3], "HIT", 3) == 0);
+	item.is_hit = (nginx_log_item_is_hit(nginx_hit, items[3]) == 0);
 	if(items[16])
 		item.response_time =  atoi(items[16]);
 	return 0;
@@ -898,7 +914,7 @@ int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
     while (fgets(buf, sizeof(buf), file)){
 		++n;
 		auto * p = buf;
-		int result = parse_log_item(item, p, '\n', plcdn_la_opt.parse_url_mode);
+		int result = parse_log_item(item, p, '\n', plcdn_la_opt.parse_url_mode, plcdn_la_opt.nginx_hit);
     	if(result != 0){
     		if(plcdn_la_opt.verbose > 4)
     			fprintf(stderr, "%s: do_parse_nginx_log_item failed, line=%zu, skip\n", __FUNCTION__, n);
