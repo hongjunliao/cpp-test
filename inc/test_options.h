@@ -82,10 +82,13 @@ struct plcdn_la_options
 	char const * siteuidlist_file;
 	char const * ipmap_file;
 	int parse_url_mode;							/*0|1|2, default 2, @see parse_nginx_log_request_uri_url*/
+	/* values for nginx hit, format A|B|C,
+	 * current, hit: STALE|UPDATING|REVALIDATED|HIT,  miss: MISS|BYPASS|EXPIRED (and other values)*/
+	char const * nginx_hit;
 /*time range for log*/
 	time_t begin_time, end_time; 				/* time range for log, format [begin_time, end_time), disabled if 0*/
 
-	int no_merge_datetime;					/* default off, if set, don't merge rows in before print tables where datetime same */
+	int no_merge_datetime;					    /* default off, if set, don't merge rows in before print tables where datetime same */
 /*for srs_log_analysis*/
 	char const * srs_log_file;
 	int srs_calc_flow_mode;						/* for srs, mode for calculate flow, 0: use obytes/ibytes, 1: use okbps/ikbps */

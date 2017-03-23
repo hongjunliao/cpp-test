@@ -225,7 +225,7 @@ int parse_nginx_log_item_buf(parse_context& ct)
 //		}
 //		printf("_____|\n");
 
-		int result = parse_log_item(item, p, '\n');
+		int result = parse_log_item(item, p, '\n', plcdn_la_opt.parse_url_mode, plcdn_la_opt.nginx_hit);
 
 		if(result == 0){
 			auto is_time_in = is_time_in_range(item.time_local, plcdn_la_opt.begin_time, plcdn_la_opt.end_time);

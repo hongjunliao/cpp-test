@@ -17,7 +17,8 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_SPLIT_SRS_LOG   	"${site_id}/${day}"
 #define DEF_SRS_SID_DIR				"srs_sid_log/"
 #define DEF_FORMAT_SRS_FLOW			"srscountfile.${day}.${site_id}.${device_id}"
-#define DEF_FORMAT_FILE_URL_KEY  "urlkey.${interval}.${device_id}.${site_id}"
+#define DEF_FORMAT_FILE_URL_KEY     "urlkey.${interval}.${device_id}.${site_id}"
+#define DEF_NGINX_HIT               "STALE|UPDATING|REVALIDATED|HIT"
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
@@ -30,6 +31,7 @@ struct plcdn_la_options plcdn_la_opt = {
 		.siteuidlist_file = "siteuidlist.txt",
 		.ipmap_file = "iplocation.bin",
 		.parse_url_mode = 2,
+		.nginx_hit = DEF_NGINX_HIT,
 		.begin_time = 0,
 		.end_time = 0,
 		.no_merge_datetime = 0,
@@ -96,6 +98,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"siteuid-list-file",       's',  POPT_ARG_STRING,   0, 's', "siteuidlist_file default: siteuidlist.txt", 0 },
 	{"ipmap-file",              'm',  POPT_ARG_STRING,   0, 'm', "ipmap_file default: iplocation.bin", 0 },
 	{"parse-url-mode",          0,    POPT_ARG_INT,      0, 'M', "parse nginx log field '$request_uri' url mode, 0|1|2, default 2", 0 },
+	{"nginx-hit",               0,    POPT_ARG_STRING,   0, '4', "values for nginx hit, '|' separated, default '" DEF_NGINX_HIT "'", 0 },
 
 	{"interval",                'i',  POPT_ARG_INT,      0, 'i', "interval in seconds, default: 300", 0 },
 
@@ -256,6 +259,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'a': plcdn_la_opt.enable_multi_thread = 1; break;
 		case 'E': plcdn_la_opt.work_mode = 1; break;
 		case 'M': plcdn_la_opt.parse_url_mode = atoi(poptGetOptArg(pc)); break;
+		case '4': plcdn_la_opt.nginx_hit = poptGetOptArg(pc); break;
 		case 'X': plcdn_la_opt.append_flow_nginx = 1; break;
 		case 'h': plcdn_la_opt.show_help = 1; break;
 		case 'V': plcdn_la_opt.show_version = 1; break;
@@ -371,7 +375,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
-			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n"
+			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "nginx_rotate_dir", opt.nginx_rotate_dir
@@ -434,6 +438,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "print_device_id", opt.print_device_id
 		, "parse_url_mode", opt.parse_url_mode
+		, "nginx_hit", opt.nginx_hit
 		, "show_help", opt.show_help
 		, "show_version", opt.show_version
 		, "log_file", opt.log_file
