@@ -861,7 +861,7 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 		url_stat& urlstat = logsstat._url_stats[buff];
 		++urlstat._status[item.status];
 		urlstat._bytes[item.status] += item.bytes_sent;
-		urlstat.status = (item.is_hit? 0 : 1);
+		urlstat.status = (item.status != 404? 0 : 1);
 	}
 
 	if(plcdn_la_opt.output_file_ip_popular || plcdn_la_opt.output_file_ip_slowfast){

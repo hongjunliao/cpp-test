@@ -127,12 +127,13 @@ void print_url_popular_table(FILE * stream, time_group const& g, nginx_log_stat 
 				, num_other = num_total - (num_200 + num_206 + num_301302 + num_304 + num_403
 								+ num_404 + num_416 + num_499 + num_500 + num_502)
 				;
-		/*format:
-		 *datetime, url_key, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
-		 *, num_403, num_404, num_416, num_499, num_500, num_502, num_other*/
-		char buft[32];
-		auto sz = fprintf(stream, "%s %s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
-					g.c_str_r(buft, sizeof(buft)), url.c_str()/*sha1sum_r(url.c_str(), url.size(), sha1buf)*/
+		/* format:
+		 * datetime(deleted) url_key, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
+		 * , num_403, num_404, num_416, num_499, num_500, num_502, num_other
+		 *
+		 * NOTE: datetime deleted, @date 2017/03/24 @author hongjun.liao <docici@126.com> */
+		auto sz = fprintf(stream, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
+					url.c_str()
 					, num_total, num_200, size_200, num_206, size_206, num_301302, num_304
 					, num_403, num_404, num_416, num_499, num_500, num_502
 					, num_other

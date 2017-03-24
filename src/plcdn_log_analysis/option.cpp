@@ -311,7 +311,7 @@ void plcdn_la_show_help(FILE * stream)
 			"    for nginx:\n"
 			"    (1)nginx_flow_table:     '${site_id} ${datetime} ${device_id} ${num_total} ${bytes_total} ${user_id} \\\n"
 			"                                ${pvs_m} ${px_m} ${tx_rtmp_in} ${tx_rtmp_out} ${loc} ${isp} ${fst_pkg_time} ${svg_speed}'\n"
-			"    (2)url_popular_table:    '${datetime} ${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302} \\\n"
+			"    (2)url_popular_table:    '${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302} \\\n"
 		    "                                ${num_304} ${num_403} ${num_404} ${num_416} ${num_499} ${num_500} ${num_502} ${num_other}'\n"
 			"    (3)ip_popular_table:     '${site_id} ${device_id} ${ip} ${datetime} ${num}'\n"
 			"    (4)http_stats_table:     '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m} ${loc} ${isp}'\n"

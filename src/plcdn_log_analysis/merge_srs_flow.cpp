@@ -54,7 +54,7 @@ struct nginx_flow_table_row
 
 struct nginx_url_popular_table_row
 {
-	time_t datetime;
+//	time_t datetime;	/* deleted @author hongjun.liao, @date 2017/03/24 */
 	std::string url_key;
 	size_t num_total, num_200, size_200, num_206, size_206, num_301302, num_304,
 			 num_403, num_404, num_416, num_499, num_500, num_502, num_other;
@@ -118,7 +118,6 @@ typedef std::tuple<size_t, size_t, double, double> srs_user_flow_value_t;	/* std
 typedef std::tuple<time_t, int, int, int> merge_key_t; 	/* std::tuple<datetime, site_id, device_id, user_id> */
 /* std::tuple<datetime, site_id, device_id, user_id, loc, isp> */
 typedef std::tuple<time_t, int, int, int, std::string, std::string> merge_nginx_flow_key_t;
-typedef std::tuple<time_t, std::string> merge_nginx_url_popular_key_t; 	/* std::tuple<datetime, url_key> */
 
 /* std::tuple<num_total, bytes_total, pvs_m, px_m, srs_in, srs_out, fst_pkg_time, svg_speed> */
 typedef std::tuple<size_t, size_t, size_t, size_t, size_t, size_t, int, double> nginx_flow_value_t;
@@ -224,29 +223,6 @@ std::size_t std::hash<merge_nginx_flow_key_t>::operator()(
 	boost::hash_combine(ret, h3);
 	boost::hash_combine(ret, h4);
 	boost::hash_combine(ret, h5);
-	return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace std{
-template<> struct hash<merge_nginx_url_popular_key_t>
-{
-	typedef merge_nginx_url_popular_key_t argument_type;
-	typedef std::size_t result_type;
-	result_type operator()(argument_type const& s) const;
-};
-
-}	//namespace std
-
-std::size_t std::hash<merge_nginx_url_popular_key_t>::operator()(
-		merge_nginx_url_popular_key_t const& val) const
-{
-	size_t ret = 0;
-	size_t const h0 ( std::hash<time_t>{}(std::get<0>(val)) );
-	size_t const h1 ( std::hash<string>{}(std::get<1>(val)) );
-
-	boost::hash_combine(ret, h0);
-	boost::hash_combine(ret, h1);
 	return ret;
 }
 
@@ -422,11 +398,11 @@ static int parse_table_row(char const * buf, nginx_url_popular_table_row & row)
 	/* @see nginx/print_url_popular_table */
 	char url[1500];
 	url[0] = '\0';
-	int n = sscanf(buf, "%ld%s%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu",
-				&row.datetime, url,
+	int n = sscanf(buf, "%s%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu%zu",
+				url,
 				&row.num_total, &row.num_200, &row.size_200, &row.num_206, &row.size_206, &row.num_301302, &row.num_304,
 				&row.num_403, &row.num_404, &row.num_416, &row.num_499, &row.num_500, &row.num_502, &row.num_other);
-	if(n != 16)
+	if(n != 15)
 		return -1;
 	row.url_key = url;
 	return 0;
@@ -665,10 +641,9 @@ int merge_nginx_url_popular_datetime(FILE *& f)
 
     f = std::freopen(NULL, "w", f);
     if(!f) return -1;
-    std::unordered_map<merge_nginx_url_popular_key_t, nginx_url_popular_value_t> merge_map;
+    std::unordered_map<std::string, nginx_url_popular_value_t> merge_map;
     for(auto const & item : rows){
-    	auto  k = std::make_tuple(item.datetime, item.url_key);
-    	auto & val = merge_map[k];
+    	auto & val = merge_map[item.url_key];
     	if(plcdn_la_opt.work_mode == 2){
     		if(item.num_total > 0 && item.num_total >= std::get<0>(val)){
 				std::get<0>(val) = item.num_total;
@@ -694,11 +669,10 @@ int merge_nginx_url_popular_datetime(FILE *& f)
     }
     size_t failed_line = 0;
     for(auto const & item : merge_map){
-    	auto & k = item.first;
     	auto & v = item.second;
     	/* @see nginx/print_url_popular_table */
-		auto sz = fprintf(f, "%ld %s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
-				std::get<0>(k), std::get<1>(k).c_str()
+		auto sz = fprintf(f, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu\n",
+					item.first.c_str()
 					, std::get<0>(v), std::get<1>(v), std::get<2>(v), std::get<3>(v), std::get<4>(v), std::get<5>(v), std::get<6>(v)
 					, std::get<7>(v), std::get<8>(v), std::get<9>(v), std::get<10>(v), std::get<11>(v), std::get<12>(v)
 					, std::get<13>(v)

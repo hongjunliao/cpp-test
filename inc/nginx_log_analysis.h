@@ -86,7 +86,7 @@ class url_stat
 public:
 	std::unordered_map<int, size_t> _status;	/*http_status_code: access_count*/
 	std::unordered_map<int, size_t> _bytes;		/*http_status_code: bytes*/
-	char status;								/* url status,  0: hit; 1: miss, url should be removed; */
+	char status;								/* url status,  log_item.status != 404? 0 : 1;  */
 public:
 	size_t access_total() const;
 	size_t bytes(int code1, int code2 = -1) const;
