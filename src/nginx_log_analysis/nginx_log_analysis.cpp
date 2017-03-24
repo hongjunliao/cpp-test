@@ -429,26 +429,26 @@ int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& 
 	if(!file || !file[0]) return -1;
 	FILE * f = fopen(file, "r");
 	if(!f){
-		fprintf(stderr, "%s: fopen file %s failed\n", __FUNCTION__, file);
+		fprintf(stderr, "%s: fopen siteuidlist file %s failed\n", __FUNCTION__, file);
 		return -1;
 	}
-	char data[1024] = "";
-	while(fgets(data, sizeof(data), f)){
-		if(data[0] == '\n') continue;
-		data[strlen(data) - 1] = '\0';
-
-		site_info sitel;
-		char const * token = strtok(data, " ");
-//		fprintf(stdout, "[%d: %s]", i, token);
-		sitel.site_id = atoi(token);
-
-		token = strtok(NULL, " ");
-		sitel.user_id = atoi(token);
-
-		token = strtok(NULL, " ");
-		sitelist[token] = sitel;
+	site_info row;
+	char domain[128];
+	char buf[1024];
+	while(fgets(buf, sizeof(buf), f)){
+		int n = sscanf(buf, "%d%d%s%d",
+				&row.site_id, &row.user_id, domain, &row.is_top);
+		if(n != 4)
+			continue;
+		sitelist[domain] = row;
 	}
 	fclose(f);
+
+//	for(auto const & item : sitelist){
+//		auto & s = item.second;
+//		fprintf(stdout, "%s:____%d____%d____%s____%d____\n", __FUNCTION__,
+//				s.site_id, s.user_id, item.first.c_str(), s.is_top);
+//	}
 	return 0;
 }
 

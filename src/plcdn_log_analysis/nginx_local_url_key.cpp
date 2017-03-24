@@ -16,8 +16,6 @@ extern struct plcdn_la_options plcdn_la_opt;
 /*parse_fmt.cpp*/
 extern int parse_fmt(char const * in, std::string& out,
 		std::unordered_map<std::string, std::string> const& argmap);
-/* main.cpp */
-extern std::unordered_map<std::string, site_info> g_sitelist;
 
 static std::string parse_nginx_local_url_key_filename(char const * fmt, int site_id, int user_id);
 

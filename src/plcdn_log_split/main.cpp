@@ -104,8 +104,9 @@ static int split_nginx_log(FILE * f, char const * folder, char const * fmt)
 				continue;
 			}
 
-			auto && sinfo = g_sitelist[domain];
-			auto && fname = parse_nginx_split_filename(fmt, sinfo.site_id, t);
+			int site_id = 0;
+			find_site_id(g_sitelist, domain, site_id, NULL);
+			auto && fname = parse_nginx_split_filename(fmt, site_id, t);
 			auto && dname = (std::string(folder) + fname);
 			auto status = boost::filesystem::create_directories(dname);
 			if(!status){
