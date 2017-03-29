@@ -234,7 +234,7 @@ void sync_srs_sids_dir(std::unordered_map<int, srs_sid_log> & slogs,
 		if(!sidvec.empty() || !fopenvec.empty()){
 			fprintf(stderr, "%s: failed sids, dir = '%s':\n", __FUNCTION__, srs_sid_dir);
 			if(!sidvec.empty()){
-				fprintf(stderr, "sids NOT found: [");
+				fprintf(stderr, "%s: sids NOT found: [", __FUNCTION__);
 				for(auto & sid_item : sidvec)
 					fprintf(stderr, "%d,", sid_item);
 				fprintf(stderr, "]\n");

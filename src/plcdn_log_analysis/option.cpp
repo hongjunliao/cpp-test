@@ -4,6 +4,10 @@
 #include <popt.h>	/*poptOption*/
 #include "test_options.h"	/*plcdn_la_options*/
 #include <boost/regex.hpp> 		/*boost::regex_match*/
+
+/*main.cpp*/
+extern time_t g_plcdn_la_start_time;
+
 static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 
 #define DEF_FORMAT_FLOW 			"countfile.${interval}.${site_id}.${device_id}"
@@ -89,8 +93,8 @@ static struct poptOption plcdn_la_popt[] = {
 	{"nginx-log-file",          'l',  POPT_ARG_STRING,   0, 'l', "nginx_log_file", 0 },
 	{"nginx-rotate-dir",        0,    POPT_ARG_STRING,   0, 'A', "directory for nginx_rotate, also set work_mode to rotate, see NOTES for details", 0 },
 	{"nginx-rotate-time",       0,    POPT_ARG_INT,      0, 'H', "time for nginx_rotate, default 7200 (in seconds)", 0 },
-	{"begin-time",             	0,    POPT_ARG_STRING,   0, 'D', "time_range, begin time, see NOTES for details", 0 },
-	{"end-time",          		0,    POPT_ARG_STRING,   0, 'I', "time_range, end time", 0 },
+	{"begin-time",             	0,    POPT_ARG_STRING,   0, 'D', "time_range, default 0, begin time, see NOTES for details", 0 },
+	{"end-time",          		0,    POPT_ARG_STRING,   0, 'I', "time_range, default 0, end time", 0 },
 	{"no-merge-datetime",
 			                     0,   POPT_ARG_NONE,      0, 'L', "default OFF, if set, don't merge rows before print output tables where ${datetime} same", 0 },
 
@@ -187,14 +191,40 @@ int plcdn_la_parse_options(int argc, char ** argv)
 	pc = poptGetContext("plcdn_log_analysis", argc, (const char **)argv, plcdn_la_popt, 0);
 	for(int opt; (opt = poptGetNextOpt(pc)) != -1; ){
 		switch(opt){
+		case 'i': plcdn_la_opt.interval = atoi(poptGetOptArg(pc)); break;
 		case 'l': plcdn_la_opt.nginx_log_file = poptGetOptArg(pc); break;
-		case 'D':
-			if(parse_time(poptGetOptArg(pc), plcdn_la_opt.begin_time) != 0)
-				return -1;
+		case 'D':{
+			auto c = poptGetOptArg(pc);
+			if(c && strcmp(c, "0") == 0)
+				plcdn_la_opt.begin_time = 0;
+			else if(c && strcmp(c, "1") == 0){
+				/* @see time_group */
+				size_t n = difftime(g_plcdn_la_start_time, 0) / plcdn_la_opt.interval;
+				plcdn_la_opt.begin_time = (n - 1) * plcdn_la_opt.interval;
+			}
+			else{
+				if(parse_time(c, plcdn_la_opt.begin_time) != 0)
+					return -1;
+			}
+/*			printf("%s: t=%zu, c='%s', begin_time=%zu, interval=%d\n", __FUNCTION__,
+					g_plcdn_la_start_time, c, plcdn_la_opt.begin_time, plcdn_la_opt.interval);*/
+		}
 		break;
-		case 'I':
-			if(parse_time(poptGetOptArg(pc), plcdn_la_opt.end_time) != 0)
-				return -1;
+		case 'I':{
+			auto c = poptGetOptArg(pc);
+			if(c && strcmp(c, "0") == 0)
+				plcdn_la_opt.end_time = 0;
+			else if(c && strcmp(c, "1") == 0){
+				/* @see time_group */
+				size_t n = difftime(g_plcdn_la_start_time, 0) / plcdn_la_opt.interval;
+				plcdn_la_opt.end_time = n * plcdn_la_opt.interval;
+			}
+			else{
+				if(parse_time(c, plcdn_la_opt.end_time) != 0)
+					return -1;
+			}
+			/*printf("%s: c='%s', end_time=%zu, interval=%d\n", __FUNCTION__, c, plcdn_la_opt.end_time, plcdn_la_opt.interval);*/
+		}
 		break;
 
 		case 'n': plcdn_la_opt.srs_log_file = poptGetOptArg(pc); break;
@@ -215,7 +245,6 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'B': plcdn_la_opt.format_srs_flow = poptGetOptArg(pc); break;
 		case 'C': plcdn_la_opt.output_split_srs_log_by_sid = poptGetOptArg(pc); break;
 
-		case 'i': plcdn_la_opt.interval = atoi(poptGetOptArg(pc)); break;
 		case 'e': plcdn_la_opt.device_id = atoi(poptGetOptArg(pc)); break;
 		case 'd': plcdn_la_opt.devicelist_file = poptGetOptArg(pc); break;
 		case 's': plcdn_la_opt.siteuidlist_file = poptGetOptArg(pc); break;
@@ -289,7 +318,7 @@ void plcdn_la_show_help(FILE * stream)
 			"  1.work_mode\n"
 			"    analysis: analysis log file and output result tables, for a single log file(usually huge), default\n"
 			"    rotate: rotate log file(usually continuous, periodic log pieces from a daemon), analysis and output result tables(update it if needed)\n"
-			"            NOTES: only available for nginx currently; option 'no-merge-datetime' is ignored and always be OFF in this mode\n"
+			"            NOTES: only available for nginx currently; option '--no-merge-datetime' is ignored and always be OFF in this mode\n"
 			"    merge_srs_flow: merge srs_flow_table(use --merge-srs-flow). output format: '${datetime} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  2.about 'filename format'(option --format-*, e.g. --format-ip-source):\n"
 	        "    ${datetime}   current date time, format YYYYmmDDHHMM\n"
@@ -299,8 +328,11 @@ void plcdn_la_show_help(FILE * stream)
 			"    ${site_id}    site_id/domain_id\n"
 			"    ${user_id}    user_id\n"
 			"    ${domain}     domain\n"
-			"  3.time_range format 'YYYY-mm-dd'(sample '2017-02-14'), range in [begin_time, end_time) (include begin_time, NOT end_time)\n"
-			"    default disabled, applied for both nginx and srs log if enabled\n"
+			"  3.time_range, range in [begin_time, end_time), applied for both nginx and srs log if enabled, format:\n"
+			"    (1)'YYYY-mm-dd', sample '2017-02-14'\n"
+			"    (2)'1'           use interval time, according to system time and --interval, sample: \n"
+			"                     system time: 2017-03-29 14:13:05, --interval 300, then time_range = [2017-03-29 14:05:00, 2017-03-29 14:10:00)\n"
+			"    (3)'0'           default, unlimited\n"
 			"  4.use ulimit(or other command) to increase 'open files', or may crash!\n"
 			"  5.about srs: https://github.com/ossrs/srs/wiki/v2_CN_Home\n"
 			"  6.nginx_log_format: '$host $remote_addr $request_time_msec $upstream_cache_status [$time_local] \"$request_method $request_uri $server_protocol\" \\\n"
@@ -328,7 +360,7 @@ void plcdn_la_show_help(FILE * stream)
 			"      tcUrl=rtmp://localhost/live, vhost=__defaultVhost__, obytes=4187, ibytes=206957159, okbps=0,0,0, ikbps=475,580,471'\n"
 			"  10.about option --srs-calc-flow-mode, 0: use obytes/ibytes, 1: use okbps/ikbps\n"
 			"  11.file '--device-list-file' format: '${device_id} ${device_ip}'\n"
-			"  12.file '--siteuid-list-file' format: '${site_id} ${user_id} ${domain}'\n"
+			"  12.file '--siteuid-list-file' format: '${site_id} ${user_id} ${domain} ${is_top}'\n"
 			"  13.option '--local-url-key' only support ${site_id}(default if no filename), ${user_id} in filename(NOT folder name), create dirs if NOT exist.\n"
 			"     sample: '/tmp/LocalUrlKey/${site_id}', '/tmp/LocalUrlKey/'(use default ${site_id} as filename)\n"
 	);
@@ -355,11 +387,11 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 	char btime[32] = "0", etime[32] = "0";
 	if(opt.begin_time != 0){
 		tm btmbuf;
-		strftime(btime, sizeof(btime), "%Y-%m-%d", localtime_r(&opt.begin_time, &btmbuf));
+		strftime(btime, sizeof(btime), "%Y-%m-%d %H:%M:%S", localtime_r(&opt.begin_time, &btmbuf));
 	}
 	if(opt.end_time != 0){
 		tm etmbuf;
-		strftime(etime, sizeof(etime), "%Y-%m-%d", localtime_r(&opt.end_time, &etmbuf));
+		strftime(etime, sizeof(etime), "%Y-%m-%d %H:%M:%S", localtime_r(&opt.end_time, &etmbuf));
 	}
 	fprintf(stream,
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n"

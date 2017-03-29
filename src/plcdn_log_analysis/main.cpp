@@ -429,6 +429,7 @@ static void append_flow_nginx(
 //main
 int test_plcdn_log_analysis_main(int argc, char ** argv)
 {
+	g_plcdn_la_start_time = time(NULL);
 //	test_nginx_log_analysis_main(argc, argv);	/*for test only*/
 
 	int result = plcdn_la_parse_options(argc, argv);
@@ -464,7 +465,6 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		return nginx_transform_log(stdin, stdout, plcdn_la_opt.nginx_trans_log) == 0? PLA_ERR_OK : PLA_ERR_LOG_TRANS;
 	if(plcdn_la_opt.work_mode == 1)
 		return merge_srs_flow_user(argc, argv) == 0? PLA_ERR_OK : PLA_ERR_SRS_MERGE_USER;
-	g_plcdn_la_start_time = time(NULL);
 	result = load_devicelist(plcdn_la_opt.devicelist_file, g_devicelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);
