@@ -805,7 +805,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 {
 	memset(&item, 0, sizeof(log_item));
 	item.beg = logitem;
-	char *items[32] = { 0 };
+	char *items[40] = { 0 };
 	int result = do_parse_nginx_log_item(items, logitem, delim);
 	if (result != 0) {
 		return 1;
@@ -909,7 +909,7 @@ int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
 	if(!file) return -1;
 
 	log_item item;
-    char buf[1024 * 10];	/* max length of 1 row */
+    char buf[1024 * 64];	/* max length of 1 row */
     size_t n = 0;
     while (fgets(buf, sizeof(buf), file)){
 		++n;

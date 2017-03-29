@@ -88,7 +88,7 @@ static void nginx_rotate_remove_expire(char const * rotate_dir, time_t now, int 
 
 static int parse_nginx_log_item_time_and_domain(char const * buff, time_t & t, std::string & domain)
 {
-	std::pair<char const *, char const *> items[18];
+	std::pair<char const *, char const *> items[40];
 	int result = do_parse_nginx_log_item(items, buff, '\n');
 	if(result != 0)
 		return -1;
@@ -106,6 +106,7 @@ static int parse_nginx_log_item_time_and_domain(char const * buff, time_t & t, s
 	my_tm.tm_isdst = 0;
 	t = mktime(&my_tm);
 
+//	fprintf(stdout, "%s: domain='%s', time='%s'\n", __FUNCTION__, domain.c_str(), item4);
 	return 0;
 }
 
@@ -121,6 +122,8 @@ static int nginx_rotate_append_log(char const * rotate_dir, char const * row, ti
 		if(!f)
 			return -1;
 	}
+//	fprintf(stdout, "%s: rotate_dir='%s', row='%s', time_group='%s', path='%s'\n", __FUNCTION__,
+//			rotate_dir, row, buft, fullpath.c_str());
 	auto result = fwrite(row, sizeof(char), strlen(row), f);
 	if(result < strlen(row) || ferror(f))
 		return -1;
@@ -183,7 +186,7 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile,
     size_t skipped_line = 0;
     std::vector<size_t> failednums;
 	std::map<time_group, rotate_file> rmap;
-    char buf[1024 * 10];	/* max length of 1 row */
+    char buf[1024 * 64];	/* max length of 1 row */
     while (fgets(buf, sizeof(buf), logfile)){
     	++total_line;
     	time_t t;
@@ -208,7 +211,7 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile,
 			}
     	}
     	time_group tg(t);
-    	/* @NOTES: this is the ONLY place where we save the new comming logs, which is used in @see split_nginx_log
+    	/* @NOTES: this is the ONLY place where we save the new coming logs, which is used in @see split_nginx_log
     	 * and we use std::string, NOT std::pair
     	 * TODO: compress buf? */
     	/* FIXME: tool old log still be added if rodate_dir empty, added temporary */
@@ -259,8 +262,11 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile,
     	}
 
     	auto is_time_in = is_time_in_range(item.first.t(), plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
-    	if(!is_time_in)
+    	if(!is_time_in){
+    		fclose(f);
     		continue;
+    	}
+
     	f = std::freopen(NULL, "r", f);
 		if(!f){
 			if(plcdn_la_opt.verbose > 4){
@@ -269,8 +275,7 @@ int nginx_rotate_log(char const * rotate_dir, int rotate_time, FILE * logfile,
 			}
 			continue;
 		}
-		size_t n = 0;
-		do_nginx_log_stats(f, plcdn_la_opt, g_sitelist, logstats, n);
+		do_nginx_log_stats(f, plcdn_la_opt, g_sitelist, logstats, failed_line);
 		fclose(f);
     }
 	return 0;

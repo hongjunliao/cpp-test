@@ -597,6 +597,8 @@ int merge_nginx_flow_datetime(FILE *& f)
 				std::get<1>(val) = item.bytes_total;
 				std::get<2>(val) = item.pvs_m;
 				std::get<3>(val) = item.px_m;
+				std::get<6>(val) = item.fst_pkg_time;
+				std::get<7>(val) = item.svg_speed;
         	}
     	}
     	else{
@@ -605,9 +607,11 @@ int merge_nginx_flow_datetime(FILE *& f)
 			std::get<2>(val) += item.pvs_m;
 			std::get<3>(val) += item.px_m;
 
-			/* FIXME: is avg all-right? */
-			std::get<6>(val) = ((item.fst_pkg_time + std::get<6>(val)) / 2.0);
-			std::get<7>(val) = ((item.svg_speed + std::get<7>(val)) / 2.0);
+			/* @NOTE: we think that with more num_total, more representative */
+			if(item.num_total > std::get<0>(val)){
+				std::get<6>(val) = item.fst_pkg_time;
+				std::get<7>(val) = item.svg_speed;
+			}
     	}
     }
     size_t failed_line = 0;
@@ -835,7 +839,7 @@ int merge_nginx_cutip_slowfast_datetime(FILE *& f)
     	}
     	else{
         	/* FIXME: speed = total_bytes / time_in_sec */
-        	val = std::max(val, item.speed);
+        	val = (val + item.speed) / 2.0;
     	}
     }
     size_t failed_line = 0;
