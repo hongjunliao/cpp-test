@@ -1,4 +1,4 @@
-#include "bd_test.h"
+#include <plcdn_cpp_test.h>
 #include <algorithm>
 #include <string>
 #include <map>
@@ -55,7 +55,8 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"plcdn_log_split", test_plcdn_log_split_main},
 			{"cpp11", test_cpp11_main},
 			{"opencv", test_opencv_main},
-			{"plcdn_logtrans", test_nginx_transform_log_main_2}
+			{"plcdn_logtrans", test_nginx_transform_log_main_2},
+			{"chess", chess_test_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 

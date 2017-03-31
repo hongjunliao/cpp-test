@@ -34,7 +34,7 @@ extern struct plcdn_la_options plcdn_la_opt;
 
 #ifdef LOGTRANS_USE_REGEX_REPlACE
 #include <string.h>				/* strcpy */
-#include "nginx_log_analysis.h"	/* do_parse_nginx_log_item */
+#include <plcdn_la_ngx.h>	/* do_parse_nginx_log_item */
 
 /* user: yunduan, url: https://www.isurecloud.com/ */
 #define CUSTOME_FORMAT_YUNDUAN_REGEX \
@@ -114,7 +114,7 @@ int nginx_transform_log(FILE * in, FILE * out, int fmt)
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #elif (defined LOGTRANS_USE_FACEBOOK_FOLLY)
 #include "folly/Format.h"	/* folly::svformat */
-#include "nginx_log_analysis.h"	/* do_parse_nginx_log_item */
+#include <plcdn_la_ngx.h>	/* do_parse_nginx_log_item */
 
 #define CUSTOME_FORMAT_YUNDUAN_FOLLY \
 "{remote_addr} - {remote_user} [{time_local}] \"{request_method} {scheme}://{host}{request_uri} {server_protocol}\" {status} \
@@ -180,7 +180,7 @@ int nginx_transform_log(FILE * in, FILE * out, int fmt)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 #else	/* use the faster verison */
-/* test_plcdn_log_transform2.cpp */
+/* plcdn_la_trans_format2.cpp */
 extern int pl_logtrans_trans_file(char const * fmt, int rn, FILE * in, FILE * out);
 
 int nginx_transform_log(FILE * in, FILE * out, int fmt)

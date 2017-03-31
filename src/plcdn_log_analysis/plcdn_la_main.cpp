@@ -18,7 +18,6 @@
  */
 
 #include <stdio.h>
-#include "bd_test.h"			/*test_srs_log_stats_main*/
 #include "plcdn_la_errno.h"		/* error codes, PLA_ERR_OK, ... */
 #include "test_options.h" 		/*sla_options*/
 
@@ -33,14 +32,14 @@
 #include <map>				/*std::map*/
 //#include <thread>		/*std::thread*/
 //#include <atomic>		/*std::atomic*/
-#include "bd_test.h"		/*test_nginx_log_stats_main*/
+#include "plcdn_cpp_test.h"		/*test_nginx_log_stats_main*/
 #include "test_options.h"	/*nla_options**/
-#include "nginx_log_analysis.h"	/*log_stats, ...*/
-#include "srs_log_analysis.h"	/*srs_log_context*/
 #include "string_util.h"	/*md5sum*/
 #include "net_util.h"	/*get_if_addrs, ...*/
 #include <algorithm>	/*std::min*/
 #include <boost/filesystem.hpp> /*create_directories*/
+#include <plcdn_la_ngx.h>	/*log_stats, ...*/
+#include <plcdn_la_srs.h>	/*srs_log_context*/
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*for nginx log*/
 
@@ -429,8 +428,9 @@ static void append_flow_nginx(
 //main
 int test_plcdn_log_analysis_main(int argc, char ** argv)
 {
+//	return test_nginx_log_analysis_main(argc, argv);	/*for test only*/
+
 	g_plcdn_la_start_time = time(NULL);
-//	test_nginx_log_analysis_main(argc, argv);	/*for test only*/
 
 	int result = plcdn_la_parse_options(argc, argv);
 	if(result != 0 || plcdn_la_opt.show_help){

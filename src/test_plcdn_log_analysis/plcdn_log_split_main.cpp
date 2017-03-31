@@ -9,9 +9,7 @@
  * 5.gcc add -lpopt -lpthread -lrt
  */
 
-#include "bd_test.h"		/*test_plcdn_log_split_main*/
 #include "test_options.h"	/*plcdn_ls_options**/
-#include "nginx_log_analysis.h"	/*site_info*/
 #include <time.h>		/*strftime*/
 #include <stdio.h>
 #include <string.h> 	/*strncpy*/
@@ -20,6 +18,8 @@
 #include <string>		/*std::string*/
 #include <unordered_map> 	/*std::unordered_map*/
 #include <boost/filesystem.hpp> /*create_directories*/
+#include <plcdn_la_ngx.h>	/*site_info*/
+#include "plcdn_cpp_test.h"		/*test_plcdn_log_split_main*/
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////

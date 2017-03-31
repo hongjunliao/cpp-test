@@ -1,7 +1,7 @@
 /*!
  * test for opencv
  * @author hongjun.liao <docici@126.com>*/
-#include "bd_test.h"
+#include <plcdn_cpp_test.h>
 #include <stdio.h>
 #ifdef TEST_OPENCV
 #include <iostream>

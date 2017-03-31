@@ -15,9 +15,9 @@
  * use in gcc:
  * -L ${folly}/.libs/ -lfollybase
  */
+#include <plcdn_la_ngx.h>	/* do_parse_nginx_log_item */
 #include <stdio.h>
 #include <string.h>				/* strcpy */
-#include "nginx_log_analysis.h"	/* do_parse_nginx_log_item */
 #include "test_options.h"	/* plcdn_la_options */
 #ifdef USE_FACEBOOK_FOLLY
 #include "folly/Format.h"	/* folly::svformat */

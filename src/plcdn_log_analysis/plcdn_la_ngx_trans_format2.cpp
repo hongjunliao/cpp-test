@@ -14,7 +14,6 @@
 #include <string.h>		/* strncpy */
 #include <utility>		/* std::pair */
 #include <ctype.h>		/* isdigit */
-#include <plcdn_cpp_test.h>
 #include <plcdn_la_ngx.h>	/* do_parse_nginx_log_item */
 
 typedef std::pair<char const *, char const *> field_t;
@@ -255,7 +254,7 @@ static int pl_logtrans_printf(logtrans_fmt * fmtf, size_t m, field_t const * arg
 	return 0;
 }
 
-static int pl_logtrans_trans_file(char const * fmt, int rn, FILE * in, FILE * out)
+int pl_logtrans_trans_file(char const * fmt, int rn, FILE * in, FILE * out)
 {
 //	fprintf(stderr, "%s______________%s_______________\n", __FUNCTION__, fmt);
 	size_t arn = rn * 8;
@@ -317,13 +316,3 @@ static int pl_logtrans_trans_file(char const * fmt, int rn, FILE * in, FILE * ou
 	pl_logtrans_free_format(fmtf, arn);
 	return 0;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-/* a faster version */
-int test_nginx_transform_log_main_2(int argc, char ** argv)
-{
-	size_t RN = 21;	/* field count for original file line */
-	/* "%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS%\" %20\n" */
-	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS%\" %20\n", RN, stdin, stdout);
-}
-

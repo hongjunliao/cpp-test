@@ -11,18 +11,40 @@
 #include <assert.h>
 #include <pthread.h> /*pthread*/
 #include <openssl/sha.h>	/*SHA_DIGEST_LENGTH, SHA1*/
+#include <plcdn_cpp_test.h>	/*test_nginx_log_split_main*/
+#include <plcdn_la_ngx.h>	/*user-defined struts, log_stats, ...*/
 
 #include <vector>
 #include <algorithm> /*std::sort*/
 #include <unordered_map> /*unordered_map*/
 #include <map>
-#include "bd_test.h"	/*test_nginx_log_split_main*/
-#include "nginx_log_analysis.h"	/*user-defined struts, log_stats, ...*/
 #include "string_util.h"	/*strlwr*/
 #include "test_options.h"	/*nla_options**/
 /*tests, @see do_test*/
 static int test_strptime_main(int argc, char ** argv);
 static int test_time_mark_main(int argc, char** argv) {
+	{
+		for(auto i = 0; i != 10000000; ++i){
+			char str[] = "28/Sep/1970:12:00:00 +0600";
+			struct tm tp;
+			auto result = strptime(str, "%d/%b/%Y:%H:%M:%S %z", &tp);
+			if(!result){
+				fprintf(stdout, "%s: strptime for '%s' failed\n", __FUNCTION__, str);
+				return -1;
+			}
+
+			auto t = mktime(&tp);
+		//	my_tm.tm_isdst = 0;
+			struct tm tp2;
+			char buff[64] = "";
+
+//			strftime(buff, sizeof(buff), "%Y%m%d-%H:%M:%S", localtime_r(&t, &tp2));
+
+			fprintf(stdout, "%s: src='%s', dest='%s'\n", __FUNCTION__, str, buff);
+		}
+		return 0;
+	}
+
 	const char* stime = "17/Sep/2016:01:19:43";
 	time_t time1 = time(NULL);
 	tm time2 = *localtime(&time1);
@@ -99,7 +121,7 @@ static int test_strptime_main(int argc, char ** argv)
 int test_nginx_log_analysis_main(int argc, char ** argv)
 {
 	//	test_strptime_main(argc, argv);
-		test_time_mark_main(argc, argv);
+		return test_time_mark_main(argc, argv);
 
 		/*siteuidlist.txt www.haipin.com*/
 	//	fprintf(stdout, "%s: file=%s, site=%s, id=%d\n", __FUNCTION__, argv[1], argv[2], find_site_id(argv[1], argv[2]));

@@ -4,13 +4,13 @@
  * @author hongjun.liao <docici@126.com>
  * @date 2016/11
  */
-#include "nginx_log_analysis.h"	/*nginx_domain_stat, ...*/
 #include <sys/mman.h>	/*mmap*/
 #include <stdio.h>
 #include <time.h>		/*tm*/
 #include <string> 		/*std::string*/
 #include <unordered_map> 		/*std::unordered_map*/
 #include <boost/filesystem.hpp> /*create_directories*/
+#include <plcdn_la_ngx.h>	/*nginx_domain_stat, ...*/
 
 /*parse_fmt.cpp*/
 extern int parse_fmt(char const * in, std::string& out,

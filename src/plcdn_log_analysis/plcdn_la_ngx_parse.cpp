@@ -1,8 +1,8 @@
 /*!
  * This file is PART of nginx_log_analysis
  */
-#include "nginx_log_analysis.h"
 #include <fnmatch.h>	/*fnmatch*/
+#include <plcdn_la_ngx.h>
 #include <stdio.h>
 #include <time.h> /*strptime*/
 #include <string.h> /*strncpy*/

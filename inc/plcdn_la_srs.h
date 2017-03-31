@@ -4,7 +4,7 @@
  */
 #ifndef _SRS_LOG_ANALYSIS_H_
 #define _SRS_LOG_ANALYSIS_H_
-#include "nginx_log_analysis.h"	/*time_group*/
+#include <plcdn_la_ngx.h>	/*time_group*/
 #include <time.h>	/*time_t*/
 #include <stdint.h>	/*uint32_t*/
 #include <string>	/*std::string*/

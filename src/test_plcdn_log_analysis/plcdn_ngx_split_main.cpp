@@ -9,7 +9,7 @@
  * 5.gcc add -lpopt -lpthread -lcrypto -lrt
  */
 
-#include "bd_test.h"		/*test_nginx_log_stats_main*/
+#include "plcdn_cpp_test.h"		/*test_nginx_log_stats_main*/
 #include "test_options.h"	/*nls_options**/
 #include "string_util.h"	/*strlwr*/
 #include <stdio.h>

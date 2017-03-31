@@ -4,7 +4,6 @@
  * @author hongjun.liao <docici@126.com>
  * @date 2016/11
  */
-#include "srs_log_analysis.h"	/*srs_sid, ...*/
 #include "test_options.h"	/*plcdn_la_options*/
 #include <sys/stat.h>	/*fstat*/
 #include <stdio.h>
@@ -14,6 +13,7 @@
 #include <string> 		/*std::string*/
 #include <unordered_map> 		/*std::unordered_map*/
 #include <boost/filesystem.hpp> /*create_directories*/
+#include <plcdn_la_srs.h>	/*srs_sid, ...*/
 
 /*total lines for srs log file*/
 size_t g_srs_total_line = 0, g_srs_failed_line = 0, g_srs_trans_line = 0;

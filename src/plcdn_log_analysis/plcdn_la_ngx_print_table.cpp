@@ -9,8 +9,8 @@
 #include <limits.h>		/*PATH_MAX*/
 #include <string.h> 	/*strncpy*/
 #include <netinet/in.h>
+#include <plcdn_la_ngx.h>	/*log_stats, ...*/
 #include <map>			/*std::map*/
-#include "nginx_log_analysis.h"	/*log_stats, ...*/
 #include "test_options.h"		/*plcdn_la_options*/
 #include "string_util.h"		/*sha1sum*/
 #include "net_util.h"	/*netutil_get_ip_str*/

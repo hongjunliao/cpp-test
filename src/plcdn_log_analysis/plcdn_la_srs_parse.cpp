@@ -2,14 +2,14 @@
  * This file is PART of srs_log_analysis
  */
 
-#include "srs_log_analysis.h"
 #include "test_options.h"	/*plcdn_la_options*/
 #include <string>				/*std::string*/
 #include <unordered_map>		/*std::unordered_map*/
 #include <boost/regex.hpp> 		/*regex_search*/
+#include <plcdn_la_ngx.h>	/*site_info*/
+#include <plcdn_la_srs.h>
 #include "net_util.h"			/*netutil_get_ip_from_str*/
 
-#include "nginx_log_analysis.h"	/*site_info*/
 
 /*plcdn_log_analysis/main.cpp*/
 extern std::unordered_map<std::string, site_info> g_sitelist;

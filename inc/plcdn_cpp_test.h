@@ -87,6 +87,9 @@ int test_opencv_main(int argc, char ** argv);
 /* test_plcdn_log_transform.cpp */
 int test_nginx_transform_log_main_2(int argc, char ** argv);
 
+/* chess_test.cpp */
+int chess_test_main(int argc, char ** argv);
+
 /**
  * xlib util
  */

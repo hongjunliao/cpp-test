@@ -4,11 +4,11 @@
  * @author hongjun.liao <docici@126.com>
  * @date 2017/03/15
  */
-#include "nginx_log_analysis.h"	/* nginx_domain_stat, ...*/
 #include "string.h"				/* strlen */
 #include <unordered_map> 		/*std::unordered_map*/
 #include <string>				/*std::string*/
 #include <boost/filesystem.hpp> /*create_directories*/
+#include <plcdn_la_ngx.h>	/* nginx_domain_stat, ...*/
 
 /*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;

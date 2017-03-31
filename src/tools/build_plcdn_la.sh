@@ -14,13 +14,6 @@ build_plcdn_la()
 	mkdir -p "${ws_dir}src/" "${ws_dir}bin/";
 	cd ${HOME}/ws/cpp-test/src/;
 	for file in plcdn_log_analysis/*.cpp \
-		nginx_log_analysis/nginx_log_analysis.cpp \
-		nginx_log_analysis/parse_fmt.cpp \
-		nginx_log_analysis/nginx_rotate.cpp \
-		srs_log_analysis/srs_log_analysis.cpp \
-		srs_log_analysis/split_log.cpp \
-		srs_log_analysis/print_table.cpp \
-		test_plcdn_log_transform2.cpp \
 		string_uitl.cpp chksum.cpp net_util.cpp termio_util.cpp; do
 		printf "//begin file %s__________________________________________________________________________________//\n" ${file} >> "${src_file}";
 		cat $file >> "${src_file}";

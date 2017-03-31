@@ -2,7 +2,7 @@
  * This file is PART of srs_log_analysis
  * ouput results table
  */
-#include "srs_log_analysis.h"	/*srs_trans, ...*/
+#include <plcdn_la_srs.h>	/*srs_trans, ...*/
 #include <stdio.h>
 #include <string.h> 	/*strcmp*/
 #include <vector>		/*std::vector*/

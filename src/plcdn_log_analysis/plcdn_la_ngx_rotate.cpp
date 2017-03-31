@@ -11,8 +11,8 @@
 #include <string> 			/*std::string*/
 #include <boost/regex.hpp> 		/*boost::regex_match*/
 #include <boost/filesystem.hpp>		/* boost::filesystem::file_size, recursive_directory_iterator, ... */
+#include <plcdn_la_ngx.h>	/*nginx_domain_stat, ...*/
 #include "test_options.h"		/*plcdn_la_options*/
-#include "nginx_log_analysis.h"	/*nginx_domain_stat, ...*/
 
 /*main.cpp*/
 extern std::unordered_map<std::string, site_info> g_sitelist;
