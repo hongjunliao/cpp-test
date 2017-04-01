@@ -10,6 +10,7 @@
 struct chess_pt {
 	int x, y;		/* pos */
 	int hit;		/* 0: not hit, 1: black, 2: white */
+	int win;		/* 1 if win, else 0 */
 };
 
 struct chess_board {

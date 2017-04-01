@@ -39,11 +39,11 @@ static int chess_board_find_first(chess_board const& board, chess_pt const& pt, 
 			++x1, ++y1, --x2, --y2)
 	{
 		if(verbose)
-			printf("%s: x1=%d, x2=%d, y1=%d, y2=%d, l_off=%d, r_off=%d\n", __FUNCTION__, x1, x2, y1, y2, l_off, r_off);
+			fprintf(stdout, "%s: x1=%d, x2=%d, y1=%d, y2=%d, l_off=%d, r_off=%d\n", __FUNCTION__, x1, x2, y1, y2, l_off, r_off);
 		/* find left-right */
 		if(!l_off || !r_off){
 			if(verbose)
-				printf("%s: search left-right\n", __FUNCTION__);
+				fprintf(stdout, "%s: search left-right\n", __FUNCTION__);
 			if(!l_off && x2 > -1){
 				auto & p = board.pts[pt.y * board.W + x2];
 				if(verbose)
@@ -161,6 +161,7 @@ void chess_board_reset(chess_board & board)
 			board.pts[j].x = j % board.W;
 			board.pts[j].y = i;
 			board.pts[j].hit = 0;
+			board.pts[j].win = 0;
 		}
 	}
 }
@@ -177,26 +178,11 @@ int chess_board_find(chess_board const& board, chess_pt ** pts, int n)
 			auto result = chess_board_find_first(board, board.pts[j], pts, n - 1);
 
 			if(result == 0){
-//				if(verbose){
-//					fprintf(stdout, "%s: found ", __FUNCTION__);
-//
-//					bool f = false;
-//
-//					for(int i = 0; i != n; ++i){
-//						auto & pt = pts[i];
-//						if(!f){
-//							if(j < pt->y * board.W + pt->x){
-//								f = true;
-//								int c = (board.pts[j].hit == 0? 0 : (board.pts[j].hit == 1? 31 : 32));
-//								fprintf(stdout, "\e[%dm[%d,%d,%d\e[0m] ",
-//										c, board.pts[j].x, board.pts[j].y, board.pts[j].hit);
-//							}
-//						}
-//						int c = (pt->hit == 0? 0 : (pt->hit == 1? 31 : 32));
-//						fprintf(stdout, "\e[%dm[%d,%d,%d\e[0m] ", c, pt->x, pt->y, pt->hit);
-//					}
-//					fprintf(stdout, "\n");
-//				}
+
+				board.pts[j].win = 1;
+				for(int i = 0; i < n - 1; ++i){
+					pts[i]->win = 1;
+				}
 
 				return 0;
 			}
