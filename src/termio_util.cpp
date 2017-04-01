@@ -2,7 +2,7 @@
  * This file is Part of cpp-test
  * @author: hongjun.liao<docici@126.com>
  */
-#if (defined __GCC__ || defined  __CYGWIN_GCC__)
+#if (defined __GCC__ || defined  __CYGWIN__)
 #include "termio_util.h"
 #include <stdio.h>
 #include <time.h>	/*tmespec*/

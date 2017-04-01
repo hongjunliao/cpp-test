@@ -8,6 +8,7 @@
 #include <string.h> /*strncpy*/
 #include <time.h> /*strptime*/
 #include <algorithm> /* std::find */
+#include <numeric>	/* std::accumulate */
 #include "string_util.h"	/* sha1sum_r */
 #include "net_util.h"	/*netutil_get_ip_str*/
 

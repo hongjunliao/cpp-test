@@ -473,7 +473,7 @@ static int parse_table_row(char const * buf, size_t len, std::string& urlkey, st
 	if(!buf)
 		return -1;
 	status = buf[0];
-	auto c = strchr(buf + 2, '"');
+	auto const * c = strchr(buf + 2, '"');
 	if(!c)
 		return -1;
 	urlkey.assign(buf + 2, c - (buf + 2));

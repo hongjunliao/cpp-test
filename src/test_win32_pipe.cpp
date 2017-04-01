@@ -1,5 +1,5 @@
 #ifdef __CYGWIN__
-#include "bd_test.h"
+#include "plcdn_cpp_test.h"	/* test_win32_pipe_main */
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
