@@ -105,34 +105,49 @@ static int chess_board_find_first(chess_board const& board, chess_pt const& pt, 
 		}
 //
 //		/* find left-top-right_bottom */
-//		if(!lt_off && !rb_off){
-//			if(board.pts[j2 * board.W + i2].hit != pt.hit)
-//				lt_off = true;
-//			else
-//				pts[n_ltrb++] = &board.pts[j2 * board.W + i2];
-//
-//			if(board.pts[j1 * board.W + i1].hit != pt.hit)
-//				rb_off = true;
-//			else
-//				pts[n_ltrb++] = &board.pts[j1 * board.W + i1];
-//			if(n_ltrb >= n)
-//				return 0;
-//		}
+		if(!lt_off || !rb_off){
+			if(!lt_off && x2 > -1 && y2 > -1){
+				auto & p = board.pts[y2 * board.W + x2];
+				if(p.hit != pt.hit)
+					lt_off = true;
+				else
+					pts_ltrb[n_ltrb++] = &p;
+			}
+			if(!rb_off && x1 < board.W && y1 < board.H){
+				auto & p = board.pts[y1 * board.W + x1];
+				if(p.hit != pt.hit)
+					rb_off = true;
+				else
+					pts_ltrb[n_ltrb++] = &p;
+			}
+			if(n_ltrb >= n){
+				memcpy(pts, pts_ltrb, sizeof(chess_pt *) * n);
+				return 0;
+			}
+		}
 //
 //		/* find left_bottom-right-top */
-//		if(!lb_off && !rt_off){
-//			if(board.pts[j1 * board.W + i2].hit != pt.hit)
-//				lb_off = true;
-//			else
-//				pts[n_lbrt++] = &board.pts[j1 * board.W + i2];
-//
-//			if(board.pts[j2 * board.W + i1].hit != pt.hit)
-//				rt_off = true;
-//			else
-//				pts[n_lbrt++] = &board.pts[j2 * board.W + i1];
-//			if(n_lbrt >= n)
-//				return 0;
-//		}
+		if(!lb_off || !rt_off){
+			if(!lb_off && y1 < board.H && x2 > -1){
+				auto & p = board.pts[y1 * board.W + x2];
+				if(p.hit != pt.hit)
+					lb_off = true;
+				else
+					pts_lbrt[n_lbrt++] = &p;
+			}
+
+			if(!rt_off && y2 > -1 && x1 < board.W){
+				auto & p = board.pts[y2 * board.W + x1];
+				if(p.hit != pt.hit)
+					rt_off = true;
+				else
+					pts_lbrt[n_lbrt++] = &p;
+			}
+			if(n_lbrt >= n){
+				memcpy(pts, pts_lbrt, sizeof(chess_pt *) * n);
+				return 0;
+			}
+		}
 	}
 	if(verbose)
 		fprintf(stdout, "%s: end\n", __FUNCTION__);
@@ -158,6 +173,7 @@ int chess_board_find(chess_board const& board, chess_pt ** pts, int n)
 			if(board.pts[j].hit == 0)
 				continue;
 
+			/* board.pts[j] already hit, find n -  1 only */
 			auto result = chess_board_find_first(board, board.pts[j], pts, n - 1);
 
 			if(result == 0){
