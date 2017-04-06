@@ -26,7 +26,7 @@
  * */
 //#define LOGTRANS_USE_REGEX_REPlACE
 
-#include "test_options.h"	/* plcdn_la_options */
+#include "plcdn_la_option.h"	/* plcdn_la_options */
 #include <stdio.h>
 
 /*plcdn_log_analysis/option.cpp*/

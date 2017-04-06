@@ -506,16 +506,4 @@ int parse_srs_log_item_trans(int sid, srs_raw_log_t & rlog, srs_trans & trans)
 	}
 	return 1;
 }
-int parse_domain_from_url(const char* url, char* domain)
-{
-	/*sample: 'rtmp://127.0.0.1:1359/'*/
-	boost::cmatch cm;
-	auto f = boost::regex_search(url, cm, boost::regex("://([^/:]+)(?::[0-9]+)?/"));
-	if(!f) return -1;
-
-	auto length = cm.length(1);
-	strncpy(domain, cm[1].first, length);
-	domain[length] = '\0';
-	return 0;
-}
 

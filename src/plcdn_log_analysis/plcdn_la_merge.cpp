@@ -12,7 +12,7 @@
 #include <unordered_map> 	/* std::unordered_map */
 #include <tuple>			/* std::tuple */
 #include <boost/functional/hash.hpp>	/* boost::hash_combine */
-#include "test_options.h"				/*plcdn_la_options*/
+#include "plcdn_la_option.h"	/* plcdn_la_options */
 /*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;
 
@@ -50,6 +50,16 @@ struct nginx_flow_table_row
 	 char loc[16], isp[8];
 	 int fst_pkg_time;
 	 double svg_speed;
+};
+
+/* nginx http_referer, http_user_agent */
+struct nginx_httpref_ua_table_row {
+	time_t        datetime;
+	int           device_id, site_id, user_id;
+	std::string   domain;
+	size_t        bytes_total, access_total;
+	size_t        bytes_pc, access_pc;
+	size_t        bytes_mobile, access_mobile;
 };
 
 struct nginx_url_popular_table_row
@@ -112,6 +122,8 @@ static int parse_table_row(char const * buf, nginx_ip_popular_table_row & row);
 static int parse_table_row(char const * buf, nginx_http_stats_table_row & row);
 static int parse_table_row(char const * buf, nginx_cutip_slowfast_table_row & row);
 static int parse_table_row(char const * buf, size_t len, std::string& urlkey, std::string& url, char& status);
+static int parse_table_row(char const * buf, nginx_httpref_ua_table_row & row);
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef std::tuple<time_t, int> srs_user_flow_key_t; /* std::tuple<datetime, user_id> */
 typedef std::tuple<size_t, size_t, double, double> srs_user_flow_value_t;	/* std::tuple<obytes, ibytes, obps, ibps> */
@@ -146,6 +158,10 @@ typedef std::tuple<int, size_t, time_t>  merge_nginx_ip_slowfast_key_t;
 /* std::tuple<num_total, bytes_total, pvs_m, px_m, srs_in, srs_out> */
 typedef srs_user_flow_value_t srs_flow_value_t;
 
+/* std::tuple<datetime, device_id, site_id, user_id, domain> */
+typedef std::tuple<time_t, int, int, int, std::string> nginx_httpref_ua_key_t;
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 /* required by std::unordered_map's key, @see http://en.cppreference.com/w/cpp/utility/hash */
 namespace std{
 template<> struct hash<srs_user_flow_key_t>
@@ -362,6 +378,31 @@ std::size_t std::hash<merge_nginx_http_stats_key_t>::operator()(
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace std{
+template<> struct hash<nginx_httpref_ua_key_t>
+{
+	typedef nginx_httpref_ua_key_t argument_type;
+	typedef std::size_t result_type;
+	result_type operator()(argument_type const& val) const
+	{
+		size_t ret = 0;
+		size_t const h0 ( std::hash<time_t>{}(std::get<0>(val)) );
+		size_t const h1 ( std::hash<int>{}(std::get<1>(val)) );
+		size_t const h2 ( std::hash<int>{}(std::get<2>(val)) );
+		size_t const h3 ( std::hash<int>{}(std::get<3>(val)) );
+		size_t const h4 ( std::hash<std::string>{}(std::get<4>(val)) );
+
+		boost::hash_combine(ret, h0);
+		boost::hash_combine(ret, h1);
+		boost::hash_combine(ret, h2);
+		boost::hash_combine(ret, h3);
+		boost::hash_combine(ret, h4);
+		return ret;
+	}
+};
+}	//namespace std
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static int parse_table_row(char const * buf, srs_flow_table_row & row)
 {
@@ -480,6 +521,28 @@ static int parse_table_row(char const * buf, size_t len, std::string& urlkey, st
 	url.assign(c + 1, buf + len);
 	return 0;
 }
+
+static int parse_table_row(char const * buf, nginx_httpref_ua_table_row & row)
+{
+	if(!buf || buf[0] == '\0')
+		return -1;
+	char domain[1024];
+	/* @see nginx/print_httpref_ua_table */
+	int n = sscanf(buf, "%ld%d%d%d%s%zu%zu%zu%zu%zu%zu",
+					&row.datetime,
+					&row.device_id, &row.site_id, &row.user_id,
+					domain,
+					&row.bytes_total, &row.access_total,
+					&row.bytes_pc, &row.access_pc,
+					&row.bytes_mobile, &row.access_mobile);
+	if(n != 11)
+		return -1;
+
+	row.domain = domain;
+
+	return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 int merge_srs_flow_user(int argc, char ** argv)
 {
@@ -914,6 +977,61 @@ int merge_nginx_url_key(FILE *& f)
     	auto & val = item.second;
     	/* @see nginx/print_url_key_table */
 		auto sz = fprintf(f, "%c\"%s\"%s\n", std::get<1>(val), item.first.c_str(), std::get<0>(val).c_str());
+		if(sz <= 0)
+			++failed_line;
+    }
+	return 0;
+}
+
+int merge_nginx_httpref_ua(FILE *& f)
+{
+	/* std::tuple<bytes_total, access_total, bytes_pc, access_pc, bytes_mobile, access_mobile> */
+	typedef std::tuple<size_t, size_t, size_t, size_t, size_t, size_t> value_t;
+
+	std::vector<nginx_httpref_ua_table_row> rows;
+    char buf[512];
+    while (fgets(buf, sizeof buf, f)){
+    	nginx_httpref_ua_table_row row;
+    	if(parse_table_row(buf, row) != 0)
+    		continue;
+    	rows.push_back(row);
+    }
+
+    f = std::freopen(NULL, "w", f);
+    if(!f) return -1;
+
+    std::unordered_map<nginx_httpref_ua_key_t, value_t> merge_map;
+    for(auto const & item : rows){
+    	auto  k = std::make_tuple(item.datetime, item.device_id, item.site_id, item.user_id, item.domain);
+    	auto & val = merge_map[k];
+
+    	if(plcdn_la_opt.work_mode == 2){
+        	if(item.access_total > 0 && item.access_total >= std::get<1>(val)){
+        		val = std::make_tuple(item.bytes_total, item.access_total, item.bytes_pc, item.access_pc,
+        				item.bytes_mobile, item.access_mobile );
+        	}
+    	}
+    	else{
+			std::get<0>(val) += item.bytes_total;
+			std::get<1>(val) += item.access_total;
+			std::get<2>(val) += item.bytes_pc;
+			std::get<3>(val) += item.access_pc;
+			std::get<4>(val) += item.bytes_mobile;
+			std::get<5>(val) += item.access_mobile;
+    	}
+    }
+    size_t failed_line = 0;
+    for(auto const & item : merge_map){
+    	/* @see nginx/print_httpref_ua_table */
+    	auto & key = item.first;
+    	auto & val = item.second;
+    	auto sz = fprintf(f, "%ld %d %d %d %s %zu %zu %zu %zu %zu %zu\n",
+    						std::get<0>(key),
+							std::get<1>(key), std::get<2>(key), std::get<3>(key),
+							std::get<4>(key).c_str(),
+							std::get<0>(val), std::get<1>(val),
+							std::get<2>(val), std::get<3>(val),
+							std::get<4>(val), std::get<5>(val));
 		if(sz <= 0)
 			++failed_line;
     }

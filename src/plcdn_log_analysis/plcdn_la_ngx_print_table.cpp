@@ -46,6 +46,11 @@ static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx
 static void print_cutip_slowfast_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
 		int site_id, int user_id, size_t& n, int topn);
 
+/* httpref_ua_table */
+static void print_httpref_ua_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n);
+
+
 /*url_key*/
 //static void print_url_key_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 /*ip_source*/
@@ -55,7 +60,7 @@ static void print_url_key_table(FILE * stream, int site_id, int user_id,nginx_lo
 static void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat const& stat, int site_id, int user_id, size_t& n);
 
 /* merge tables for same datetime */
-/*  merge_srs_flow.cpp */
+/*  plcdn_la_merge.cpp */
 extern int merge_nginx_flow_datetime(FILE *& f);
 extern int merge_nginx_url_popular_datetime(FILE *& f);
 extern int merge_nginx_ip_popular_datetime(FILE *& f);
@@ -64,6 +69,7 @@ extern int merge_nginx_ip_source_datetime(FILE *& f);
 extern int merge_nginx_cutip_slowfast_datetime(FILE *& f);
 extern int merge_nginx_ip_slowfast_datetime(FILE *& f);
 extern int merge_nginx_url_key(FILE *& f);
+extern int merge_nginx_httpref_ua(FILE *& f);
 
 static std::string parse_nginx_output_filename(char const * fmt, char const *interval, int site_id, int user_id)
 {
@@ -348,6 +354,27 @@ void print_ip_source_table(FILE * stream, time_group const& g, nginx_log_stat co
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
+static void print_httpref_ua_table(FILE * stream, time_group const& g, nginx_log_stat const& stat,
+		int site_id, int user_id, size_t& n)
+{
+	/* format: datetime, device_id, site_id, user_id,
+	 * domain, bytes_total, access_total, bytes_pc, access_pc, bytes_mobile, access_mobile */
+	char buft[32];
+	g.c_str_r(buft, sizeof(buft));
+
+	for(auto const& it : stat._httprefr_stats){
+		auto& s = it.second;
+		auto sz = fprintf(stream, "%s %d %d %d %s %zu %zu %zu %zu %zu %zu\n",
+							buft,
+							g_plcdn_la_device_id, site_id, user_id,
+							it.first.c_str(),
+							s.access, s.bytes, s.access_pc, s.bytes_pc,
+							s.access - s.access_pc, s.bytes - s.bytes_pc );
+		if(sz <= 0) ++n;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef int (* merge_nginx_table_fn_t)(FILE *&);
 
 static FILE * & append_stream(std::map<std::string, std::tuple<FILE *, merge_nginx_table_fn_t>> & filemap,
@@ -374,7 +401,10 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 		for(auto const& item : dstat.second._stats){
 			if(item.second.empty())
 				continue;
+
 			char buft[32];
+			item.first.c_str_r(buft, sizeof(buft));
+
 			if(plcdn_la_opt.work_mode == 2 &&
 					std::difftime(g_nginx_rotate_time, item.first.t()) > (double)plcdn_la_opt.nginx_rotate_time){
 				if(plcdn_la_opt.verbose > 3)
@@ -383,7 +413,7 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 			}
 			if(plcdn_la_opt.output_nginx_flow){
 				auto outname = std::string(plcdn_la_opt.output_nginx_flow) +
-						parse_nginx_output_filename(plcdn_la_opt.format_nginx_flow, item.first.c_str_r(buft, sizeof(buft)), site_id, user_id);
+						parse_nginx_output_filename(plcdn_la_opt.format_nginx_flow, buft, site_id, user_id);
 				auto stream = append_stream(filemap, outname, merge_nginx_flow_datetime);
 				if(stream)
 					print_flow_table(stream, item.first, item.second, site_id, user_id, n);
@@ -437,13 +467,20 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 				if(stream)
 					print_url_key_table(stream, site_id, user_id, item.second, urlkey, n);
 			}
+			if(plcdn_la_opt.output_file_http_ref_ua){
+				auto outname = std::string( plcdn_la_opt.format_file_http_ref_ua) +
+				parse_nginx_output_filename(plcdn_la_opt.format_file_http_ref_ua, buft, site_id, user_id);
+				auto stream = append_stream(filemap, outname, merge_nginx_httpref_ua);
+				if(stream)
+					print_httpref_ua_table(stream, item.first, item.second, site_id, user_id, n);
+			}
 		}
 	}
 	for(auto & it : filemap){
 		auto & f = std::get<0>(it.second);
 		auto fn = std::get<1>(it.second);
 		if(f){
-			/* NOTE: currenlty nginx/url_key_table don't have 'datetime', merge operation should always requrired
+			/* NOTE: currenlty nginx/url_key_table don't have 'datetime', merge operation should always required
 			 * @author hongjun.liao <docici@126.com>  @date 2017/03/03 */
 			if(fn == merge_nginx_url_key || (!plcdn_la_opt.no_merge_datetime && fn)){
 				std::fseek(f, 0, SEEK_SET);	/* move to start */

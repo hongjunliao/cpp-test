@@ -1,16 +1,17 @@
 /*!
  * This file is PART of nginx_log_analysis
  */
-#include <fnmatch.h>	/*fnmatch*/
+#include <fnmatch.h>	        /*fnmatch*/
 #include <plcdn_la_ngx.h>
 #include <stdio.h>
-#include <time.h> /*strptime*/
-#include <string.h> /*strncpy*/
-#include <time.h> /*strptime*/
-#include <algorithm> /* std::find */
-#include <numeric>	/* std::accumulate */
-#include "string_util.h"	/* sha1sum_r */
-#include "net_util.h"	/*netutil_get_ip_str*/
+#include <time.h>               /*strptime*/
+#include <string.h>             /*strncpy*/
+#include <time.h>               /*strptime*/
+#include <algorithm>            /* std::find */
+#include <numeric>	            /* std::accumulate */
+#include "string_util.h"	    /* sha1sum_r */
+#include "net_util.h"	        /*netutil_get_ip_str*/
+#include <boost/regex.hpp> 		/*boost::regex_match*/
 
 /* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
  * @param mode:
@@ -839,7 +840,39 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 	item.is_hit = (nginx_log_item_is_hit(nginx_hit, items[3]) == 0);
 	if(items[16])
 		item.response_time =  atoi(items[16]);
+
+	/* http_referer */
+	if(items[9]){
+		str_t domain;
+		if(parse_domain_from_url(items[9], &domain) == 0)
+			item.href_domain = domain;
+	}
+
+	/* http_user_agent */
+	if(items[12]){
+		item.ua = { items[12], items[12] + strlen(items[12]) };
+	}
 	return 0;
+}
+
+int ngx_http_user_agent_pc_mobile(str_t const& s, char const * res)
+{
+	if(str_t_is_null(s) || !res)
+		return -1;
+
+	boost::regex re(res);
+	if(re.empty())
+		return 0;
+
+	if(*s.end == '\0')
+		return boost::regex_match(s.beg, re)? 1 : 2;
+
+	auto len = s.end - s.beg;
+	char buf[len + 1];
+	strncpy(buf, s.beg, len);
+	buf[len] = '\0';
+
+	return boost::regex_match(buf, re)? 1 : 2;
 }
 
 int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,
@@ -863,6 +896,17 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 		++urlstat._status[item.status];
 		urlstat._bytes[item.status] += item.bytes_sent;
 		urlstat.status = (item.status != 404? 0 : 1);
+
+		auto & httprefr_stats = logsstat._httprefr_stats[{item.href_domain.beg, item.href_domain.end}];
+
+		++httprefr_stats.access;
+		httprefr_stats.bytes += item.bytes_sent;
+
+		int pcmo = ngx_http_user_agent_pc_mobile(item.ua, plcdn_la_opt.nginx_ua_pc);
+		if(pcmo == 1){
+			++httprefr_stats.access_pc;
+			httprefr_stats.bytes_pc += item.bytes_sent;
+		}
 	}
 
 	if(plcdn_la_opt.output_file_ip_popular || plcdn_la_opt.output_file_ip_slowfast){

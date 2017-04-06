@@ -2,27 +2,34 @@
 #include <cstdlib>	/*atoi*/
 #include <cstring>	/*strcmp*/
 #include <popt.h>	/*poptOption*/
-#include "test_options.h"	/*plcdn_la_options*/
+#include "plcdn_la_option.h"	/* plcdn_la_options */
 #include <boost/regex.hpp> 		/*boost::regex_match*/
 
 /*main.cpp*/
 extern time_t g_plcdn_la_start_time;
 
+/* plcdn_la_ngx_var.cpp */
+extern void parse_args_split(char * buf, char const *& arg, char const * key, char const *& value);
+
 static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 
-#define DEF_FORMAT_FLOW 			"countfile.${interval}.${site_id}.${device_id}"
-#define DEF_FORMAT_URL_POPULAR 		"urlstat.${interval}.${site_id}.${device_id}"
-#define DEF_FORMAT_IP_POPULAR   	"UANStats.${datetime}.${device_id}"
-#define DEF_FORMAT_HTTP_STATS   	"DASStats.${datetime}.${device_id}"
-#define DEF_FORMAT_IP_SLOWFAST   	"UASStats.${interval}.${site_id}.${device_id}"
-#define DEF_FORMAT_CUTIP_SLOWFAST   "ASStats.${datetime}.${device_id}"
-#define DEF_FORMAT_IP_SOURCE   		"IPSource.${interval}.${site_id}.${device_id}"
-#define DEF_FORMAT_SPLIT_NGINX_LOG  "${site_id}/${day}"
-#define DEF_FORMAT_SPLIT_SRS_LOG   	"${site_id}/${day}"
-#define DEF_SRS_SID_DIR				"srs_sid_log/"
-#define DEF_FORMAT_SRS_FLOW			"srscountfile.${day}.${site_id}.${device_id}"
-#define DEF_FORMAT_FILE_URL_KEY     "urlkey.${interval}.${device_id}.${site_id}"
-#define DEF_NGINX_HIT               "STALE|UPDATING|REVALIDATED|HIT"
+#define DEF_FORMAT_FLOW 			    "countfile.${interval}.${site_id}.${device_id}"
+#define DEF_FORMAT_URL_POPULAR 		    "urlstat.${interval}.${site_id}.${device_id}"
+#define DEF_FORMAT_IP_POPULAR   	    "UANStats.${datetime}.${device_id}"
+#define DEF_FORMAT_HTTP_STATS   	    "DASStats.${datetime}.${device_id}"
+#define DEF_FORMAT_IP_SLOWFAST   	    "UASStats.${interval}.${site_id}.${device_id}"
+#define DEF_FORMAT_CUTIP_SLOWFAST       "ASStats.${datetime}.${device_id}"
+#define DEF_FORMAT_IP_SOURCE   		    "IPSource.${interval}.${site_id}.${device_id}"
+#define DEF_FORMAT_SPLIT_NGINX_LOG      "${site_id}/${day}"
+#define DEF_FORMAT_SPLIT_SRS_LOG   	    "${site_id}/${day}"
+#define DEF_SRS_SID_DIR				    "srs_sid_log/"
+#define DEF_FORMAT_SRS_FLOW			    "srscountfile.${day}.${site_id}.${device_id}"
+#define DEF_FORMAT_FILE_URL_KEY         "urlkey.${interval}.${device_id}.${site_id}"
+#define DEF_FORMAT_NGINX_HTTP_REF_UA 	"httprefua.${interval}"
+
+
+#define DEF_NGINX_HIT                   "STALE|UPDATING|REVALIDATED|HIT"
+#define DEF_NGINX_USER_AGENT_PC         "Linux|Windows|Macintosh"
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
@@ -35,9 +42,13 @@ struct plcdn_la_options plcdn_la_opt = {
 		.siteuidlist_file = "siteuidlist.txt",
 		.ipmap_file = "iplocation.bin",
 		.parse_url_mode = 2,
+
 		.nginx_hit = DEF_NGINX_HIT,
+		.nginx_ua_pc = DEF_NGINX_USER_AGENT_PC,
+
 		.begin_time = 0,
 		.end_time = 0,
+
 		.no_merge_datetime = 0,
 
 		.srs_log_file = NULL,
@@ -63,9 +74,13 @@ struct plcdn_la_options plcdn_la_opt = {
 		.format_cutip_slowfast = DEF_FORMAT_CUTIP_SLOWFAST,
 		.output_file_ip_source = NULL,
 		.format_ip_source = DEF_FORMAT_IP_SOURCE,
-		//SUN ADD IN 2017 03 02
+
 		.output_file_url_key = NULL,
 		.format_file_url_key = DEF_FORMAT_FILE_URL_KEY,
+
+		.output_file_http_ref_ua = NULL,
+		.format_file_http_ref_ua = DEF_FORMAT_NGINX_HTTP_REF_UA,
+
 		.local_url_key = NULL,
 		.output_split_nginx_log = NULL,
 		.format_split_nginx_log = DEF_FORMAT_SPLIT_NGINX_LOG,
@@ -120,7 +135,7 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"output-file-url-popular", 'u',  POPT_ARG_STRING,   0, 'u', "output_folder for url_popular_table, disabled if NULL", 0 },
 	{"format-url-popular",      'U',   POPT_ARG_STRING,   0, 'U', "filename format for url_popular table, default '" DEF_FORMAT_URL_POPULAR "'", 0 },
-//FIX ME :2017 03 03 SUN
+
 	{"output-file-url-key",       'y',  POPT_ARG_STRING,   0, 'y', "output_folder for url_key_table, disabled if NULL",0},
 	{"format-file-url-key",       'Y',  POPT_ARG_STRING,   0, 'Y', "filename format for url_key_table, default '" DEF_FORMAT_FILE_URL_KEY "'", 0},
 	{"local-url-key",            0,   POPT_ARG_STRING,   0, '2', "output_folder for local_url_key, disabled if NULL, see NOTES for details",0},
@@ -143,6 +158,9 @@ static struct poptOption plcdn_la_popt[] = {
 
 	{"output-file-ip-source",   'r',  POPT_ARG_STRING,   0, 'r', "output folder for ip_source_table, disabled if NULL", 0 },
 	{"format-ip-source",        'R',   POPT_ARG_STRING,  0, 'R', "filename format for ip_source table, default '" DEF_FORMAT_IP_SOURCE "'", 0 },
+
+	{"output-file-http-ref-ua", 'e',  POPT_ARG_STRING,   0, '5', "output folder for nginx_httpref_ua_table, disabled if NULL", 0 },
+
 
 	{"output-split-nginx-log",  'g',  POPT_ARG_STRING,   0, 'g', "output folder for split_nginx_log, disabled if NULL", 0 },
 	{"format-split-nginx-log",  'G',  POPT_ARG_STRING,   0, 'G', "filename format for split_nginx_log, default '" DEF_FORMAT_SPLIT_NGINX_LOG "'", 0 },
@@ -255,9 +273,10 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'u': { plcdn_la_opt.output_file_url_popular = poptGetOptArg(pc); }; break;
 		case 'U': { plcdn_la_opt.format_url_popular= poptGetOptArg(pc); }; break;
-		//THE ADD POSITION
+
 		case 'y': { plcdn_la_opt.output_file_url_key = poptGetOptArg(pc); }; break;
 		case 'Y': { plcdn_la_opt.format_file_url_key = poptGetOptArg(pc); }; break;
+
 		case '2': { plcdn_la_opt.local_url_key = poptGetOptArg(pc); }; break;
 		case 'p': { plcdn_la_opt.output_file_ip_popular = poptGetOptArg(pc); } break;
 		case 'P': { plcdn_la_opt.format_ip_popular = poptGetOptArg(pc); } break;
@@ -275,6 +294,12 @@ int plcdn_la_parse_options(int argc, char ** argv)
 
 		case 'r': { plcdn_la_opt.output_file_ip_source = poptGetOptArg(pc); }; break;
 		case 'R': { plcdn_la_opt.format_ip_source = poptGetOptArg(pc); }; break;
+
+		case '5': {
+			parse_args_split(poptGetOptArg(pc), plcdn_la_opt.output_file_http_ref_ua,
+					"fmt", plcdn_la_opt.format_file_http_ref_ua);
+		};
+		break;
 
 		case 'g': plcdn_la_opt.output_split_nginx_log = poptGetOptArg(pc); break;
 		case 'G': plcdn_la_opt.format_split_nginx_log = poptGetOptArg(pc); break;
@@ -341,16 +366,18 @@ void plcdn_la_show_help(FILE * stream)
 			"  7.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
 			"  8.output table formats\n"
 			"    for nginx:\n"
-			"    (1)nginx_flow_table:     '${site_id} ${datetime} ${device_id} ${num_total} ${bytes_total} ${user_id} \\\n"
-			"                                ${pvs_m} ${px_m} ${tx_rtmp_in} ${tx_rtmp_out} ${loc} ${isp} ${fst_pkg_time} ${svg_speed}'\n"
-			"    (2)url_popular_table:    '${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302} \\\n"
-		    "                                ${num_304} ${num_403} ${num_404} ${num_416} ${num_499} ${num_500} ${num_502} ${num_other}'\n"
-			"    (3)ip_popular_table:     '${site_id} ${device_id} ${ip} ${datetime} ${num}'\n"
-			"    (4)http_stats_table:     '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m} ${loc} ${isp}'\n"
-			"    (5)ip_slowfast_table:    '${device_id} ${ip} ${datetime} ${speed} ${type}'\n"
-			"    (6)cutip_slowfast_table: '${device_id} ${datetime} ${ip} ${speed}'\n"
-			"    (7)ip_source_table:      '${datetime} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
-            "    (8)url_key_table:        '$[+-]\"{url_key}\"${url}'(note: '\"' separated)\n"
+			"    (1)nginx_flow_table:      '${site_id} ${datetime} ${device_id} ${num_total} ${bytes_total} ${user_id} \\\n"
+			"                                 ${pvs_m} ${px_m} ${tx_rtmp_in} ${tx_rtmp_out} ${loc} ${isp} ${fst_pkg_time} ${svg_speed}'\n"
+			"    (2)url_popular_table:     '${url_key} ${num_total} ${num_200} ${size_200} ${num_206} ${size_206} ${num_301302} \\\n"
+		    "                                 ${num_304} ${num_403} ${num_404} ${num_416} ${num_499} ${num_500} ${num_502} ${num_other}'\n"
+			"    (3)ip_popular_table:      '${site_id} ${device_id} ${ip} ${datetime} ${num}'\n"
+			"    (4)http_stats_table:      '${site_id} ${device_id} ${httpstatus} ${datetime} ${num} ${num_m} ${loc} ${isp}'\n"
+			"    (5)ip_slowfast_table:     '${device_id} ${ip} ${datetime} ${speed} ${type}'\n"
+			"    (6)cutip_slowfast_table:  '${device_id} ${datetime} ${ip} ${speed}'\n"
+			"    (7)ip_source_table:       '${datetime} ${local_id} ${isp_id} ${pvs} ${tx} ${pvs_m} ${tx_m} ${device_id}'\n"
+            "    (8)url_key_table:         '$[+-]\"{url_key}\"${url}'(note: '\"' separated)\n"
+			"    (9)http_referer_ua_table: '${datetime} ${device_id} ${site_id} ${user_id} ${domain} \\\n"
+			"                                 ${bytes_total} ${access_total} ${bytes_pc} ${access_pc} ${bytes_mobile} ${access_mobile}'\n"
 			"    for srs:\n"
 			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  9.for srs log, currently supports 2 formats of trans_log, 0: official , 1: custom\n"
@@ -403,7 +430,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
-			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
+			"%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
@@ -453,6 +480,8 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "output_file_url_key", opt.output_file_url_key
 		, "format_file_url_key", opt.format_file_url_key
+		, "output_file_http_ref_ua", opt.output_file_http_ref_ua
+		, "format_file_http_ref_ua", opt.format_file_http_ref_ua
 		, "local_url_key", opt.local_url_key
 
 		, "output_split_nginx_log", opt.output_split_nginx_log

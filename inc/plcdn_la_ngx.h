@@ -9,7 +9,8 @@
 #include <vector>	/*std::vector*/
 #include <map>	/*std::map*/
 #include <string> /*std::string*/
-#include "test_options.h"	/* plcdn_la_options */
+#include "plcdn_la_option.h"	/* plcdn_la_options */
+#include "string_util.h"    /* str_t */
 /*declares*/
 struct log_item;
 struct site_info;
@@ -22,6 +23,7 @@ class nginx_log_stat;
 struct locisp_stat;
 class locisp_group;
 class cutip_group;
+
 //////////////////////////////////////////////////////////////////////////////////
 /*a line of nginx log*/
 struct log_item{
@@ -35,7 +37,9 @@ struct log_item{
 	size_t bytes_sent;
 	int status;
 	bool is_hit;
-	int response_time;
+	int response_time;          /*  */
+	str_t   href_domain;    /* domain from http_referer */
+	str_t ua;                   /* http_user_agent */
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -127,6 +131,18 @@ void locisp_stat_access_bytes(locisp_stat const& stat,
 void locisp_stat_access_bytes_m(locisp_stat const& stat, size_t & access_m, size_t & bytes_m);
 double locisp_stat_svg(locisp_stat const& stat);
 double locisp_stat_fpt(locisp_stat const& stat);
+
+//////////////////////////////////////////////////////////////////////////////////
+/* stats group by domain(from nginx $http_referer)  */
+struct http_referer_stat {
+	size_t bytes;
+	size_t access;
+
+	/* $http_user_agent */
+	size_t bytes_pc;
+	size_t access_pc;
+};
+
 //////////////////////////////////////////////////////////////////////////////////
 /* group by local_id and isp: locisp
  * @note: define ENABLE_IPMAP to enable ipmap*/
@@ -221,10 +237,12 @@ public:
 	 * FIXME: @see str_find NOT correct in multi-thread, and little speedup
 	 * becuase of this, change _url_stats<char *, url_stat> back to _url_stats<std::string, url_stat>, @date 2016/1027
 	 */
-	std::unordered_map<std::string/*char const **/, url_stat> _url_stats;	/*url:url_stat*/
-	std::unordered_map<uint32_t, ip_stat> _ip_stats;				/*ip:ip_stat*/
-	std::unordered_map<cutip_group, ip_stat> _cuitip_stats;			/*cutip: ip_stat*/
-	std::unordered_map<locisp_group, locisp_stat> _locisp_stats;	/*locisp:locisp_stat*/
+	std::unordered_map<std::string/*char const **/, url_stat> _url_stats;	 /*url:url_stat*/
+	std::unordered_map<uint32_t, ip_stat>                     _ip_stats;	 /*ip:ip_stat*/
+	std::unordered_map<cutip_group, ip_stat>                  _cuitip_stats; /*cutip: ip_stat*/
+	std::unordered_map<locisp_group, locisp_stat>             _locisp_stats; /*locisp:locisp_stat*/
+
+	std::unordered_map<std::string, http_referer_stat>        _httprefr_stats; /* domain:http_referer_stat */
 	/* @date 2017/02/16 bytes from srs, @see append_flow_nginx */
 	size_t srs_in, srs_out;
 public:
@@ -341,6 +359,11 @@ int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, size
 /* parse ' ' splitted nginx log into log_item @param item
  * @return 0 on success */
 int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_mode, char const * nginx_hit);
+
+
+/* is user_agent pc or mobile?
+ * 0: unkown; 1: pc; 2 mobile; -1: error */
+int ngx_http_user_agent_pc_mobile(str_t const& s, char const * re);
 
 /*do log statistics with time interval*/
 int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,

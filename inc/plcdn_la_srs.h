@@ -268,11 +268,5 @@ int do_srs_log_stats(srs_log_item const& logitem, int log_type,
 int do_srs_log_sid_stats(int sid, srs_sid_log & slog, std::unordered_map<std::string, srs_domain_stat> & logstats,
 		size_t & failed_line, size_t & trans_line, bool& skip);
 
-/* get domain from url, 
- * sample get '127.0.0.1' from 'rtmp://127.0.0.1:1359/'
- * return 0 on success
- * @notes: @param domain big enough
- */
-int parse_domain_from_url(char const * url, char * domain);
 #endif /*_SRS_LOG_ANALYSIS_H_*/
 

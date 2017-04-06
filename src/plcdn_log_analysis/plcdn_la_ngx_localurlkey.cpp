@@ -68,7 +68,7 @@ int fwrite_nginx_local_url_key(std::unordered_map<std::string, nginx_domain_stat
 	std::string folder, fname;
 	auto fmtlen = strlen(fmt);
 	for(auto p = fmt + fmtlen - 1 ; p != fmt - 1; --p){
-		if(*p == '/' || *p == '\\'){
+		if(*p == '/'){
 			folder.assign(fmt, p + 1);
 			if(p == fmt + fmtlen - 1)
 				fname = "${site_id}";

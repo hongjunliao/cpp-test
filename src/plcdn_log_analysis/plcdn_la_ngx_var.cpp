@@ -37,6 +37,42 @@ int parse_fmt(char *in_out, std::unordered_map<std::string, std::string> const& 
 	return 0;
 }
 
+/* parse format like -e 'hello,fmt=file.${interval}', the results should be:
+ * -e -> hello
+ * fmt -> file.${interval}
+ *
+ * rules:
+ * (1)if has multiple args, ',' as the split char
+ * (2)'=' for separate key and value
+ * (3)without blanks
+ *
+ * @NOTE: this version only support 1 key
+ *
+ * @param buf:    buffer to parse
+ * @param arg:    output, value, e.g. 'hello'
+ * @param key:    input, key, e.g. 'fmt'
+ * @param value:  output, value, e.g.  'file.${interval}'
+ */
+void parse_args_split(char * buf, char const *& arg, char const * key, char const *& value)
+{
+	arg = buf;
+
+	auto c1 = strchr(buf, ',');
+	if(c1){
+		auto c2 = strchr(c1 + 1, '=');
+		if(c2){
+			int len = strlen(key);
+			if((c2 - (c1 + 1) == len) && strncmp(c1 + 1, key, len) == 0){
+				*c1 = '\0';
+
+				value = c2 + 1;
+
+				return;
+			}
+		}
+	}
+}
+
 int test_nginx_log_parse_fmt_main(int argc, char ** argv)
 {
 	std::unordered_map<std::string, std::string> argmap = {

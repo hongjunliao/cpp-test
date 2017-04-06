@@ -6,6 +6,24 @@
 #define _STRING_UTIL_H_
 #include <stdio.h>
 
+//////////////////////////////////////////////////////////////////////////////////
+/* a string [beg, end) */
+struct str_t {
+	char * beg;
+	char * end;
+};
+
+#define str_t_is_null(str) (!s.beg && !s.end)
+
+int str_t_fprint(str_t const * s, FILE * f);
+/* get domain from url,
+ * sample get '127.0.0.1' from 'rtmp://127.0.0.1:1359/'
+ * return 0 on success
+ * @notes: @param domain big enough
+ */
+int parse_domain_from_url(char const * url, char * domain);
+int parse_domain_from_url(char const * url, str_t * domain);
+
 #if (defined __GNUC__) && (!defined __CYGWIN__)
 /*to lower string*/
 char *strlwr(char *s);
