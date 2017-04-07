@@ -74,10 +74,7 @@ static char const * str_find(char const *str, int len = -1);
 /*plcdn_log_analysis/print_table.cpp*/
 extern int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> const& logstats);
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-/*for srs log*/
-static int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
-		std::unordered_map<std::string, srs_domain_stat> & logstats);
-/*print_table.cpp*/
+/* plcdn_la_ngx_print_table.cpp */
 extern void fprint_srs_log_stats(std::unordered_map<std::string, srs_domain_stat> const& srs_stats);
 /*split_log.cpp*/
 extern void split_srs_log_by_sid(char * start_p, struct stat const & logfile_stat,
@@ -161,52 +158,6 @@ static int get_device_id(std::unordered_map<std::string, int> const & devicelist
 	return 0;
 }
 
-/*for str_find()*/
-static int str_find_realloc(char *& p, size_t & total, size_t step_len)
-{
-	for(size_t i = 1; i < step_len; i *= 2){
-		size_t new_sz = step_len / i;
-		void * p2  = realloc(p, total + new_sz);
-		if(p2) {
-			p = (char * )p2;
-			total += new_sz;
-			if(plcdn_la_opt.verbose)
-				fprintf(stdout, "%s: total=%s\n", __FUNCTION__, byte_to_mb_kb_str(total, "%-.0f %cB"));
-			return 0;
-		}
-	}
-	return -1;
-}
-
-static char const * str_find(char const *str, int len)
-{
-	if(!str || !str[0])
-		return NULL;
-	/*FIXME: dangerous in multi-threaded!!! use __thread/thread_local?*/
-	static /*thread_local*/ std::unordered_map<std::string, char *> urls;
-	static size_t step = 10 * 1024, total = 1024 * 64;	/*KB*/
-	auto start_p = (char *)malloc(total);
-	static size_t offset_len = 0;
-	if(len == -2){
-		free(start_p);
-		return 0;
-	}
-	len = (len != -1? len : strlen(str));
-	char md5buff[33];
-	md5sum_r(str, len, md5buff);
-	auto &s = urls[md5buff];
-	if(!s){
-		if(offset_len + len + 1> total){
-			if(str_find_realloc(start_p, total, step) != 0)
-				return NULL;
-		}
-		s = start_p + offset_len;
-		strncpy(s, str, len);
-		s[len] = '\0';
-		offset_len += (len + 1);
-	}
-	return s;
-}
 
 int parse_nginx_log_item_buf(parse_context& ct)
 {
@@ -336,58 +287,6 @@ static int parallel_parse_nginx_log(char * start_p, struct stat const & logfile_
 	}
 	g_nginx_total_line += parse_args[parallel_count].total_lines;
 	g_nginx_failed_line += parse_args[parallel_count].failed_lines;
-	return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//for srs log analysis
-
-/*extract useful log items and parse*/
-int extract_and_parse_srs_log(char * start_p, struct stat const & logfile_stat,
-		std::unordered_map<std::string, srs_domain_stat> & logstats)
-{
-	size_t linecount = 0, failed_count = 0, skip_count = 0;
-	std::vector<srs_connect_ip> ip_items;
-	std::vector<srs_connect_url> url_items;
-
-	/*FIXME empty line!!*/
-	srs_log_item logitem;
-	for(char * p = start_p, * q = p; q != start_p + logfile_stat.st_size; ++q){
-		if(*q == '\n'){
-			*q = '\0';
-			++linecount;
-
-			int log_type;
-			/*FIXME: srs_connect_ip and srs_connect_url always comes before srs_trans?*/
-			auto status = parse_srs_log_item(p, logitem, log_type);
-			if(status == 0) {
-				switch(log_type){
-				case 2:
-					status = do_srs_log_stats(logitem, log_type, ip_items, url_items, logstats);
-					if(status != 0)
-						++failed_count;
-					break;
-				case 1:
-					ip_items.push_back(logitem.conn_ip);
-					break;
-				case 4:
-					url_items.push_back(logitem.conn_url);
-					break;
-				case 0:
-					++skip_count;
-					break;
-				default:
-					break;
-				}
-			}
-			else
-				++failed_count;
-			p = q + 1;
-		}
-	}
-	if(plcdn_la_opt.verbose)
-		fprintf(stdout, "%s: processed, total_line: %zu, failed=%zu, skip=%zu\n", __FUNCTION__
-				, linecount, failed_count, skip_count);
 	return 0;
 }
 

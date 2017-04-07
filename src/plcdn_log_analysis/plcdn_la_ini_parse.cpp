@@ -15,12 +15,12 @@
 #include <ctype.h>	/* isblank */
 #include <string.h>	/* strrchr */
 
-struct str_t{
+struct strl_t{
 	char const * data;
 	size_t len;
 };
 
-int parse_ini(char const * buf, char const * end, str_t * comment, str_t * section, str_t * key, str_t * value)
+int parse_ini(char const * buf, char const * end, strl_t * comment, strl_t * section, strl_t * key, strl_t * value)
 {
 	auto s = buf;
 	for(auto p = buf; p != end; ++p){

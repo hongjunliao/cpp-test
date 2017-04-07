@@ -338,7 +338,7 @@ void plcdn_la_show_help(FILE * stream)
 	fprintf(stream, "analysis log file, print result tables, or merge results. currently support nginx, srs log files. build at %s %s\n"
 			, __DATE__, __TIME__);
 	fprintf(stream, "\n****************************************************************************************************************\n");
-	fprintf(stream, "YOU are on branch 'user/yunduan', specific for user 'yunduan', '--nginx-transform-log 2', see https://www.isurecloud.com/\n");
+	fprintf(stream, "branch: 'master'\n");
 	fprintf(stream, "****************************************************************************************************************\n\n");
 	poptPrintHelp(pc, stream, 0);
 	fprintf(stream, "NOTES:\n"

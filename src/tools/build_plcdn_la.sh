@@ -14,7 +14,7 @@ build_plcdn_la()
 	mkdir -p "${ws_dir}src/" "${ws_dir}bin/";
 	cd ${HOME}/ws/cpp-test/src/;
 	for file in plcdn_log_analysis/*.cpp \
-		string_uitl.cpp chksum.cpp net_util.cpp termio_util.cpp; do
+		string_util.cpp chksum.cpp net_util.cpp termio_util.cpp; do
 		printf "//begin file %s__________________________________________________________________________________//\n" ${file} >> "${src_file}";
 		cat $file >> "${src_file}";
 		printf "//end file %s__________________________________________________________________________________//\n" ${file} >> "${src_file}";
