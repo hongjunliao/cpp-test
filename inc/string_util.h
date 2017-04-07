@@ -25,12 +25,12 @@ int str_t_fprint(str_t const * s, FILE * f);
 int parse_domain_from_url(char const * url, char * domain);
 int parse_domain_from_url(char const * url, str_t * domain);
 
-#if (defined __GNUC__) && (!defined __CYGWIN__)
+#if (defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__))
 /*to lower string*/
 char *strlwr(char *s);
 /*to upper string*/
 char *strupr(char *s);
-#endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/
+#endif	/* defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__) */
 
 /*string_util.cpp*/
 /*_r version is thread-safe*/

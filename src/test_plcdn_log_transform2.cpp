@@ -6,6 +6,8 @@
  * transform log format, currently only for nginx
  */
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+#if (defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__))
+
 #include <unistd.h>	/* sysconf */
 #include <sys/uio.h>	/* iovec */
 #include <limits.h>		/* IOV_MAX */
@@ -327,3 +329,4 @@ int test_nginx_transform_log_main_2(int argc, char ** argv)
 	return pl_logtrans_trans_file("%1 - %11 [%4] %5 \"%14://%0%6 %7\" %8 %2 %17 %9 \"%10\" %13 \"%18\" \"%19\" \"%3?HIT:MISS%\" %20\n", RN, stdin, stdout);
 }
 
+#endif /* defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__) */

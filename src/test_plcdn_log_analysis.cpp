@@ -1,6 +1,8 @@
 /*!
  * TEST for nginx_log_analysis
  */
+#if (defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__))
+
 #include <sys/sysinfo.h>	/*get_nprocs*/
 #include <sys/resource.h>	/*setpriority*/
 #include <unistd.h>	/*getpid*/
@@ -203,3 +205,5 @@ int test_nginx_log_analysis_main(int argc, char ** argv)
 	}
 	return 0;
 }
+
+#endif /* defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__) */

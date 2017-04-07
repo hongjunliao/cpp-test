@@ -9,6 +9,8 @@
  * 5.gcc add -lpopt -lpthread -lrt
  */
 
+#if (defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__))
+
 #include "test_options.h"	/*plcdn_ls_options**/
 #include <time.h>		/*strftime*/
 #include <stdio.h>
@@ -168,6 +170,7 @@ int test_plcdn_log_split_main(int argc, char ** argv)
 	return 0;
 }
 
+#endif /* defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__) */
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 

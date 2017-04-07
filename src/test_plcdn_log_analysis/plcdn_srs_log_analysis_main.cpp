@@ -11,6 +11,8 @@
  * 2.g++ link options: -lboost_regex
  */
 
+#if (defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__))
+
 #include <plcdn_la_srs.h>	/*srs_log_item, ...*/
 #include "plcdn_cpp_test.h"			/*test_srs_log_stats_main*/
 #include <sys/stat.h>	/*fstat*/
@@ -110,3 +112,5 @@ int test_srs_log_stats_main(int argc, char ** argv)
 	fprint_srs_log_stats(srs_stats);
 	return 0;
 }
+
+#endif /* defined __CYGWIN__ || (!defined _WIN32 && defined __GNUC__) */
