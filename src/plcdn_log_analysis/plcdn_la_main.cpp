@@ -65,12 +65,6 @@ static int load_devicelist(char const* file, std::unordered_map<std::string, int
 /*get device_id by ip*/
 static int get_device_id(std::unordered_map<std::string, int> const& devicelist);
 
-/* url manage:
- * if @param str NOT exist, then add as new, else return exist
- * this funtions currently NOT used because of poor speedup, @date: 2016/10/27
- */
-static char const * str_find(char const *str, int len = -1);
-
 /*plcdn_log_analysis/print_table.cpp*/
 extern int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> const& logstats);
 /////////////////////////////////////////////////////////////////////////////////////////////////////

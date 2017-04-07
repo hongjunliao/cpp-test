@@ -892,7 +892,9 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 		++urlstat._status[item.status];
 		urlstat._bytes[item.status] += item.bytes_sent;
 		urlstat.status = (item.status != 404? 0 : 1);
+	}
 
+	if(plcdn_la_opt.output_file_http_ref_ua){
 		auto & httprefr_stats = logsstat._httprefr_stats[{item.href_domain.beg, item.href_domain.end}];
 
 		++httprefr_stats.access;

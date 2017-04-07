@@ -44,7 +44,7 @@ static int nginx_rotate_append_log(char const * rotate_dir, char const * row, ti
 /* save @param now to dir @param rotate_dir/.last_rotate_time
  * @see nginx_rotate_get_lasttime,
  * TODO: impliment it */
-static void nginx_rotate_save_last_rotate_time(char const * rotate_dir, time_t now);
+//static void nginx_rotate_save_last_rotate_time(char const * rotate_dir, time_t now);
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static time_t s_to_time_t(std::string const& s)
