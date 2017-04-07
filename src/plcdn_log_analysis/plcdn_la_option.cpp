@@ -29,7 +29,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 
 
 #define DEF_NGINX_HIT                   "STALE|UPDATING|REVALIDATED|HIT"
-#define DEF_NGINX_USER_AGENT_PC         "Linux|Windows|Macintosh"
+#define DEF_NGINX_USER_AGENT_PC         "Windows|Macintosh"
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
@@ -118,6 +118,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"ipmap-file",              'm',  POPT_ARG_STRING,   0, 'm', "ipmap_file default: iplocation.bin", 0 },
 	{"parse-url-mode",          0,    POPT_ARG_INT,      0, 'M', "parse nginx log field '$request_uri' url mode, 0|1|2, default 2", 0 },
 	{"nginx-hit",               0,    POPT_ARG_STRING,   0, '4', "values for nginx hit, '|' separated, default '" DEF_NGINX_HIT "'", 0 },
+	{"nginx-ua-pc",             0,    POPT_ARG_STRING,   0, '6', "values for nginx http_user_agent PC, '|' separated, default '" DEF_NGINX_USER_AGENT_PC "'", 0 },
 
 	{"interval",                'i',  POPT_ARG_INT,      0, 'i', "interval in seconds, default: 300", 0 },
 
@@ -314,6 +315,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'E': plcdn_la_opt.work_mode = 1; break;
 		case 'M': plcdn_la_opt.parse_url_mode = atoi(poptGetOptArg(pc)); break;
 		case '4': plcdn_la_opt.nginx_hit = poptGetOptArg(pc); break;
+		case '6': plcdn_la_opt.nginx_ua_pc = poptGetOptArg(pc); break;
 		case 'X': plcdn_la_opt.append_flow_nginx = 1; break;
 		case 'h': plcdn_la_opt.show_help = 1; break;
 		case 'V': plcdn_la_opt.show_version = 1; break;
@@ -434,7 +436,11 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20d\n"
-			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n"
+			"%-34s%-20d\n" "%-34s%-20d\n"
+
+			"%-34s%-20s\n" "%-34s%-20s\n"
+
+			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "nginx_rotate_dir", opt.nginx_rotate_dir
@@ -499,7 +505,10 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 		, "print_device_id", opt.print_device_id
 		, "parse_url_mode", opt.parse_url_mode
+
 		, "nginx_hit", opt.nginx_hit
+		, "nginx_ua_pc", opt.nginx_ua_pc
+
 		, "show_help", opt.show_help
 		, "show_version", opt.show_version
 		, "log_file", opt.log_file

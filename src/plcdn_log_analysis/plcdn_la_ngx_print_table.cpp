@@ -468,7 +468,7 @@ int print_nginx_log_stats(std::unordered_map<std::string, nginx_domain_stat> con
 					print_url_key_table(stream, site_id, user_id, item.second, urlkey, n);
 			}
 			if(plcdn_la_opt.output_file_http_ref_ua){
-				auto outname = std::string( plcdn_la_opt.format_file_http_ref_ua) +
+				auto outname = std::string( plcdn_la_opt.output_file_http_ref_ua) +
 				parse_nginx_output_filename(plcdn_la_opt.format_file_http_ref_ua, buft, site_id, user_id);
 				auto stream = append_stream(filemap, outname, merge_nginx_httpref_ua);
 				if(stream)

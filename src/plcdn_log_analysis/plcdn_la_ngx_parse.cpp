@@ -857,6 +857,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 
 int ngx_http_user_agent_pc_mobile(str_t const& s, char const * res)
 {
+//	fprintf(stdout, "%s: s='%s', RE='%s'\n", __FUNCTION__, str_t_printable(s), res);
 	if(str_t_is_null(s) || !res)
 		return -1;
 
@@ -865,14 +866,9 @@ int ngx_http_user_agent_pc_mobile(str_t const& s, char const * res)
 		return 0;
 
 	if(*s.end == '\0')
-		return boost::regex_match(s.beg, re)? 1 : 2;
+		return boost::regex_search(s.beg, re)? 1 : 2;
 
-	auto len = s.end - s.beg;
-	char buf[len + 1];
-	strncpy(buf, s.beg, len);
-	buf[len] = '\0';
-
-	return boost::regex_match(buf, re)? 1 : 2;
+	return boost::regex_search(std::string{s.beg, s.end}, re)? 1 : 2;
 }
 
 int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_opt,
@@ -903,6 +899,7 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 		httprefr_stats.bytes += item.bytes_sent;
 
 		int pcmo = ngx_http_user_agent_pc_mobile(item.ua, plcdn_la_opt.nginx_ua_pc);
+//		fprintf(stdout, "%s: s='%s', RE='%s', return=%d\n", __FUNCTION__, str_t_printable(item.ua), plcdn_la_opt.nginx_ua_pc, pcmo);
 		if(pcmo == 1){
 			++httprefr_stats.access_pc;
 			httprefr_stats.bytes_pc += item.bytes_sent;

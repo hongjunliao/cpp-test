@@ -14,6 +14,7 @@ struct str_t {
 };
 
 #define str_t_is_null(str) (!s.beg && !s.end)
+#define str_t_printable(str) (std::string(str.beg, str.end).c_str())
 
 int str_t_fprint(str_t const * s, FILE * f);
 /* get domain from url,
