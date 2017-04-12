@@ -25,7 +25,7 @@
 
 static char const * get_last_err_msg();
 
-int execute_with_wait_pipe(char * cmd, char * buff, int & length,
+int execute_with_wait_pipe(char const * dir, char * cmd, char * buff, int & length,
 		void (*stdout_cb)(char const * data, int length, void * arg),
 		void * arg)
 {
@@ -54,7 +54,7 @@ int execute_with_wait_pipe(char * cmd, char * buff, int & length,
 	si.dwFlags = STARTF_USESTDHANDLES;
 
 	PROCESS_INFORMATION pi;
-	r = CreateProcess(NULL, (LPTSTR)cmd, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+	r = CreateProcess(NULL, (LPTSTR)cmd, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, dir, &si, &pi);
 	CloseHandle(hWritePipe);	//@IMPORTANT! or ReadFile() will blocked
 	if (!r) {
 		fprintf(stderr, "%s: CreateProcess failed\n", __FUNCTION__);

@@ -1,7 +1,6 @@
 #include "string_util.h"
 #include <stdio.h>
 
-#if(!defined _WIN32 && (defined __GNUC__ || defined  __CYGWIN_GCC__))
 /*coreutils-8.21 also ok*/
 #include <openssl/md5.h> /*MD5()*/
 #include <openssl/sha.h> /*SHA1()*/
@@ -37,12 +36,11 @@ char * sha1sum_r(char const * str, int len, char * buff)
 	return buff;
 }
 
-char * md5sum_file_r(char const * str, int len, char * buff)
+char * md5sum_file_r(char const * f, char * buff)
 {
 	unsigned char c[MD5_DIGEST_LENGTH];
 
-	auto filename = str;
-	FILE *inFile = fopen(filename, "rb");
+	FILE *inFile = fopen(f, "rb");
 	MD5_CTX mdContext;
 	int bytes;
 	unsigned char data[1024];
@@ -64,5 +62,3 @@ char * md5sum_file_r(char const * str, int len, char * buff)
 
 	return buff;
 }
-
-#endif /* (!defined _WIN32 && (defined __GNUC__ || defined  __CYGWIN_GCC__)) */

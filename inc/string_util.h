@@ -36,15 +36,13 @@ char *strupr(char *s);
 /*_r version is thread-safe*/
 
 /* checksum.cpp */
-#if (defined __GNUC__ || defined  __CYGWIN_GCC__)
 /*@param buff[33] at least(include NULL)*/
 char * md5sum_r(char const * str, int len, char * buff);
 /*@param buff[41] at least(include NULL)*/
 char * sha1sum_r(char const * str, int len, char * buff);
 
 /* @param f, file to calculate md5 */
-char * md5sum_file_r(char const * f, int len, char * buff);
-#endif /* (defined __GNUC__ || defined  __CYGWIN_GCC__) */
+char * md5sum_file_r(char const * f, char * buff);
 
 
 char const * byte_to_mb_kb_str(size_t bytes, char const * fmt);

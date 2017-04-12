@@ -13,7 +13,7 @@ extern "C"{
  * @fd: STDIN_FILENO
  * @option 0 close
  */
-int execute_with_wait_pipe(char * cmd, char * buff, int & length,
+int execute_with_wait_pipe(char const * dir, char * cmd, char * buff, int & length,
 		void (*stdout_cb)(char const * data, int length, void * arg) = 0,
 		void * arg = 0);
 
