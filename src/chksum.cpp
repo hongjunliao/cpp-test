@@ -19,7 +19,7 @@ char * md5sum_r(char const * str, int len, char * buff)
 			md[8], md[9], md[10], md[11], md[12], md[13], md[14], md[15]
 	);
 	buff[32] = '\0';
-//	fprintf(stdout, "str=%-50s, len=%-10d, md5sum=%-35s\n", str, len, ret);
+//	fprintf(stdout, "str=%s, len=%d, md5sum=%-35s\n", str, len, buff);
 	return buff;
 }
 
@@ -36,4 +36,33 @@ char * sha1sum_r(char const * str, int len, char * buff)
 	buff[n] = '\0';
 	return buff;
 }
-#endif
+
+char * md5sum_file_r(char const * str, int len, char * buff)
+{
+	unsigned char c[MD5_DIGEST_LENGTH];
+
+	auto filename = str;
+	FILE *inFile = fopen(filename, "rb");
+	MD5_CTX mdContext;
+	int bytes;
+	unsigned char data[1024];
+
+	if (!inFile) {
+		return 0;
+	}
+
+	MD5_Init (&mdContext);
+	while ((bytes = fread (data, 1, 1024, inFile)) != 0)
+		MD5_Update (&mdContext, data, bytes);
+	MD5_Final (c,&mdContext);
+
+	for(int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+		sprintf(buff + i * 2, "%02x", c[i]);
+	}
+
+	fclose (inFile);
+
+	return buff;
+}
+
+#endif /* (!defined _WIN32 && (defined __GNUC__ || defined  __CYGWIN_GCC__)) */

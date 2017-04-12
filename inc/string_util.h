@@ -41,6 +41,9 @@ char *strupr(char *s);
 char * md5sum_r(char const * str, int len, char * buff);
 /*@param buff[41] at least(include NULL)*/
 char * sha1sum_r(char const * str, int len, char * buff);
+
+/* @param f, file to calculate md5 */
+char * md5sum_file_r(char const * f, int len, char * buff);
 #endif /* (defined __GNUC__ || defined  __CYGWIN_GCC__) */
 
 
