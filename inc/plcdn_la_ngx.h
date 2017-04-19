@@ -311,17 +311,6 @@ bool is_time_in_range(time_t const& t, time_t const& begin, time_t const& end);
  *    |__________________________________ 1 char, optional, e.g. '[', '"'
  * 2.characters between border_begin and border_end are integral, treated as one field
  * 3.(border_begin, border_end) is symmetrical, e.g. '[]', '""'
- * @NOTE:
- * 1.current nginx_log format:
- * $host $remote_addr $request_time_msec $cache_status [$time_local] "$request_method \
- * $request_uri $server_protocol" $status $bytes_sent \
- * "$http_referer" "$remote_user" "$http_cookie" "$http_user_agent" \
- * $scheme $request_length $upstream_response_time', total fields == 18
- *
- * nginx_log sample:
- * flv.pptmao.com 183.240.128.180 14927 HIT [07/Oct/2016:23:43:38 +0800] \
- * "GET /2016-09-05/cbc1578a77edf84be8d70b97ba82457a.mp4 HTTP/1.1" 200 4350240 "http://www.pptmao.com/ppt/9000.html" \
- * "-" "-" "Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.0)" http 234 - CN4406 0E
  * */
 
 /* NOTE: border is '"' */
