@@ -19,7 +19,6 @@
 
 #include <stdio.h>
 #include "plcdn_la_errno.h"		/* error codes, PLA_ERR_OK, ... */
-#include "test_options.h" 		/*sla_options*/
 
 #include <stdio.h>
 #include <string.h> 	/*strncpy*/
@@ -33,13 +32,14 @@
 //#include <thread>		/*std::thread*/
 //#include <atomic>		/*std::atomic*/
 #include "plcdn_cpp_test.h"		/*test_nginx_log_stats_main*/
-#include "test_options.h"	/*nla_options**/
-#include "string_util.h"	/*md5sum*/
-#include "net_util.h"	/*get_if_addrs, ...*/
-#include <algorithm>	/*std::min*/
+#include "plcdn_la_conf.h"  	/* plcdn_la_conf */
+#include "string_util.h"		/*md5sum*/
+#include "net_util.h"			/*get_if_addrs, ...*/
+#include <algorithm>			/*std::min*/
 #include <boost/filesystem.hpp> /*create_directories*/
-#include <plcdn_la_ngx.h>	/*log_stats, ...*/
-#include <plcdn_la_srs.h>	/*srs_log_context*/
+#include <plcdn_la_ngx.h>		/*log_stats, ...*/
+#include <plcdn_la_srs.h>		/*srs_log_context*/
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 /*for nginx log*/
 
@@ -99,6 +99,7 @@ extern struct plcdn_la_options plcdn_la_opt;
 static std::unordered_map<std::string, int> g_devicelist;
 /*map<domain, site_info>*/
 std::unordered_map<std::string, site_info> g_sitelist;
+
 static size_t g_nginx_total_line = 0, g_nginx_failed_line = 0;
 /*srs_log_analysis/split_log.cpp*/
 extern size_t g_srs_total_line;
@@ -106,9 +107,15 @@ extern size_t g_srs_failed_line;
 extern size_t g_srs_slog_line;
 extern size_t g_srs_trans_line;
 
+
 time_t g_plcdn_la_start_time = 0;
 int g_plcdn_la_device_id = 0;
 
+/* the default config filename */
+#define PLCDN_LA_DEF_CONF_FILE ".plcdn_la"
+
+/* plcdn_la_option.cpp */
+extern int reset_plcdn_la_options(plcdn_la_conf_t const& conf, plcdn_la_options& opt);
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 int load_devicelist(char const* file, std::unordered_map<std::string, int>& devicelist)
@@ -169,7 +176,7 @@ int parse_nginx_log_item_buf(parse_context& ct)
 //		}
 //		printf("_____|\n");
 
-		int result = parse_log_item(item, p, '\n', plcdn_la_opt.parse_url_mode, plcdn_la_opt.nginx_hit);
+		int result = parse_log_item(item, p, '\n', plcdn_la_opt);
 
 		if(result == 0){
 			auto is_time_in = is_time_in_range(item.time_local, plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
@@ -325,6 +332,11 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 
 	g_plcdn_la_start_time = time(NULL);
 
+	/* read default config file first, cmdline args always overwrite it */
+	plcdn_la_conf_t conf;
+	if(plcdn_la_parse_config_file(PLCDN_LA_DEF_CONF_FILE, conf) == 0)
+		reset_plcdn_la_options(conf, plcdn_la_opt);
+
 	int result = plcdn_la_parse_options(argc, argv);
 	if(result != 0 || plcdn_la_opt.show_help){
 		plcdn_la_opt.show_help? plcdn_la_show_help(stdout) :
@@ -358,6 +370,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 		return nginx_transform_log(stdin, stdout, plcdn_la_opt.nginx_trans_log) == 0? PLA_ERR_OK : PLA_ERR_LOG_TRANS;
 	if(plcdn_la_opt.work_mode == 1)
 		return merge_srs_flow_user(argc, argv) == 0? PLA_ERR_OK : PLA_ERR_SRS_MERGE_USER;
+
 	result = load_devicelist(plcdn_la_opt.devicelist_file, g_devicelist);
 	if(result != 0){
 		fprintf(stderr, "%s: load_devicelist() failed\n", __FUNCTION__);

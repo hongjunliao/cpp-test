@@ -8,6 +8,32 @@
 extern "C"{
 #endif
 
+/* format for nginx log, all are indexes for that field;
+ * -1: this field NOT found, >=0: index for this field */
+struct ngx_log_format {
+	int host;
+	int remote_addr;
+	int request_time_msec;
+	int upstream_cache_status;
+	int time_local;
+	int request_method;
+	int request_uri;
+	int server_protocol;
+	int status;
+	int bytes_sent;
+	int http_referer;
+	int remote_user;
+	int http_user_agent;
+	int scheme;
+	int request_length;
+	int upstream_response_time;
+	int start_response_time_msec;
+	int body_bytes_sent;
+	int http_x_forwarded_for;
+	int connection;
+	int server_addr;
+};
+
 /*plcdn_la: plcdn_log_analysis*/
 struct plcdn_la_options
 {
@@ -90,6 +116,10 @@ struct plcdn_la_options
 	int show_version;
 /* log file */
 	char const * log_file;
+/* config file, .plcdn_la */
+	char const * config_file;
+/* ngnx log format */
+	struct ngx_log_format ngx_logfmt;
 /*debug, 0: close, >=1: verbose*/
 	int verbose;
 

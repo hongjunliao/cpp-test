@@ -3,13 +3,19 @@
 #include <cstring>	/*strcmp*/
 #include <popt.h>	/*poptOption*/
 #include "plcdn_la_option.h"	/* plcdn_la_options */
+#include "plcdn_la_conf.h"	    /* plcdn_la_conf_t */
 #include <boost/regex.hpp> 		/*boost::regex_match*/
 
 /*main.cpp*/
 extern time_t g_plcdn_la_start_time;
 
+static char * g_confbuf = NULL;
+
 /* plcdn_la_ngx_var.cpp */
 extern void parse_args_split(char * buf, char const *& arg, char const * key, char const *& value);
+
+/* plcdn_la_ngx_log_fmt.cpp */
+extern void ngx_parse_nginx_log_format(char const * str, ngx_log_format & fmt);
 
 static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 
@@ -33,8 +39,6 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //plcdn_la_options
 struct plcdn_la_options plcdn_la_opt = {
-		//ADD POSITION
-
 		.nginx_log_file = NULL,
 		.nginx_rotate_dir = NULL,
 		.nginx_rotate_time = 7200,
@@ -99,6 +103,30 @@ struct plcdn_la_options plcdn_la_opt = {
 		.show_version = 0,
 
 		.log_file = NULL,
+		.config_file = ".plcdn_la",
+		.ngx_logfmt = {
+				.host = 0,
+				.remote_addr = 1,
+				.request_time_msec = 2,
+				.upstream_cache_status = 3,
+				.time_local = 4,
+				.request_method = 5,
+				.request_uri = 6,
+				.server_protocol = 7,
+				.status = 8,
+				.bytes_sent = 9,
+				.http_referer = 10,
+				.remote_user = 11,
+				.http_user_agent = 12,
+				.scheme = 13,
+				.request_length = 14,
+				.upstream_response_time = 15,
+				.start_response_time_msec = 16,
+				.body_bytes_sent = 17,
+				.http_x_forwarded_for = 18,
+				.connection = 19,
+				.server_addr = 20,
+		},
 		.verbose = 0,
 };
 
@@ -180,6 +208,7 @@ static struct poptOption plcdn_la_popt[] = {
 	{"help",                    'h',    POPT_ARG_NONE,   0, 'h', "print this help", 0 },
 	{"version",                   0,    POPT_ARG_NONE,   0, 'V', "print version info and exit", 0},
 	{"log-file",                0,    POPT_ARG_STRING,   0, '3', "log file for error(default to stderr)", 0},
+	{"config-file",             0,    POPT_ARG_STRING,   0, '7', "config file, default .plcdn_la", 0},
 	{"verbose",                 'v',  POPT_ARG_INT,     0, 'v', "verbose, >=0, print more details, 0 for close", 0},
 	NULL	/*required!!!*/
 };
@@ -203,6 +232,52 @@ static int parse_time(char const * str, time_t & t)
 	return 0;
 }
 
+#define PLCDN_LA_CONF(conf, opt, section, field, len) \
+   {auto && s = conf.impl.get<std::string>(section); \
+	if(!s.empty()){                                  \
+		strcat(g_confbuf + len, s.c_str());          \
+		field = g_confbuf + len;                     \
+		len += s.size();                             \
+		g_confbuf[len] = '\0';                       \
+	}                                                \
+   }
+
+int reset_plcdn_la_options(plcdn_la_conf_t const& conf, plcdn_la_options& opt)
+{
+	return -1;
+	if(!g_confbuf)
+		g_confbuf = (char *)malloc(1024 * 2);
+	if(!g_confbuf)
+		return -1;
+
+	size_t len = 0;
+
+
+	auto && str = plcdn_la_config_get_string(conf, "nginx_log_format");
+	if(!str.empty())
+		ngx_parse_nginx_log_format(str.c_str(), plcdn_la_opt.ngx_logfmt);
+
+	PLCDN_LA_CONF(conf, opt, "NginxFile", opt.nginx_log_file, len);
+	PLCDN_LA_CONF(conf, opt, "IPMAP", opt.nginx_log_file, len);
+
+//	auto && s = conf.impl.get<std::string>("NginxFile");
+//	if(!s.empty()){
+//		strcat(g_confbuf + len, s.c_str());
+//		opt.nginx_log_file = g_confbuf + len;
+//
+//		len += s.size(); g_confbuf[len] = '\0';
+//	}
+//	s = conf.impl.get<std::string>("IPMAP");
+//	if(!s.empty()){
+//		strcat(g_confbuf + len, s.c_str());
+//		len += s.size(); g_confbuf[len] = '\0';
+//
+//		opt.nginx_log_file = g_confbuf + len;
+//	}
+
+	return 0;
+}
+
 int plcdn_la_parse_options(int argc, char ** argv)
 {
 	if(pc)
@@ -210,6 +285,13 @@ int plcdn_la_parse_options(int argc, char ** argv)
 	pc = poptGetContext("plcdn_log_analysis", argc, (const char **)argv, plcdn_la_popt, 0);
 	for(int opt; (opt = poptGetNextOpt(pc)) != -1; ){
 		switch(opt){
+		case '7': {
+			plcdn_la_opt.config_file = poptGetOptArg(pc);
+			plcdn_la_conf_t conf;
+			if(plcdn_la_parse_config_file(plcdn_la_opt.config_file, conf) == 0)
+				reset_plcdn_la_options(conf, plcdn_la_opt);
+		}
+		break;
 		case 'i': plcdn_la_opt.interval = atoi(poptGetOptArg(pc)); break;
 		case 'l': plcdn_la_opt.nginx_log_file = poptGetOptArg(pc); break;
 		case 'D':{
@@ -325,6 +407,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 			break;
 		}
 	}
+
 	return plcdn_la_options_is_ok(plcdn_la_opt)? 0 : -1;
 }
 
@@ -440,7 +523,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 
 			"%-34s%-20s\n" "%-34s%-20s\n"
 
-			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n"
+			"%-34s%-20d\n" "%-34s%-20d\n" "%-34s%-20s\n" "%-34s%-20s\n"
 			"%-34s%-20d\n"
 		, "nginx_log_file", opt.nginx_log_file
 		, "nginx_rotate_dir", opt.nginx_rotate_dir
@@ -512,6 +595,7 @@ void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * popt)
 		, "show_help", opt.show_help
 		, "show_version", opt.show_version
 		, "log_file", opt.log_file
+		, "config_file", opt.config_file
 
 		, "verbose", opt.verbose
 	);

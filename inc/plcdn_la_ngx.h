@@ -358,8 +358,9 @@ int do_parse_nginx_log_item(std::pair<char const *, char const *> * fields, size
 
 /* parse ' ' splitted nginx log into log_item @param item
  * @return 0 on success */
-int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_mode, char const * nginx_hit);
-
+int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_mode, char const * nginx_hit,
+		ngx_log_format const& fmt);
+int parse_log_item(log_item & item, char *& logitem, char delim, plcdn_la_options const& opt);
 
 /* is user_agent pc or mobile?
  * 0: unkown; 1: pc; 2 mobile; -1: error */
@@ -376,5 +377,8 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
 		std::unordered_map<std::string, site_info> const& sitelist,
 		std::unordered_map<std::string, nginx_domain_stat> & logstats, size_t & failed_line);
+
+//////////////////////////////////////////////////////////////////////////////////
+
 #endif /*_NGINX_LOG_ANALYSIS_H_*/
 

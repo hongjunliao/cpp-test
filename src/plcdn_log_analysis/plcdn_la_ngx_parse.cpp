@@ -803,7 +803,8 @@ static int nginx_log_item_is_hit(char const * hits, char const * hit)
 	return -1;
 }
 
-int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_mode, char const * nginx_hit)
+int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_mode, char const * nginx_hit,
+		ngx_log_format const& fmt)
 {
 	memset(&item, 0, sizeof(log_item));
 	item.beg = logitem;
@@ -814,7 +815,7 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 	}
 	item.end = logitem;
 
-	item.domain = items[0];
+	item.domain = items[fmt.host];
 //	item.client_ip_2 = items[1];
 	item.client_ip = netutil_get_ip_from_str(items[1]);
 	if (item.client_ip == 0)
@@ -853,6 +854,11 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 		item.ua = { items[12], items[12] + strlen(items[12]) };
 	}
 	return 0;
+}
+
+int parse_log_item(log_item & item, char *& logitem, char delim, plcdn_la_options const& opt)
+{
+	return parse_log_item(item, logitem, delim, opt.parse_url_mode, opt.nginx_hit, opt.ngx_logfmt);
 }
 
 int ngx_http_user_agent_pc_mobile(str_t const& s, char const * res)
@@ -958,7 +964,7 @@ int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
     while (fgets(buf, sizeof(buf), file)){
 		++n;
 		auto * p = buf;
-		int result = parse_log_item(item, p, '\n', plcdn_la_opt.parse_url_mode, plcdn_la_opt.nginx_hit);
+		int result = parse_log_item(item, p, '\n', plcdn_la_opt);
     	if(result != 0){
     		if(plcdn_la_opt.verbose > 4)
     			fprintf(stderr, "%s: do_parse_nginx_log_item failed, line=%zu, skip\n", __FUNCTION__, n);

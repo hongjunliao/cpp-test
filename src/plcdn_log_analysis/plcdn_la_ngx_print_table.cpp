@@ -11,7 +11,7 @@
 #include <netinet/in.h>
 #include <plcdn_la_ngx.h>	/*log_stats, ...*/
 #include <map>			/*std::map*/
-#include "test_options.h"		/*plcdn_la_options*/
+#include "plcdn_la_option.h"	/*plcdn_la_options*/
 #include "string_util.h"		/*sha1sum*/
 #include "net_util.h"	/*netutil_get_ip_str*/
 #include <algorithm>	/*std::sort*/

@@ -15,6 +15,8 @@ typedef int(*test_main_fn)(int argc, char * argv[]);
 #define  TEST_LIB_H323PLUS	"libh323plus"
 #define  TEST_LIB_SPICE_SERVER_DISPLAY_STREAMING	"libspice-server_display_streaming"
 
+/* plcdn_la_ngx_log_fmt.cpp */
+extern int test_ngx_parse_nginx_log_format_main(int argc, char ** argv);
 
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
@@ -57,6 +59,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"opencv", test_opencv_main},
 			{"plcdn_logtrans", test_nginx_transform_log_main_2},
 			{"chess", chess_test_main},
+			{"nginx_log_fmt", test_ngx_parse_nginx_log_format_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 
