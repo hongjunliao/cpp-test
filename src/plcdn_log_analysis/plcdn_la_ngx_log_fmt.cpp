@@ -11,6 +11,8 @@
 /*plcdn_log_analysis/option.cpp*/
 extern struct plcdn_la_options plcdn_la_opt;
 
+char const * g_ngx_v[2] = { "[\"", "]\"" };
+
 static std::map<std::string, int *> nginx_log_items {
 		{ "host", &plcdn_la_opt.ngx_logfmt.host },
 		{ "remote_addr", &plcdn_la_opt.ngx_logfmt.remote_addr },
@@ -33,6 +35,10 @@ static std::map<std::string, int *> nginx_log_items {
 		{ "http_x_forwarded_for", &plcdn_la_opt.ngx_logfmt.http_x_forwarded_for },
 		{ "connection", &plcdn_la_opt.ngx_logfmt.connection },
 		{ "server_addr", &plcdn_la_opt.ngx_logfmt.server_addr },
+
+		{ "site_id", &plcdn_la_opt.ngx_logfmt.site_id },
+		{ "upstream_addr", &plcdn_la_opt.ngx_logfmt.upstream_addr },
+		{ "log_cache_uri", &plcdn_la_opt.ngx_logfmt.log_cache_uri },
 };
 
 /*
@@ -47,25 +53,56 @@ static std::map<std::string, int *> nginx_log_items {
  */
 void ngx_parse_nginx_log_format(char const * str, ngx_log_format & fmt)
 {
+	auto v = g_ngx_v;
+
+	if(plcdn_la_opt.verbose > 7)
+		fprintf(stdout, "%s: format='%s'\n", __FUNCTION__, str);
+
 	auto end = str + strlen(str);
 
-	int i = 0;
-	for(auto p = str; p != end;){
+	int i = -1;
+	char const * ch = 0;
+	int n_ch = 0;
+
+	for(auto p = str; p != end; ++p){
+		auto c = strchr(v[0], *p);
+		if(c && !ch){ /* found border_begin */
+			ch = c;
+			continue;
+		}
+		if(ch && *p == v[1][ch - v[0]]){ /* found border_end */
+			if(n_ch > 1){	/* i > -1 */
+				fmt.sub_items[fmt.n_sub++] = i - n_ch + 1;
+				continue;
+			}
+			ch = 0;
+			n_ch = 0;
+		}
 		if(*p == '$'){
+			if(ch)
+				++n_ch;
+
 			auto e = p + 1;
 			while((*e >= '0' && *e <= '9') || (*e >= 'a' && *e <= 'z') ||
 					(*e >= 'A' && *e <= 'Z') || *e == '_') ++e;
 
-			std::string s{ p + 1, e };
+			++i;
 
-			if(nginx_log_items.count(s) != 0  && *nginx_log_items[s] == -1){
-				fprintf(stdout, "%s: found item: %34s, i=%2d\n", __FUNCTION__, s.c_str(), i);
-				*nginx_log_items[s] = i++;
-				p = e;
-				continue;
+			std::string s{ p + 1, e };
+			if(nginx_log_items.count(s) != 0){
+				if(plcdn_la_opt.verbose > 7)
+					fprintf(stdout, "%s: found item: %34s, i=%2d\n", __FUNCTION__, s.c_str(), i);
+				*nginx_log_items[s] = i;
 			}
+			p = e - 1;
 		}
-		++p;
+	}
+
+	if(fmt.n_sub > 0 && plcdn_la_opt.verbose > 7){
+		fprintf(stdout, "%s: sub_items: [", __FUNCTION__);
+		for(int i = 0; i < fmt.n_sub; ++i)
+			fprintf(stdout, "%d,", fmt.sub_items[i]);
+		fprintf(stdout, "]\n");
 	}
 }
 

@@ -32,6 +32,23 @@ struct ngx_log_format {
 	int http_x_forwarded_for;
 	int connection;
 	int server_addr;
+
+	int site_id;
+	int upstream_addr;
+	int log_cache_uri;
+
+	/* index for sub items in nginx log format, e.g. format:
+	 *
+	 * '$host $remote_addr $request_time_msec $upstream_cache_status [$time_local] \
+	 * "$request_method $request_uri $server_protocol" $status $bytes_sent "$http_referer" "$remote_user" - "$http_user_agent" \
+	 * $scheme $request_length $upstream_response_time $start_response_time_msec $body_bytes_sent "$http_x_forwarded_for" \
+	 * "$connection" "$server_addr"'
+	 *
+	 * has 1 sub_item "$request_method $request_uri $server_protocol", it's index is 5, this sub_item should be split to 3 items
+	 *
+     */
+	int sub_items[32];
+	int n_sub;
 };
 
 /*plcdn_la: plcdn_log_analysis*/

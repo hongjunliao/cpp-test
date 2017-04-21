@@ -1,0 +1,36 @@
+# sample config file for plcdn_la, original from path_conf
+# @author hongjun.liao <docici@126.com>
+# @date 2017/04/20
+
+# nginx文件
+NginxFile=/home/jun/h/doc/linghui.fang/201703031425.txt
+#ip数据库文件路径
+IPMAP=/home/jun/yong.lu/nginx_analysis_4.4/path/iplocation.bin
+# 域名列表
+SiteuidList=/home/jun/yong.lu/nginx_analysis_4.4/path/siteuidlist.txt
+# 上报流量统计相关日志
+FlowStats=/home/jun/yong.lu/nginx/path/FlowStats/
+# 分类后本地保存日志
+LocalLog=/home/jun/yong.lu/nginx/tmp/
+# 主机ip，对应的cache_id
+DeviceList=/home/jun/yong.lu/nginx_analysis_4.4/path/devicelist.txt
+# url统计文件目录
+URLStats=/home/jun/yong.lu/nginx/path/URLStats/
+# 域名访问状态统计文件目录
+UANStats=/home/jun/yong.lu/nginx/path/UANStats/
+# 用户访问域名次数统计文件目录
+UASStats=/home/jun/yong.lu/nginx/path/UASStats/
+# 用户访问域名速度统计文件目录
+DASStats=/home/jun/yong.lu/nginx/path/DASStats/
+# 用户访问域名速度统计文件目录,ip取前三段
+ASStats=/home/jun/yong.lu/nginx/path/ASStats/
+# 客户来源分析
+USStats=/home/jun/yong.lu/nginx/path/USStats/
+# md5与url比对文件，上传给服务器的
+RemoteUrlKey=/home/jun/yong.lu/nginx/RemoteUrlKey/
+# md5与url比对文件，本地保存的
+LocaleUrlKey=/home/jun/yong.lu/nginx/LocaleUrlKey/
+#客户来源分析目录
+IPSourceStats=/home/jun/yong.lu/nginx/IPSource/
+#nginx log format
+nginx_log_format=$site_id $host $remote_addr $request_time_msec $upstream_cache_status [$time_local] "$request_method $request_uri $server_protocol" "$log_cache_uri" $status $bytes_sent "$http_referer" "$remote_user" "$upstream_addr" "$http_user_agent" $scheme $request_length $upstream_response_time $start_response_time_msec $body_bytes_sent "$http_x_forwarded_for" "$connection" "$server_addr"

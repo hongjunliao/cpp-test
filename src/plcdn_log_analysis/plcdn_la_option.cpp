@@ -104,6 +104,7 @@ struct plcdn_la_options plcdn_la_opt = {
 
 		.log_file = NULL,
 		.config_file = ".plcdn_la",
+		/* the default nginx_log_format, @see plcdn_la_show_help */
 		.ngx_logfmt = {
 				.host = 0,
 				.remote_addr = 1,
@@ -126,6 +127,13 @@ struct plcdn_la_options plcdn_la_opt = {
 				.http_x_forwarded_for = 18,
 				.connection = 19,
 				.server_addr = 20,
+
+				.site_id = -1,
+				.upstream_addr = -1,
+				.log_cache_uri = -1,
+
+				.sub_items = { 5 },
+				.n_sub = 1,
 		},
 		.verbose = 0,
 };

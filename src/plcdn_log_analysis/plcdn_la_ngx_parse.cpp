@@ -680,6 +680,9 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std
 			p = q + 1;
 		}
 	}
+	for(int i  = 0; i < field_count; ++i){
+		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
+	}
 	return ch? -1 : 0;
 }
 
@@ -808,8 +811,11 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 {
 	memset(&item, 0, sizeof(log_item));
 	item.beg = logitem;
-	char *items[40] = { 0 };
+
+	char const * v[2] = { "[\"", "]\"" };
+	char *items[60] = { 0 };
 	int result = do_parse_nginx_log_item(items, logitem, delim);
+//	int result = do_parse_nginx_log_item(items, logitem, v, { fmt.sub_items, fmt.sub_items + fmt.n_sub }, delim);
 	if (result != 0) {
 		return 1;
 	}
