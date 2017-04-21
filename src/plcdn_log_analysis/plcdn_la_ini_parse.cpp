@@ -75,12 +75,12 @@ static int parse_ini(char const * buf, char const * end, strl_t * comment, strl_
 
 /* needed for ignore exceptions throwed from boost::property_tree::read_ini
  * gcc define: -fno-exceptions */
-namespace boost {
-    void throw_exception(std::exception const& e) {
-        std::cerr << "Fake exception: " << e.what() << "\n";
-//        std::exit(255);
-    }
-}
+//namespace boost {
+//    void throw_exception(std::exception const& e) {
+//        std::cerr << "Fake exception: " << e.what() << "\n";
+////        std::exit(255);
+//    }
+//}
 
 int plcdn_la_parse_config_file(char const *f, plcdn_la_conf_t & conf)
 {

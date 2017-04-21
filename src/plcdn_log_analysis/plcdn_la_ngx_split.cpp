@@ -98,6 +98,7 @@ int split_nginx_log(std::unordered_map<std::string, nginx_domain_stat> const& st
 			char dirname[fullname.size() + 1];
 			strncpy(dirname, fullname.c_str(), sizeof(dirname));
 
+//			fprintf(stdout, "%s: dir='%s'________________\n", __FUNCTION__, dirname);
 			auto c = strrchr(dirname, '/');
 			if(c){
 				*c = '\0';

@@ -26,7 +26,7 @@ static bool plcdn_la_options_is_ok(plcdn_la_options const& opt);
 #define DEF_FORMAT_IP_SLOWFAST   	    "UASStats.${interval}.${site_id}.${device_id}"
 #define DEF_FORMAT_CUTIP_SLOWFAST       "ASStats.${datetime}.${device_id}"
 #define DEF_FORMAT_IP_SOURCE   		    "IPSource.${interval}.${site_id}.${device_id}"
-#define DEF_FORMAT_SPLIT_NGINX_LOG      "${site_id}/${day}"
+#define DEF_FORMAT_SPLIT_NGINX_LOG      "${site_id}/${day}/${interval}"
 #define DEF_FORMAT_SPLIT_SRS_LOG   	    "${site_id}/${day}"
 #define DEF_SRS_SID_DIR				    "srs_sid_log/"
 #define DEF_FORMAT_SRS_FLOW			    "srscountfile.${day}.${site_id}.${device_id}"
@@ -232,48 +232,66 @@ static int parse_time(char const * str, time_t & t)
 	return 0;
 }
 
-#define PLCDN_LA_CONF(conf, opt, section, field, len) \
-   {auto && s = conf.impl.get<std::string>(section); \
-	if(!s.empty()){                                  \
-		strcat(g_confbuf + len, s.c_str());          \
-		field = g_confbuf + len;                     \
-		len += s.size();                             \
-		g_confbuf[len] = '\0';                       \
-	}                                                \
-   }
+static void do_plcdn_la_conf_get(plcdn_la_conf_t const& conf, char const * section,
+		char const *& field, size_t & len)
+{
+	auto && s = plcdn_la_config_get_string(conf, section);
+	if(!s.empty()){
+		if(plcdn_la_opt.verbose > 7)
+			printf("%s: found '%s'='%s'___\n", __FUNCTION__, section, s.c_str());
+		memcpy(g_confbuf + len, s.c_str(), s.size());	/* NOT strcat */
+		field = g_confbuf + len;
+		len += s.size();
+		g_confbuf[len] = '\0';
+		++len;	/* for '\0' */
+	}
+}
 
 int reset_plcdn_la_options(plcdn_la_conf_t const& conf, plcdn_la_options& opt)
 {
-	return -1;
-	if(!g_confbuf)
-		g_confbuf = (char *)malloc(1024 * 2);
+	g_confbuf = (char *)realloc(g_confbuf, 1024 * 64);
 	if(!g_confbuf)
 		return -1;
-
-	size_t len = 0;
-
 
 	auto && str = plcdn_la_config_get_string(conf, "nginx_log_format");
 	if(!str.empty())
 		ngx_parse_nginx_log_format(str.c_str(), plcdn_la_opt.ngx_logfmt);
 
-	PLCDN_LA_CONF(conf, opt, "NginxFile", opt.nginx_log_file, len);
-	PLCDN_LA_CONF(conf, opt, "IPMAP", opt.nginx_log_file, len);
+	size_t len = 0;
+	do_plcdn_la_conf_get(conf, "NginxFile", opt.nginx_log_file, len);
 
-//	auto && s = conf.impl.get<std::string>("NginxFile");
-//	if(!s.empty()){
-//		strcat(g_confbuf + len, s.c_str());
-//		opt.nginx_log_file = g_confbuf + len;
-//
-//		len += s.size(); g_confbuf[len] = '\0';
-//	}
-//	s = conf.impl.get<std::string>("IPMAP");
-//	if(!s.empty()){
-//		strcat(g_confbuf + len, s.c_str());
-//		len += s.size(); g_confbuf[len] = '\0';
-//
-//		opt.nginx_log_file = g_confbuf + len;
-//	}
+	do_plcdn_la_conf_get(conf, "IPMAP", opt.ipmap_file, len);
+	do_plcdn_la_conf_get(conf, "SiteuidList", opt.siteuidlist_file, len);
+	do_plcdn_la_conf_get(conf, "DeviceList", opt.devicelist_file, len);
+
+	do_plcdn_la_conf_get(conf, "FlowStats", opt.output_nginx_flow, len);
+	do_plcdn_la_conf_get(conf, "LocalLog", opt.output_split_nginx_log, len);
+
+	do_plcdn_la_conf_get(conf, "URLStats", opt.output_file_url_popular, len);
+	do_plcdn_la_conf_get(conf, "UANStats", opt.output_file_http_stats, len);
+	do_plcdn_la_conf_get(conf, "UASStats", opt.output_file_ip_popular, len);
+
+	do_plcdn_la_conf_get(conf, "DASStats", opt.output_file_ip_slowfast, len);
+	do_plcdn_la_conf_get(conf, "ASStats", opt.output_file_cutip_slowfast, len);
+
+	do_plcdn_la_conf_get(conf, "IPSourceStats", opt.output_file_ip_source, len);
+
+	do_plcdn_la_conf_get(conf, "RemoteUrlKey", opt.output_file_url_key, len);
+	do_plcdn_la_conf_get(conf, "LocaleUrlKey", opt.local_url_key, len);
+
+	size_t LEN = (len / 64 + 1) * 64;
+	g_confbuf = (char *)realloc(g_confbuf, LEN);
+	memset(g_confbuf + len, 0, LEN - len);
+
+	/* debug only */
+	if(plcdn_la_opt.verbose > 7){
+		printf("%s: g_confbuf, len=%zu, data=[", __FUNCTION__, len);
+		for(size_t i = 0; i < LEN; ++i){
+			g_confbuf[i] == '\0'?
+					fprintf(stdout, "\\0") : fprintf(stdout, "%c", g_confbuf[i]);
+		}
+		printf("]\n");
+	}
 
 	return 0;
 }
@@ -285,6 +303,7 @@ int plcdn_la_parse_options(int argc, char ** argv)
 	pc = poptGetContext("plcdn_log_analysis", argc, (const char **)argv, plcdn_la_popt, 0);
 	for(int opt; (opt = poptGetNextOpt(pc)) != -1; ){
 		switch(opt){
+		case 'v': plcdn_la_opt.verbose = atoi(poptGetOptArg(pc)); break;
 		case '7': {
 			plcdn_la_opt.config_file = poptGetOptArg(pc);
 			plcdn_la_conf_t conf;
@@ -402,7 +421,6 @@ int plcdn_la_parse_options(int argc, char ** argv)
 		case 'h': plcdn_la_opt.show_help = 1; break;
 		case 'V': plcdn_la_opt.show_version = 1; break;
 		case '3': plcdn_la_opt.log_file = poptGetOptArg(pc); break;
-		case 'v': plcdn_la_opt.verbose = atoi(poptGetOptArg(pc)); break;
 		default:
 			break;
 		}

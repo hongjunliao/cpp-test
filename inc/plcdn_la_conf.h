@@ -9,7 +9,7 @@
 #define PLCDN_LA_USE_BOOST_INI
 
 #ifdef PLCDN_LA_USE_BOOST_INI
-#define BOOST_NO_EXCEPTIONS
+//#define BOOST_NO_EXCEPTIONS
 #include <boost/property_tree/ini_parser.hpp> /* boost::property_tree::ptree */
 #endif /* PLCDN_LA_USE_BOOST_INI */
 
