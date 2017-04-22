@@ -362,6 +362,12 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 		ngx_log_format const& fmt);
 int parse_log_item(log_item & item, char *& logitem, char delim, plcdn_la_options const& opt);
 
+/* overloaded version, with borders in @param v
+ * NOTE:
+ * (1)this version use @param opt.nginx_logfmt(plcdn_la_options.ngx_log_format)
+ * */
+int parse_log_item(log_item & item, char *& logitem, char const * v[2], char delim, plcdn_la_options const& opt);
+
 /* is user_agent pc or mobile?
  * 0: unkown; 1: pc; 2 mobile; -1: error */
 int ngx_http_user_agent_pc_mobile(str_t const& s, char const * re);

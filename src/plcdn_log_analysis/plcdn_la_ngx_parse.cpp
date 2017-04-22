@@ -636,24 +636,27 @@ static void split_string(char ** fields, int& n, char *& szitem, char delim = '\
 
 int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std::vector<int> const& n, char delim/* = '\0'*/)
 {
+//	fprintf(stdout, "%s: data='%s'_______________\n", __FUNCTION__, szitem);
+
 	char const * ch = 0;
 	int field_count = 0;
 	auto q = szitem;
 	for(auto p = q; ; ++q){
 		if(*q == delim){
-			*q = '\0';
-			if(std::find(n.begin(), n.end(), field_count) != std::end(n))
-				split_string(fields, field_count, p, '\0');
-			else
-				fields[field_count++] = p;
+			if(p != q){
+				*q = '\0';
+				if(std::find(n.begin(), n.end(), field_count) != std::end(n))
+					split_string(fields, field_count, p, '\0');
+				else
+					fields[field_count++] = p;
+			}
+			szitem = q;
 			break;
 		}
 		auto c = strchr(v[0], *q);
 		if(c && !ch){ /* border_begin */
-			if(!ch){
-				ch = c;
-				p = q + 1;
-			}
+			ch = c;
+			p = q + 1;
 			continue;
 		}
 		if(ch && *q == v[1][ch - v[0]]){ /* border_end */
@@ -663,10 +666,11 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std
 				split_string(fields, field_count, p, '\0');
 			else
 				fields[field_count++] = p;
-			if(*(q + 1) == ' '){
+
+			if(*(q + 1) == ' ')
 				++q;
-				p = q + 1;
-			}
+
+			p = q + 1;
 			continue;
 		}
 		if(*q == ' '){	/* separator */
@@ -812,10 +816,8 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 	memset(&item, 0, sizeof(log_item));
 	item.beg = logitem;
 
-	char const * v[2] = { "[\"", "]\"" };
 	char *items[60] = { 0 };
 	int result = do_parse_nginx_log_item(items, logitem, delim);
-//	int result = do_parse_nginx_log_item(items, logitem, v, { fmt.sub_items, fmt.sub_items + fmt.n_sub }, delim);
 	if (result != 0) {
 		return 1;
 	}
@@ -865,6 +867,60 @@ int parse_log_item(log_item & item, char *& logitem, char delim, int parse_url_m
 int parse_log_item(log_item & item, char *& logitem, char delim, plcdn_la_options const& opt)
 {
 	return parse_log_item(item, logitem, delim, opt.parse_url_mode, opt.nginx_hit, opt.ngx_logfmt);
+}
+
+int parse_log_item(log_item & item, char *& logitem, char const * v[2], char delim, plcdn_la_options const& opt)
+{
+//	fprintf(stdout, "%s: border=[%s,%s]\n", __FUNCTION__, v[0], v[1]);
+
+	auto & fmt = opt.ngx_logfmt;
+
+	memset(&item, 0, sizeof(log_item));
+	item.beg = logitem;
+
+	char *items[60] = { 0 };
+	int result = do_parse_nginx_log_item(items, logitem, v, { fmt.sub_items, fmt.sub_items + fmt.n_sub }, delim);
+	if (result != 0) {
+		return 1;
+	}
+	item.end = logitem;
+
+	item.domain = items[fmt.host];
+	item.client_ip = netutil_get_ip_from_str(items[fmt.remote_addr]);
+	if (item.client_ip == 0)
+		return 1;
+
+	char * end;
+	item.request_time = strtoul(items[fmt.request_time_msec], &end, 10);
+
+	tm my_tm;
+	if (!strptime(items[4], "%d/%b/%Y:%H:%M:%S %z", &my_tm))
+		return -1;
+	item.time_local = mktime(&my_tm);
+
+	item.request_method = items[fmt.request_method];
+	item.request_url = items[fmt.request_uri];
+
+
+	char const * p = items[8];
+	item.bytes_sent = strtoul(p, &end, 10);
+	item.status = atoi(items[7]);
+	item.is_hit = (nginx_log_item_is_hit(opt.nginx_hit, items[3]) == 0);
+	if(items[16])
+		item.response_time =  atoi(items[16]);
+
+	/* http_referer */
+	if(items[9]){
+		str_t domain;
+		if(parse_domain_from_url(items[9], &domain) == 0)
+			item.href_domain = domain;
+	}
+
+	/* http_user_agent */
+	if(items[12]){
+		item.ua = { items[12], items[12] + strlen(items[12]) };
+	}
+	return 0;
 }
 
 int ngx_http_user_agent_pc_mobile(str_t const& s, char const * res)
@@ -967,10 +1023,12 @@ int do_nginx_log_stats(FILE * file, plcdn_la_options const& plcdn_la_opt,
 	log_item item;
     char buf[1024 * 64];	/* max length of 1 row */
     size_t n = 0;
+	char const * v[2] = { "[\"", "]\"" };
+
     while (fgets(buf, sizeof(buf), file)){
 		++n;
 		auto * p = buf;
-		int result = parse_log_item(item, p, '\n', plcdn_la_opt);
+		int result = parse_log_item(item, p, v, '\n', plcdn_la_opt);
     	if(result != 0){
     		if(plcdn_la_opt.verbose > 4)
     			fprintf(stderr, "%s: do_parse_nginx_log_item failed, line=%zu, skip\n", __FUNCTION__, n);

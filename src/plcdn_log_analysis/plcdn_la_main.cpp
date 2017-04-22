@@ -168,7 +168,9 @@ int parse_nginx_log_item_buf(parse_context& ct)
 	auto & total_lines = ct.total_lines = 0;
 	auto & failed_lines = ct.failed_lines = 0;
 
+	char const * v[2] = { "[\"", "]\"" };
 	log_item item;
+
 	for(char * p = buf; p != buf + len; ++p){
 //		printf(">_____");
 //		for(auto p1 = buf; p1 != buf + len; ++p1){
@@ -176,7 +178,7 @@ int parse_nginx_log_item_buf(parse_context& ct)
 //		}
 //		printf("_____|\n");
 
-		int result = parse_log_item(item, p, '\n', plcdn_la_opt);
+		int result = parse_log_item(item, p, v, '\n', plcdn_la_opt);
 
 		if(result == 0){
 			auto is_time_in = is_time_in_range(item.time_local, plcdn_la_opt.begin_time, plcdn_la_opt.end_time);
