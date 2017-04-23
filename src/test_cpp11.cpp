@@ -83,6 +83,9 @@ static int test_cpp11_unicode(int argc, char ** argv)
 /////////////////////////////////////////////////////////////////////////////
 int test_cpp11_main(int argc, char ** argv)
 {
+	int arr[3] = {3};
+	for(int i = 0; i < 3; ++i)
+		fprintf(stdout, "%s: arr[%d] = %d\n", __FUNCTION__, i, arr[i]);
 	test_lamda(argc, argv);
 	test_atomic(argc, argv);
 //	test_atomic_flag(argc, argv);

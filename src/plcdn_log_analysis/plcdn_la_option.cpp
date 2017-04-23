@@ -132,8 +132,8 @@ struct plcdn_la_options plcdn_la_opt = {
 				.upstream_addr = -1,
 				.log_cache_uri = -1,
 
-				.sub_items = { 5 },
-				.n_sub = 1,
+				.sub_items = { 0 },
+				.n_sub = 0,
 		},
 		.verbose = 0,
 };
@@ -286,6 +286,9 @@ int reset_plcdn_la_options(plcdn_la_conf_t const& conf, plcdn_la_options& opt)
 
 	do_plcdn_la_conf_get(conf, "RemoteUrlKey", opt.output_file_url_key, len);
 	do_plcdn_la_conf_get(conf, "LocaleUrlKey", opt.local_url_key, len);
+
+	if(len == 0)
+		return 0;
 
 	size_t LEN = (len / 64 + 1) * 64;
 	g_confbuf = (char *)realloc(g_confbuf, LEN);

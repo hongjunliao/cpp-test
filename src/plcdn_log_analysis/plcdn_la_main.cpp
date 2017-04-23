@@ -107,6 +107,8 @@ extern size_t g_srs_failed_line;
 extern size_t g_srs_slog_line;
 extern size_t g_srs_trans_line;
 
+/* plcdn_la_ngx_log_fmt.cpp */
+extern char const * g_ngx_v[2];
 
 time_t g_plcdn_la_start_time = 0;
 int g_plcdn_la_device_id = 0;
@@ -168,7 +170,6 @@ int parse_nginx_log_item_buf(parse_context& ct)
 	auto & total_lines = ct.total_lines = 0;
 	auto & failed_lines = ct.failed_lines = 0;
 
-	char const * v[2] = { "[\"", "]\"" };
 	log_item item;
 
 	for(char * p = buf; p != buf + len; ++p){
@@ -178,7 +179,7 @@ int parse_nginx_log_item_buf(parse_context& ct)
 //		}
 //		printf("_____|\n");
 
-		int result = parse_log_item(item, p, v, '\n', plcdn_la_opt);
+		int result = parse_log_item(item, p, g_ngx_v, '\n', plcdn_la_opt);
 
 		if(result == 0){
 			auto is_time_in = is_time_in_range(item.time_local, plcdn_la_opt.begin_time, plcdn_la_opt.end_time);

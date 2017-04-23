@@ -638,6 +638,13 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std
 {
 //	fprintf(stdout, "%s: data='%s'_______________\n", __FUNCTION__, szitem);
 
+//	if(n.size() > 0){
+//		fprintf(stdout, "%s: n_sub=%zu, sub_items: [", __FUNCTION__, n.size());
+//		for(int i = 0; i < (int)n.size(); ++i)
+//			fprintf(stdout, "%d,", n[i]);
+//		fprintf(stdout, "]\n");
+//	}
+
 	char const * ch = 0;
 	int field_count = 0;
 	auto q = szitem;
@@ -684,9 +691,11 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std
 			p = q + 1;
 		}
 	}
-	for(int i  = 0; i < field_count; ++i){
-		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
-	}
+
+//	for(int i  = 0; i < field_count; ++i){
+//		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
+//	}
+
 	return ch? -1 : 0;
 }
 
@@ -894,7 +903,7 @@ int parse_log_item(log_item & item, char *& logitem, char const * v[2], char del
 	item.request_time = strtoul(items[fmt.request_time_msec], &end, 10);
 
 	tm my_tm;
-	if (!strptime(items[4], "%d/%b/%Y:%H:%M:%S %z", &my_tm))
+	if (!strptime(items[fmt.time_local], "%d/%b/%Y:%H:%M:%S %z", &my_tm))
 		return -1;
 	item.time_local = mktime(&my_tm);
 
@@ -902,23 +911,23 @@ int parse_log_item(log_item & item, char *& logitem, char const * v[2], char del
 	item.request_url = items[fmt.request_uri];
 
 
-	char const * p = items[8];
+	char const * p = items[fmt.bytes_sent];
 	item.bytes_sent = strtoul(p, &end, 10);
-	item.status = atoi(items[7]);
-	item.is_hit = (nginx_log_item_is_hit(opt.nginx_hit, items[3]) == 0);
-	if(items[16])
-		item.response_time =  atoi(items[16]);
+	item.status = atoi(items[fmt.status]);
+	item.is_hit = (nginx_log_item_is_hit(opt.nginx_hit, items[fmt.upstream_cache_status]) == 0);
+	if(items[fmt.start_response_time_msec])
+		item.response_time =  atoi(items[fmt.start_response_time_msec]);
 
 	/* http_referer */
-	if(items[9]){
+	if(items[fmt.http_referer]){
 		str_t domain;
-		if(parse_domain_from_url(items[9], &domain) == 0)
+		if(parse_domain_from_url(items[fmt.http_referer], &domain) == 0)
 			item.href_domain = domain;
 	}
 
 	/* http_user_agent */
-	if(items[12]){
-		item.ua = { items[12], items[12] + strlen(items[12]) };
+	if(items[fmt.http_user_agent]){
+		item.ua = { items[fmt.http_user_agent], items[fmt.http_user_agent] + strlen(items[fmt.http_user_agent]) };
 	}
 	return 0;
 }

@@ -53,6 +53,9 @@ static std::map<std::string, int *> nginx_log_items {
  */
 void ngx_parse_nginx_log_format(char const * str, ngx_log_format & fmt)
 {
+	memset(fmt.sub_items, 0, sizeof(fmt.sub_items));
+	fmt.n_sub = 0;
+
 	auto v = g_ngx_v;
 
 	if(plcdn_la_opt.verbose > 7)
@@ -71,20 +74,23 @@ void ngx_parse_nginx_log_format(char const * str, ngx_log_format & fmt)
 			continue;
 		}
 		if(ch && *p == v[1][ch - v[0]]){ /* found border_end */
-			if(n_ch > 1){	/* i > -1 */
+			if(n_ch > 1)	/* i > -1 */
 				fmt.sub_items[fmt.n_sub++] = i - n_ch + 1;
-				continue;
-			}
+
 			ch = 0;
 			n_ch = 0;
+
+			continue;
 		}
 		if(*p == '$'){
+			if(p + 1 != end && *(p + 1) == '$')
+				continue;
 			if(ch)
 				++n_ch;
 
 			auto e = p + 1;
-			while((*e >= '0' && *e <= '9') || (*e >= 'a' && *e <= 'z') ||
-					(*e >= 'A' && *e <= 'Z') || *e == '_') ++e;
+			while((*e >= '0' && *e <= '9') || (*e >= 'a' && *e <= 'z') || (*e >= 'A' && *e <= 'Z') || *e == '_')
+				++e;
 
 			++i;
 
@@ -99,7 +105,7 @@ void ngx_parse_nginx_log_format(char const * str, ngx_log_format & fmt)
 	}
 
 	if(fmt.n_sub > 0 && plcdn_la_opt.verbose > 7){
-		fprintf(stdout, "%s: sub_items: [", __FUNCTION__);
+		fprintf(stdout, "%s: n_sub=%d, sub_items: [", __FUNCTION__, fmt.n_sub);
 		for(int i = 0; i < fmt.n_sub; ++i)
 			fprintf(stdout, "%d,", fmt.sub_items[i]);
 		fprintf(stdout, "]\n");
