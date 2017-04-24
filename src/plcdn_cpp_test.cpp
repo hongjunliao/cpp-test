@@ -18,6 +18,9 @@ typedef int(*test_main_fn)(int argc, char * argv[]);
 /* plcdn_la_ngx_log_fmt.cpp */
 extern int test_ngx_parse_nginx_log_format_main(int argc, char ** argv);
 
+/* test_binary_search_tree.cpp */
+extern int test_binary_search_tree_main(int argc, char ** argv);
+
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -60,6 +63,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"plcdn_logtrans", test_nginx_transform_log_main_2},
 			{"chess", chess_test_main},
 			{"nginx_log_fmt", test_ngx_parse_nginx_log_format_main},
+			{"bst", test_binary_search_tree_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 
