@@ -9,23 +9,25 @@
 #include <stdlib.h>	/* rand */
 #include <time.h>	/* time */
 #include <initializer_list> /* std::initializer_list */
+#include <map>
 
-struct btree_node {
+
+struct bstree_node {
 	int key;
-	btree_node * left;  /* left child */
-	btree_node * right; /* right child */
+	bstree_node * left;  /* left child */
+	bstree_node * right; /* right child */
 
-	btree_node * p;	    /* parent */
+	bstree_node * p;	    /* parent */
 };
 
-btree_node const * btree_max(btree_node const * root)
+bstree_node const * bstree_max(bstree_node const * root)
 {
 	while(root->right)
 		root = root->right;
 	return root;
 }
 
-btree_node const * btree_min(btree_node const * root)
+bstree_node * bstree_min(bstree_node * root)
 {
 	while(root->left)
 		root = root->left;
@@ -34,12 +36,12 @@ btree_node const * btree_min(btree_node const * root)
 
 /* @param root maybe null, in this condition, @param node becomes the root
  * @return: 0 on success */
-int btree_insert(btree_node *& root, btree_node * node)
+int bstree_insert(bstree_node *& root, bstree_node * node)
 {
 	if(!node)
 		return -1;
 
-	btree_node * p = 0;
+	bstree_node * p = 0;
 	for(auto x = root; x; ){
 		p = x;
 
@@ -60,7 +62,7 @@ int btree_insert(btree_node *& root, btree_node * node)
 	return 0;
 }
 
-btree_node const * btree_search(btree_node const * root, int key)
+bstree_node const * bstree_search(bstree_node const * root, int key)
 {
 	auto x = root;
 	for(; x && x->key != key; ){
@@ -73,96 +75,113 @@ btree_node const * btree_search(btree_node const * root, int key)
 }
 
 /* override version, recursive */
-btree_node const * btree_search_recursive(btree_node const * root, int key)
+bstree_node const * bstree_search_recursive(bstree_node const * root, int key)
 {
 	if(!root || key == root->key)
 		return root;
 
 	if(key <= root->key)
-		return btree_search(root->left, key);
+		return bstree_search(root->left, key);
 
-	return btree_search(root->right, key);
+	return bstree_search(root->right, key);
 }
 
-int btree_delete(btree_node const * root, btree_node const * node)
+static void bstree_transplant(bstree_node *& root, bstree_node const * u, bstree_node * v)
 {
-	return -1;
+	if(!u->p)
+		root = v;
+
+	auto & n = u->p->left == u? u->p->left : u->p->right;
+	n = v;
+
+	if(v)
+		v->p = u->p;
+}
+
+/* TODO: test me */
+int bstree_delete(bstree_node *& root, bstree_node const * node)
+{
 	if(!node)
 		return -1;
 
-	if(!node->left && !node->right){	/* no child */
-		auto & n = node->p->left == node? node->p->left : node->p->right;
-		n = 0;
+	if(!node->left){	/* no left_child, replace with right_child(maybe null) */
+		bstree_transplant(root, node, node->right);
 		return 0;
 	}
-	/* both 2 childs */
-	if(node->left && node->right){
+	if(node->left && !node->right){ /* only left_child, replace with left_child */
+		bstree_transplant(root, node, node->left);
 		return 0;
 	}
 
-	/* one child */
-	auto & n = node->p->left == node? node->p->left : node->p->right;
-	n = node->left? node->left : node->right;
+	auto y = bstree_min(node->right);
+	if(y->p != node){
+		bstree_transplant(root, y, y->right);
+		y->right = node->right;
+		y->right->p = y;
+	}
+	bstree_transplant(root, node, y);
+	y->left = node->left;
+	y->left->p = y;
 
 	return 0;
 }
 
 /* verify if  @param root is a bst */
-int btree_debug_verrify(btree_node const * root)
+int bstree_debug_verrify(bstree_node const * root)
 {
 
 }
 
-void btree_inorder_walk(btree_node const * root)
+void bstree_inorder_walk(bstree_node const * root)
 {
 	if(!root)
 		return;
 
-	btree_inorder_walk(root->left);
+	bstree_inorder_walk(root->left);
 	fprintf(stdout, "%d, ", root->key);
-	btree_inorder_walk(root->right);
+	bstree_inorder_walk(root->right);
 }
 
 static int test_binary_search_tree_main_1(int argc, char ** argv)
 {
 	int NODE_SZ = 10;
-	btree_node nodes[NODE_SZ];
+	bstree_node nodes[NODE_SZ];
 
-	btree_node * tr = NULL;
+	bstree_node * tr = NULL;
 
-	fprintf(stdout, "%s: btree, init data: [", __FUNCTION__);
+	fprintf(stdout, "%s: bstree, init data: [", __FUNCTION__);
 	for(int i = 0; i < NODE_SZ; ++i){
 		nodes[i].left = nodes[i].right = nodes[i].p = 0;
 		nodes[i].key = rand() % 20;
 
 		fprintf(stdout, "%d, ", nodes[i].key);
 
-		btree_insert(tr, &nodes[i]);
+		bstree_insert(tr, &nodes[i]);
 	}
 	fprintf(stdout, "]\n");
 
-	fprintf(stdout, "%s: btree_inorder_walk: root=%d\n", __FUNCTION__, tr->key);
-	btree_inorder_walk(tr);
+	fprintf(stdout, "%s: bstree_inorder_walk: root=%d\n", __FUNCTION__, tr->key);
+	bstree_inorder_walk(tr);
 	fprintf(stdout, "\n");
 
 
-	auto maxn = btree_max(tr);
-	fprintf(stdout, "%s: btree_max=%d\n", __FUNCTION__, maxn->key);
+	auto maxn = bstree_max(tr);
+	fprintf(stdout, "%s: bstree_max=%d\n", __FUNCTION__, maxn->key);
 
-	auto minn = btree_min(tr);
-	fprintf(stdout, "%s: btree_min=%d\n", __FUNCTION__, minn->key);
+	auto minn = bstree_min(tr);
+	fprintf(stdout, "%s: bstree_min=%d\n", __FUNCTION__, minn->key);
 
 	int key = 12;
-	auto n = btree_search(tr, key);
+	auto n = bstree_search(tr, key);
 	if(n)
-		fprintf(stdout, "%s: btree_search, key=%d, left=%p(%d), right=%p(%d), parent=%p(%d)\n", __FUNCTION__,
+		fprintf(stdout, "%s: bstree_search, key=%d, left=%p(%d), right=%p(%d), parent=%p(%d)\n", __FUNCTION__,
 				key, n->left, n->left? n->left->key : -1, n->right, n->right? n->right->key : -1,
 				n->p, n->p? n->p->key : -1);
 	else
-		fprintf(stdout, "%s: btree_search, key=%d, NOT found\n", __FUNCTION__, key);
+		fprintf(stdout, "%s: bstree_search, key=%d, NOT found\n", __FUNCTION__, key);
 
 
-	auto result = btree_delete(tr, n);
+	auto result = bstree_delete(tr, n);
 
 }
 
@@ -171,41 +190,41 @@ static int test_binary_search_tree_main_2(int argc, char ** argv)
 	int NODE_SZ = 10;
 
 	/* init bst with array */
-	btree_node * tr = NULL;
-	btree_node nodes[] = { {7}, {11}, {4}, {8}, {12}, {15}, {11}, {11}, {13}, {13} };
+	bstree_node * tr = NULL;
+	bstree_node nodes[] = { {7}, {11}, {4}, {8}, {12}, {15}, {11}, {11}, {13}, {13} };
 	for(auto & n : nodes){
-		if(btree_insert(tr, &n) != 0)
+		if(bstree_insert(tr, &n) != 0)
 			return -1;
 	}
 
-	fprintf(stdout, "%s: btree, init data: [", __FUNCTION__);
+	fprintf(stdout, "%s: bstree, init data: [", __FUNCTION__);
 	for(int i = 0; i < NODE_SZ; ++i){
 		fprintf(stdout, "%d, ", nodes[i].key);
 	}
 	fprintf(stdout, "]\n");
 
-	fprintf(stdout, "%s: btree_inorder_walk: root=%d\n", __FUNCTION__, tr->key);
-	btree_inorder_walk(tr);
+	fprintf(stdout, "%s: bstree_inorder_walk: root=%d\n", __FUNCTION__, tr->key);
+	bstree_inorder_walk(tr);
 	fprintf(stdout, "\n");
 
 
-	auto maxn = btree_max(tr);
-	fprintf(stdout, "%s: btree_max=%d\n", __FUNCTION__, maxn->key);
+	auto maxn = bstree_max(tr);
+	fprintf(stdout, "%s: bstree_max=%d\n", __FUNCTION__, maxn->key);
 
-	auto minn = btree_min(tr);
-	fprintf(stdout, "%s: btree_min=%d\n", __FUNCTION__, minn->key);
+	auto minn = bstree_min(tr);
+	fprintf(stdout, "%s: bstree_min=%d\n", __FUNCTION__, minn->key);
 
 	int key = 12;
-	auto n = btree_search(tr, key);
+	auto n = bstree_search(tr, key);
 	if(n)
-		fprintf(stdout, "%s: btree_search, key=%d, left=%p(%d), right=%p(%d), parent=%p(%d)\n", __FUNCTION__,
+		fprintf(stdout, "%s: bstree_search, key=%d, left=%p(%d), right=%p(%d), parent=%p(%d)\n", __FUNCTION__,
 				key, n->left, n->left? n->left->key : -1, n->right, n->right? n->right->key : -1,
 				n->p, n->p? n->p->key : -1);
 	else
-		fprintf(stdout, "%s: btree_search, key=%d, NOT found\n", __FUNCTION__, key);
+		fprintf(stdout, "%s: bstree_search, key=%d, NOT found\n", __FUNCTION__, key);
 
 
-	auto result = btree_delete(tr, n);
+	auto result = bstree_delete(tr, n);
 
 }
 
