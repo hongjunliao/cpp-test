@@ -90,9 +90,10 @@ static void bstree_transplant(bstree_node *& root, bstree_node const * u, bstree
 {
 	if(!u->p)
 		root = v;
-
-	auto & n = u->p->left == u? u->p->left : u->p->right;
-	n = v;
+	else{
+		auto & n = u->p->left == u? u->p->left : u->p->right;
+		n = v;
+	}
 
 	if(v)
 		v->p = u->p;
@@ -108,11 +109,11 @@ int bstree_delete(bstree_node *& root, bstree_node const * node)
 		bstree_transplant(root, node, node->right);
 		return 0;
 	}
-	if(node->left && !node->right){ /* only left_child, replace with left_child */
+	if(!node->right){ /* only left_child, replace with left_child */
 		bstree_transplant(root, node, node->left);
 		return 0;
 	}
-
+	/* both left and right child */
 	auto y = bstree_min(node->right);
 	if(y->p != node){
 		bstree_transplant(root, y, y->right);
@@ -132,6 +133,18 @@ int bstree_debug_verrify(bstree_node const * root)
 
 }
 
+/* a sample bstree,
+ * if we put all nodes to one line, from left node to right node:
+ *            ___5___
+ *           /       \
+ *          3         9
+ *         /  \      /  \
+ *        1    4    7   12
+ *        | |  | |  | | |
+ *        | |  | |  | | |
+ *        1 3  4 5  7 9 12
+ * as you can see, all nodes sorted ASC, this is "inorder walk" !!!
+ */
 void bstree_inorder_walk(bstree_node const * root)
 {
 	if(!root)
@@ -142,6 +155,7 @@ void bstree_inorder_walk(bstree_node const * root)
 	bstree_inorder_walk(root->right);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 static int test_binary_search_tree_main_1(int argc, char ** argv)
 {
 	int NODE_SZ = 10;
