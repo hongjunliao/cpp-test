@@ -17,9 +17,12 @@ typedef int(*test_main_fn)(int argc, char * argv[]);
 
 /* plcdn_la_ngx_log_fmt.cpp */
 extern int test_ngx_parse_nginx_log_format_main(int argc, char ** argv);
-
 /* test_binary_search_tree.cpp */
 extern int test_binary_search_tree_main(int argc, char ** argv);
+/* radix_tree.cpp */
+extern int test_radix_tree_main(int argc, char ** argv);
+/* bs23tree.cpp */
+int test_bs23tree_main(int argc, char ** argv);
 
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
@@ -39,7 +42,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"select",test_select_main},
 			{"spice-server",test_spice_server_main},
 			{SPICE_SERVER_CHANNEL_PLAYBACK,test_libspice_server_channel_playback_main},
-			{"gio",test_gio_main},
+			{"gio",test_gio{"radix", test_radix_tree_main},_main},
 			{"coroutine",test_coroutine_main},
 			{"libspice-client-gtk",test_libspice_client_gtk_main},
 			{"gdkpixbuf",test_gdkpixbuf_main},
@@ -64,6 +67,8 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"chess", chess_test_main},
 			{"nginx_log_fmt", test_ngx_parse_nginx_log_format_main},
 			{"bst", test_binary_search_tree_main},
+			{"radix", test_radix_tree_main},
+			{"bs23t", test_bs23tree_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 
