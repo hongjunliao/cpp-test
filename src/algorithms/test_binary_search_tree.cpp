@@ -36,6 +36,13 @@ bstree_node * bstree_min(bstree_node * root)
 	return root;
 }
 
+/* node count for tree @param root */
+size_t bstree_node_count(bstree_node const * root)
+{
+	if(!root)
+		return 0;
+	return bstree_node_count(root->left) + bstree_node_count(root->right) + 1;
+}
 /* @param root maybe null, in this condition, @param node becomes the root
  * @return: 0 on success */
 int bstree_insert(bstree_node *& root, bstree_node * node)
@@ -64,6 +71,20 @@ int bstree_insert(bstree_node *& root, bstree_node * node)
 	return 0;
 }
 
+/* override function, recursive */
+int bstree_insert_recursive(bstree_node *& root, bstree_node * node)
+{
+	if(!node)
+		return -1;
+	if(!root){
+		root = node;
+		return 0;
+	}
+	if(node->key < root->key)
+		return bstree_insert_recursive(root->left, node);
+	return bstree_insert_recursive(root->right, node);
+}
+
 bstree_node const * bstree_search(bstree_node const * root, int key)
 {
 	auto x = root;
@@ -82,7 +103,7 @@ bstree_node const * bstree_search_recursive(bstree_node const * root, int key)
 	if(!root || key == root->key)
 		return root;
 
-	if(key <= root->key)
+	if(key < root->key)
 		return bstree_search(root->left, key);
 
 	return bstree_search(root->right, key);
