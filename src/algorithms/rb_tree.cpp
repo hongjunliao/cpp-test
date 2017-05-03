@@ -16,22 +16,15 @@
  *    我们将用这种方式表示2-3树的二叉查找树称为红黑二叉查找树(简称红黑树)
  * (3)一个结点的颜色指的是指向该结点的链接的颜色
  */
-struct rbtree_node {
-	rbtree_node * left;     /* left child */
-	rbtree_node * right;    /* right child */
-	rbtree_node * p;	    /* parent */
-
-	bool red;				/* true if read, else black */
-
-	int key;
-};
+#include "node_pool.h"	/* node_pool */
+#include "rb_tree.h"	/* rb_tree */
+#include <stdio.h>
 
 /* left_rotate
  * NOTES: @param node MUST have right_child
- * @return 0 on success
+ * @return root node of the rotated subtree
  * */
-static int rbtree_left_rotate(rbtree_node *& root, rbtree_node * node);
-
+static rbtree_node * rbtree_left_rotate(rbtree_node *& root, rbtree_node * x);
 
 /* sample bstree left_rotate, for node 11:
  *            ___7___                           ___7_____
@@ -46,10 +39,10 @@ static int rbtree_left_rotate(rbtree_node *& root, rbtree_node * node);
  *                              /
  *                             20
  */
-static int rbtree_left_rotate(rbtree_node *& root, rbtree_node * x)
+static rbtree_node * rbtree_left_rotate(rbtree_node *& root, rbtree_node * x)
 {
 	if(!x || !x->right)
-		return -1;
+		return x;
 
 	auto y = x->right;
 	/* turn y's left to x's right */
@@ -67,10 +60,87 @@ static int rbtree_left_rotate(rbtree_node *& root, rbtree_node * x)
 	/* put x on y's left */
 	y->left = x;
 	x->p = y;
+
+	y->red = x->red;
+	x->red	= true;
+
+	return y;
 }
 
+static void rbtree_flipcolor(rb_tree & tr, rbtree_node * node)
+{
+	node->red = true;
+	node->left->red = node->right->red = false;
+}
+
+static rbtree_node * rbtree_insert(rb_tree & tr, int key)
+{
+	if(!tr.root){
+		auto node = tr.node_alloc(tr.pool);
+		node->key = key;
+		tr.root = node;
+		return node;
+	}
+
+	rbtree_node * p = 0;
+	for(auto x = tr.root; x; ){
+		p = x;
+
+		if(key < x->key)
+			x = x->left;
+		else
+			x = x->right;
+	}
+
+	auto node = tr.node_alloc(tr.pool);
+	node->key = key;
+	node->red = true;	/* new rode is red */
+
+	if(key < p->key)
+		p->left = node;
+	else
+		p->right = node;
+
+	/* rotate and change colors */
+	for(auto x = p; x != tr.root;){
+		if(!p->right)
+			break;
+		if(p->right->red && !p->right->right && (!p->left || !p->left->red)){
+			rbtree_left_rotate(tr.root, tr.root);
+			break;
+		}
+	}
+
+	tr.root->red = false;	/* root is red */
+	return node;
+}
+
+static void rbtree_inorder_walk(rbtree_node const * root)
+{
+	if(!root)
+		return;
+
+	rbtree_inorder_walk(root->left);
+	fprintf(stdout, "%d, ", root->key);
+	rbtree_inorder_walk(root->right);
+}
 
 int test_rbtree_main(int argc, char ** argv)
 {
+	int keys[] = {7, 4, 11, 3, 6, 9, 18, 2, 14, 19, 12, 17, 22, 20};
+	rb_tree tr { 0 };
+	tr.node_alloc = node_alloc;
+
+	for(auto i : keys)
+		rbtree_insert(tr, i);
+
+	if(tr.root){
+		fprintf(stdout, "%s: rbtree_inorder_walk, root=%d, [", __FUNCTION__, tr.root->key);
+		rbtree_inorder_walk(tr.root);
+		fprintf(stdout, "]\n");
+	}
+	else
+		fprintf(stdout, "empty rbtree\n");
+
 	return -1;
 }

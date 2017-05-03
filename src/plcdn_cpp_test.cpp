@@ -22,7 +22,9 @@ extern int test_binary_search_tree_main(int argc, char ** argv);
 /* radix_tree.cpp */
 extern int test_radix_tree_main(int argc, char ** argv);
 /* bs23tree.cpp */
-int test_bs23tree_main(int argc, char ** argv);
+extern int test_bs23tree_main(int argc, char ** argv);
+/* rb_tree.cpp */
+extern int test_rbtree_main(int argc, char ** argv);
 
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
@@ -69,6 +71,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"bst", test_binary_search_tree_main},
 			{"radix", test_radix_tree_main},
 			{"bs23t", test_bs23tree_main},
+			{"rbtree", test_rbtree_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 
