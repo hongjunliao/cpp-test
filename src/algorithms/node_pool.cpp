@@ -2,7 +2,7 @@
 #include "rb_tree.h"	/* rbtree_node */
 #include <stdio.h>
 
-rbtree_node * node_alloc(node_pool & p)
+rbtree_node * node_alloc(node_pool & p, int key, bool red)
 {
 //	fprintf(stdout, "%s:\n", __FUNCTION__);
 	if(p.i == 32){
@@ -17,10 +17,11 @@ rbtree_node * node_alloc(node_pool & p)
 	if(p.j == RTR_POOL_N)
 		p.j = 0;
 
-	auto pp = (rbtree_node **)p.n;
-	auto ret = &pp[p.i - 1][p.j++];
+	auto ret = &((rbtree_node **)p.n)[p.i - 1][p.j++];
+	ret->left = ret->right = ret->p = 0;
+	ret->key = key;
+	ret->red = red;
 
-//	fprintf(stdout, "%s:\n", __FUNCTION__);
 	return ret;
 }
 

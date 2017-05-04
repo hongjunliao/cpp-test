@@ -25,6 +25,8 @@ extern int test_radix_tree_main(int argc, char ** argv);
 extern int test_bs23tree_main(int argc, char ** argv);
 /* rb_tree.cpp */
 extern int test_rbtree_main(int argc, char ** argv);
+/* test_opengl.cpp */
+extern int test_opengl_main(int argc, char ** argv);
 
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
@@ -65,6 +67,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"plcdn_log_split", test_plcdn_log_split_main},
 			{"cpp11", test_cpp11_main},
 			{"opencv", test_opencv_main},
+			{"opengl", test_opengl_main},
 			{"plcdn_logtrans", test_nginx_transform_log_main_2},
 			{"chess", chess_test_main},
 			{"nginx_log_fmt", test_ngx_parse_nginx_log_format_main},
