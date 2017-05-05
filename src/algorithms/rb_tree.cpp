@@ -19,12 +19,14 @@
 
 #include "rb_tree.h"	/* rb_tree */
 #include <stdio.h>
-
+#include <string.h>	    /* strlen */
 /* left_rotate
  * NOTES: @param node MUST have right_child
  * @return root node of the rotated subtree
  * */
-static rbtree_node * rbtree_left_rotate(rbtree_node *& root, rbtree_node * x);
+static rbtree_node * rbtree_left_rotate(rb_tree & tr, rbtree_node * x);
+static rbtree_node * rbtree_right_rotate(rb_tree & tr, rbtree_node * x);
+/* tree_print.cpp */
 extern void rbtree_draw_to_term(rb_tree const& tr);
 
 /* sample bstree left_rotate, for node 11:
@@ -95,7 +97,7 @@ static rbtree_node * rbtree_right_rotate(rb_tree & tr, rbtree_node * x)
 
 static void rbtree_flipcolor(rbtree_node * node)
 {
-	node->red = true;
+	node->red = (node->p);
 	node->left->red = node->right->red = false;
 }
 
@@ -110,7 +112,7 @@ static rbtree_node * rbtree_insert(rb_tree & tr, int key)
 {
 	/* empty tree, first add root and return */
 	if(!tr.root){
-		auto node = tr.node_alloc(tr.pool, key, false);	/* root always black */
+		auto node = tr.node_new(tr.pool, key, false);	/* root always black */
 		tr.root = node;
 		return node;
 	}
@@ -126,7 +128,7 @@ static rbtree_node * rbtree_insert(rb_tree & tr, int key)
 	}
 
 	/* insert the new node */
-	auto node = tr.node_alloc(tr.pool, key, true); /* new rode is always red */
+	auto node = tr.node_new(tr.pool, key, true); /* new rode is always red */
 	if(key < y->key)
 		y->left = node;
 	else
@@ -134,21 +136,20 @@ static rbtree_node * rbtree_insert(rb_tree & tr, int key)
 	node->p = y;
 
 	/* rotate and change colors, to make it a rbtree */
-	tr.root->red = true;
 	for(auto p = node->p; p;){
 		/* (1)new node is on right of an 3-node */
 		if(rbtree_is_red(p->left) && rbtree_is_red(p->right)){
-			rbtree_flipcolor(p); /* (2)transmit red to parent */
-			p = p->p;
+			rbtree_flipcolor(p);
+			p = p->p; /* (2)transmit red to parent */
 			continue;
 		}
 		/* (3)new node is on left of an 3-node, change to (1) */
-		if(rbtree_is_red(p->left) && (p->p && p->p->left == p)){
+		if(rbtree_is_red(p->left) && (p->red && p->p && p->p->left == p)){
 			p = rbtree_right_rotate(tr, p->p);
 			continue;
 		}
 		/* (4)new node is on middle of an 3-node, change to (3) */
-		if(rbtree_is_red(p->right) && (p->p && p->p->left == p)){
+		if(rbtree_is_red(p->right) && (p->red && p->p && p->p->left == p) ){
 			p = rbtree_left_rotate(tr, p);
 			continue;
 		}
@@ -157,13 +158,12 @@ static rbtree_node * rbtree_insert(rb_tree & tr, int key)
 			p = rbtree_left_rotate(tr, p);
 			continue;
 		}
+		/* reached a none-3-node, just break */
 		break;
 	}
-	tr.root->red = false;	/* reset root to red */
 
 	return node;
 }
-
 
 static void rbtree_inorder_walk(rbtree_node const * root)
 {
@@ -175,15 +175,34 @@ static void rbtree_inorder_walk(rbtree_node const * root)
 	rbtree_inorder_walk(root->right);
 }
 
+static void rbtree_init(char const  * buf, size_t len, rb_tree & tr)
+{
+	for(size_t i = 0; i < len; ++i){
+		rbtree_insert(tr, buf[i]);
+	}
+}
+
+static void rbtree_init(FILE * in, rb_tree & tr)
+{
+	char buf[1024];
+	while(fgets(buf, sizeof(buf), in)){
+		rbtree_init(buf, strlen(buf) - 1, tr);
+	}
+}
+
+/* shell cmd: echo "SEARCHXMPL" | ./cpp-test-main rbtree */
 int test_rbtree_main(int argc, char ** argv)
 {
 //	int keys[] = {'S', 'E', 'A', 'R', 'C', 'H', 'X', 'M', 'P', 'L', };
-	int keys[] = {'A', 'C', 'E', 'H', 'L', 'M', 'P', 'R', 'S', 'X', };
+//	int keys[] = {'A', 'C', 'E', 'H', 'L', 'M', 'P', 'R', 'S', 'X', };
+//	auto keys = "SEARCHXMPL";
+//	auto keys = "ACEHLMPRSX";
 	rb_tree tr { 0 };
-	tr.node_alloc = node_alloc;
+	tr.node_new = node_alloc;
 
-	for(auto i : keys)
-		rbtree_insert(tr, i);
+	rbtree_init(stdin, tr);
+//	for(auto i : keys)
+//		rbtree_insert(tr, i);
 
 
 	if(tr.root){

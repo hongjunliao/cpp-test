@@ -17,14 +17,13 @@ struct rbtree_node {
 	bool red;				/* true if red, else black */
 };
 
-#define RBTREE_NODE(key)   (rbtree_node{ 0, 0, 0, key, true })
-
 struct node_pool;
 
 struct rb_tree {
 	rbtree_node * root;
 	node_pool pool;
-	rbtree_node * (*node_alloc)(node_pool & p, int key, bool red);
+	rbtree_node * (*node_new)(node_pool & p, int key, bool red);
+	void (*node_del)(rbtree_node *);
 };
 
 #endif /* HONGJUN_LIAO_RB_TREE_H_ */

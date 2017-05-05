@@ -17,11 +17,24 @@ static bool comp_by_vec_size(std::vector<rbtree_node * > const& a,
 	return a.size() < b.size();
 }
 
+static int bstree_left_nodes(rbtree_node const * node)
+{
+	if(!node)
+		return 0;
+
+	int n = 0;
+	while(node->left){
+		++n;
+		node = node->left;
+	}
+	return n;
+}
+
 /* print bstree to terminal, like this:
- *      _____H______
- *  ____C___    ____R_____
- *  A      E __M__      __X
- *           L    P    S
+ * H
+ * C(H), (H)R
+ * A(C), (C)E, M(R), (R)X
+ * L(M), (M)P, S(X)
  */
 void rbtree_draw_to_term(rb_tree const& tr)
 {
@@ -33,16 +46,20 @@ void rbtree_draw_to_term(rb_tree const& tr)
     std::queue<rbtree_node *> nodes;
     nodes.push(tr.root);
 
-    std::vector<rbtree_node * > vec[30];
-    int n = 0;
-
     curLayerCount++;
     while(!nodes.empty()){
     	auto p = nodes.front();
     	nodes.pop();
         curLayerCount--;
 
-        vec[n].push_back(p);
+        if(!p->p)
+        	fprintf(stdout, "%c", p->key);
+        else if(p->p->left == p)
+        	fprintf(stdout, "%c(%c) ", p->key, p->p->key);
+        else if(p->p->right == p)
+        	fprintf(stdout, "(%c)%c ", p->p->key, p->key);
+        else
+        	fprintf(stdout, "%c", p->key);
 
         if (p->left){
             nodes.push(p->left);
@@ -56,32 +73,7 @@ void rbtree_draw_to_term(rb_tree const& tr)
             curLayerCount = nextLayerCount;
             nextLayerCount = 0;
 
-            ++n;
+            fprintf(stdout, "\n");
         }
-    }
-    /* find layer where nodes count max */
-    auto it = std::max_element(std::begin(vec), std::end(vec), comp_by_vec_size);
-    if(it == std::end(vec))
-    	return;
-
-    int nchars = it->size() * 2;	/* every node at least 3 chars */
-    fprintf(stdout, "%s: n=%d, max_nodes=%zu, nchars=%d\n", __FUNCTION__, n, it->size(), nchars);
-    for(int i = 0; i < n; ++i){
-
-    	char line[1024 * 5];
-    	line[0] = '\0';
-
-    	int nc = nchars / vec[i].size() / 2 ;
-    	for(auto & node : vec[i]){
-    		char s[1024];
-    		std::string pad(nc, '_'), pad2 = pad;
-    		pad2.insert(0, std::string(it->size() - vec[i].size() + 1, ' '));
-    		sprintf(s, "%s%c%s", pad2.c_str(), node->key, pad.c_str());
-    		strcat(line, s);
-
-//    		fprintf(stdout, "%s: padding='%s', fmt='%s', s='%s'\n", __FUNCTION__, pad.c_str(), fmt, s);
-    	}
-
-    	printf("%s\n", line);
     }
 }
