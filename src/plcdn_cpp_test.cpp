@@ -27,6 +27,8 @@ extern int test_bs23tree_main(int argc, char ** argv);
 extern int test_rbtree_main(int argc, char ** argv);
 /* test_opengl.cpp */
 extern int test_opengl_main(int argc, char ** argv);
+/* graph.cpp */
+extern int test_graph_main(int argc, char ** argv);
 
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
@@ -75,6 +77,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"radix", test_radix_tree_main},
 			{"bs23t", test_bs23tree_main},
 			{"rbtree", test_rbtree_main},
+			{"graph", test_graph_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 

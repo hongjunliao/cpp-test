@@ -11,25 +11,6 @@
 #include <vector>	  /* std::vector */
 #include <algorithm>  /* std::max_element */
 
-static bool comp_by_vec_size(std::vector<rbtree_node * > const& a,
-		std::vector<rbtree_node * > const& b)
-{
-	return a.size() < b.size();
-}
-
-static int bstree_left_nodes(rbtree_node const * node)
-{
-	if(!node)
-		return 0;
-
-	int n = 0;
-	while(node->left){
-		++n;
-		node = node->left;
-	}
-	return n;
-}
-
 /* print bstree to terminal, like this:
  * H
  * C(H), (H)R
@@ -52,14 +33,17 @@ void rbtree_draw_to_term(rb_tree const& tr)
     	nodes.pop();
         curLayerCount--;
 
+        char buf[512];
         if(!p->p)
-        	fprintf(stdout, "%c", p->key);
+        	fprintf(stdout, "%s", tr.node_c_str(p->data, buf, sizeof(buf)));
         else if(p->p->left == p)
-        	fprintf(stdout, "%c(%c) ", p->key, p->p->key);
+        	fprintf(stdout, "%s(%s) ", tr.node_c_str(p->data, buf, sizeof(buf)),
+        			tr.node_c_str(p->p->data, buf, sizeof(buf)));
         else if(p->p->right == p)
-        	fprintf(stdout, "(%c)%c ", p->p->key, p->key);
+        	fprintf(stdout, "(%s)%s ", tr.node_c_str(p->p->data, buf, sizeof(buf)),
+        			tr.node_c_str(p->data, buf, sizeof(buf)));
         else
-        	fprintf(stdout, "%c", p->key);
+        	fprintf(stdout, "%s", tr.node_c_str(p->data, buf, sizeof(buf)));
 
         if (p->left){
             nodes.push(p->left);

@@ -16,6 +16,7 @@ struct node_pool {
 
 struct rbtree_node;
 
-rbtree_node * node_alloc(node_pool & p, int key, bool red);
+void node_pool_init(node_pool & p);
+rbtree_node * node_new(node_pool & p, void * data);
 
 #endif /* HONGJUN_LIAO_NODE_POOL_H_ */

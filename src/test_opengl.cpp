@@ -1,6 +1,9 @@
 /*!
  * test for opengl
  * @author hongjun.liao <docici@126.com>, @date 2016/05/04
+ *
+ * install: freeglut3-dev
+ * link:    -lglut
  * */
 #include <stdio.h>
 #if 1
