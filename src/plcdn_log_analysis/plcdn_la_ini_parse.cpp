@@ -18,6 +18,9 @@
 #include <string.h>	         /* strrchr */
 #include "plcdn_la_conf.h"   /* plcdn_la_conf */
 
+/* plcdn_la_option.cpp */
+extern int g_verbose;
+
 struct strl_t{
 	char const * data;
 	size_t len;
@@ -86,7 +89,8 @@ int plcdn_la_parse_config_file(char const *f, plcdn_la_conf_t & conf)
 {
 	if(access(f, F_OK) != 0)
 		return -1;
-//	fprintf(stdout, "%s: __________'%s'________\n", __FUNCTION__, f);
+	if(g_verbose > 0)
+		fprintf(stdout, "%s: reading config file '%s'\n", __FUNCTION__, f);
 	namespace pt = boost::property_tree;
 	try{
 		pt::read_ini(f, conf.impl);

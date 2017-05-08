@@ -37,6 +37,12 @@ struct ngx_log_format {
 	int upstream_addr;
 	int log_cache_uri;
 
+	int header_start_msec;
+	int upstream_status;
+	int upstream_total_received;
+	int upstream_response_msec;
+	int log_server_addr;
+
 	/* index for sub items in nginx log format, e.g. format:
 	 *
 	 * '$host $remote_addr $request_time_msec $upstream_cache_status [$time_local] \
@@ -51,6 +57,7 @@ struct ngx_log_format {
 	int n_sub;
 };
 
+#define is_ngx_log_format_ok(field) (field > -1)
 /*plcdn_la: plcdn_log_analysis*/
 struct plcdn_la_options
 {
@@ -145,6 +152,10 @@ struct plcdn_la_options
 /*plcdn_log_analysis/option.cpp*/
 void plcdn_la_options_fprint(FILE * stream, plcdn_la_options const * opt);
 int plcdn_la_parse_options(int argc, char ** argv);
+/* parse only for -v/--verbose
+ * @return: 0 on success */
+int plcdn_la_parse_options_verbose(int argc, char ** argv);
+
 void plcdn_la_show_help(FILE * stream);
 void plcdn_la_show_usage(FILE * stream);
 

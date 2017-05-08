@@ -50,6 +50,8 @@ int get_if_addrs(char *ips, int & count, int sz)
 
 uint32_t netutil_get_ip_from_str(char const * ipstr)
 {
+	if(!ipstr)
+		return 0;
 	struct in_addr inaddr;
 	if(inet_pton(AF_INET, ipstr, (void *)&inaddr) != 1)
 		return 0;

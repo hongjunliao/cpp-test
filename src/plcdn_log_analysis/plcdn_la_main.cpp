@@ -115,7 +115,15 @@ int g_plcdn_la_device_id = 0;
 
 /* the default config filename */
 #define PLCDN_LA_DEF_CONF_FILE ".plcdn_la"
+/* the default nginx_log_format */
+#define PLCDN_LA_DEF_NGX_LOG_FMT \
+"$host $remote_addr $request_time_msec $upstream_cache_status [$time_local] " \
+"\"$request_method $request_uri $server_protocol\" $status $bytes_sent \"$http_referer\" " \
+"\"$remote_user\" - \"$http_user_agent\" $scheme $request_length $upstream_response_time " \
+"$start_response_time_msec $body_bytes_sent \"$http_x_forwarded_for\" \"$connection\" \"$server_addr\""
 
+/* plcdn_la_ngx_log_fmt.cpp */
+extern void ngx_parse_nginx_log_format(char const * str, ngx_log_format & fmt);
 /* plcdn_la_option.cpp */
 extern int reset_plcdn_la_options(plcdn_la_conf_t const& conf, plcdn_la_options& opt);
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -334,7 +342,8 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 //	return test_nginx_log_analysis_main(argc, argv);	/*for test only*/
 
 	g_plcdn_la_start_time = time(NULL);
-
+	plcdn_la_parse_options_verbose(argc, argv);
+	ngx_parse_nginx_log_format(PLCDN_LA_DEF_NGX_LOG_FMT, plcdn_la_opt.ngx_logfmt);
 	/* read default config file first, cmdline args always overwrite it */
 	plcdn_la_conf_t conf;
 	if(plcdn_la_parse_config_file(PLCDN_LA_DEF_CONF_FILE, conf) == 0)

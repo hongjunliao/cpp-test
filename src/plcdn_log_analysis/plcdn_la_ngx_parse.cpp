@@ -13,6 +13,8 @@
 #include "net_util.h"	        /*netutil_get_ip_str*/
 #include <boost/regex.hpp> 		/*boost::regex_match*/
 
+/* plcdn_la_option.cpp */
+extern int g_verbose;
 /* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
  * @param mode:
  * mode 0, url endwith ' ', reserve all, e.g. "POST /zzz.asp;.jpg HTTP/1.1", return "/zzz.asp;.jpg"
@@ -692,9 +694,11 @@ int do_parse_nginx_log_item(char** fields, char*& szitem, char const * v[2], std
 		}
 	}
 
-//	for(int i  = 0; i < field_count; ++i){
-//		fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
-//	}
+	if(g_verbose > 9){
+		for(int i  = 0; i < field_count; ++i){
+			fprintf(stdout, "%s: argv[%02d]: %s\n", __FUNCTION__, i, fields[i]);
+		}
+	}
 
 	return ch? -1 : 0;
 }
@@ -894,39 +898,53 @@ int parse_log_item(log_item & item, char *& logitem, char const * v[2], char del
 	}
 	item.end = logitem;
 
-	item.domain = items[fmt.host];
-	item.client_ip = netutil_get_ip_from_str(items[fmt.remote_addr]);
+	if(is_ngx_log_format_ok(fmt.site_id) && items[fmt.site_id])
+		item.site_id = atoi(items[fmt.site_id]);
+
+	if(is_ngx_log_format_ok(fmt.host))
+		item.domain = items[fmt.host];
+
+	if(is_ngx_log_format_ok(fmt.remote_addr))
+		item.client_ip = netutil_get_ip_from_str(items[fmt.remote_addr]);
 	if (item.client_ip == 0)
 		return 1;
 
 	char * end;
-	item.request_time = strtoul(items[fmt.request_time_msec], &end, 10);
+	if(is_ngx_log_format_ok(fmt.request_time_msec))
+		item.request_time = strtoul(items[fmt.request_time_msec], &end, 10);
 
 	tm my_tm;
-	if (!strptime(items[fmt.time_local], "%d/%b/%Y:%H:%M:%S %z", &my_tm))
-		return -1;
+	if(is_ngx_log_format_ok(fmt.time_local) && items[fmt.time_local]){
+		if (!strptime(items[fmt.time_local], "%d/%b/%Y:%H:%M:%S %z", &my_tm))
+			return -1;
+	}
 	item.time_local = mktime(&my_tm);
 
-	item.request_method = items[fmt.request_method];
-	item.request_url = items[fmt.request_uri];
+	if(is_ngx_log_format_ok(fmt.request_method))
+		item.request_method = items[fmt.request_method];
+	if(is_ngx_log_format_ok(fmt.request_uri))
+		item.request_url = items[fmt.request_uri];
 
-
-	char const * p = items[fmt.bytes_sent];
-	item.bytes_sent = strtoul(p, &end, 10);
-	item.status = atoi(items[fmt.status]);
-	item.is_hit = (nginx_log_item_is_hit(opt.nginx_hit, items[fmt.upstream_cache_status]) == 0);
-	if(items[fmt.start_response_time_msec])
-		item.response_time =  atoi(items[fmt.start_response_time_msec]);
+	if(is_ngx_log_format_ok(fmt.bytes_sent) && items[fmt.bytes_sent]){
+		char const * p = items[fmt.bytes_sent];
+		item.bytes_sent = strtoul(p, &end, 10);
+	}
+	if(is_ngx_log_format_ok(fmt.status))
+		item.status = atoi(items[fmt.status]);
+	if(is_ngx_log_format_ok(fmt.upstream_cache_status))
+		item.is_hit = (nginx_log_item_is_hit(opt.nginx_hit, items[fmt.upstream_cache_status]) == 0);
+	if(is_ngx_log_format_ok(fmt.header_start_msec) && items[fmt.header_start_msec])
+		item.response_time =  atoi(items[fmt.header_start_msec]);
 
 	/* http_referer */
-	if(items[fmt.http_referer]){
+	if(is_ngx_log_format_ok(fmt.http_referer) && items[fmt.http_referer]){
 		str_t domain;
 		if(parse_domain_from_url(items[fmt.http_referer], &domain) == 0)
 			item.href_domain = domain;
 	}
 
 	/* http_user_agent */
-	if(items[fmt.http_user_agent]){
+	if(is_ngx_log_format_ok(fmt.http_user_agent) && items[fmt.http_user_agent]){
 		item.ua = { items[fmt.http_user_agent], items[fmt.http_user_agent] + strlen(items[fmt.http_user_agent]) };
 	}
 	return 0;

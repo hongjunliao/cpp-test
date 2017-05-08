@@ -27,6 +27,7 @@ class cutip_group;
 //////////////////////////////////////////////////////////////////////////////////
 /*a line of nginx log*/
 struct log_item{
+	int site_id;
 	char * beg, * end;	/*raw*/
 	char const * domain;
 	time_t time_local;

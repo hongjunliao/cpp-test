@@ -6,6 +6,8 @@
 #include "plcdn_la_conf.h"	    /* plcdn_la_conf_t */
 #include <boost/regex.hpp> 		/*boost::regex_match*/
 
+/* TODO: remove plcdn_la_options.verbose and use this one only */
+int g_verbose = 0;
 /*main.cpp*/
 extern time_t g_plcdn_la_start_time;
 
@@ -131,6 +133,12 @@ struct plcdn_la_options plcdn_la_opt = {
 				.site_id = -1,
 				.upstream_addr = -1,
 				.log_cache_uri = -1,
+
+				.header_start_msec = -1,
+				.upstream_status = -1,
+				.upstream_total_received = -1,
+				.upstream_response_msec = -1,
+				.log_server_addr = -1,
 
 				.sub_items = { 0 },
 				.n_sub = 0,
@@ -307,14 +315,26 @@ int reset_plcdn_la_options(plcdn_la_conf_t const& conf, plcdn_la_options& opt)
 	return 0;
 }
 
+int plcdn_la_parse_options_verbose(int argc, char ** argv)
+{
+	for(int i = 0; i < argc; ++i){
+		auto len = strlen(argv[i]);
+		if((strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) && i + 1 < argc)
+			g_verbose = atoi(argv[i + 1]);
+		else if(len > 2 && strncmp(argv[i], "-v", 2) == 0)
+			g_verbose = atoi(argv[i] + 2);
+	}
+	plcdn_la_opt.verbose = g_verbose;
+	return 0;
+}
+
 int plcdn_la_parse_options(int argc, char ** argv)
 {
 	if(pc)
 		poptFreeContext(pc);
-	pc = poptGetContext("plcdn_log_analysis", argc, (const char **)argv, plcdn_la_popt, 0);
+	pc = poptGetContext("plcdn_la", argc, (const char **)argv, plcdn_la_popt, 0);
 	for(int opt; (opt = poptGetNextOpt(pc)) != -1; ){
 		switch(opt){
-		case 'v': plcdn_la_opt.verbose = atoi(poptGetOptArg(pc)); break;
 		case '7': {
 			plcdn_la_opt.config_file = poptGetOptArg(pc);
 			plcdn_la_conf_t conf;

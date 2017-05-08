@@ -32,5 +32,8 @@ RemoteUrlKey=/home/jun/yong.lu/nginx/RemoteUrlKey/
 LocaleUrlKey=/home/jun/yong.lu/nginx/LocaleUrlKey/
 #客户来源分析目录
 IPSourceStats=/home/jun/yong.lu/nginx/IPSource/
-#nginx log format
-nginx_log_format=$site_id $host $remote_addr $request_time_msec $upstream_cache_status [$time_local] "$request_method $request_uri $server_protocol" "$log_cache_uri" $status $bytes_sent "$http_referer" "$remote_user" "$upstream_addr" "$http_user_agent" $scheme $request_length $upstream_response_time $start_response_time_msec $body_bytes_sent "$http_x_forwarded_for" "$connection" "$server_addr"
+#nginx log format, v1.10.3, this is the default
+#nginx_log_format=$host $remote_addr $request_time_msec $upstream_cache_status [$time_local] "$request_method $request_uri $server_protocol" $status $bytes_sent "$http_referer" "$remote_user" - "$http_user_agent" $scheme $request_length $upstream_response_time $start_response_time_msec $body_bytes_sent "$http_x_forwarded_for" "$connection" "$server_addr"
+#nginx log format, v1.12.0
+nginx_log_format=$site_id $host $remote_addr $header_start_msec $request_time_msec $bytes_sent $upstream_cache_status [$time_local] "$request_method $request_uri $server_protocol" "$log_cache_uri" $status $scheme $request_length $body_bytes_sent "$http_referer" "$remote_user" "$upstream_addr" "$upstream_status" $upstream_total_received $upstream_response_msec "$http_user_agent" "$http_x_forwarded_for" $connection $log_server_addr
+

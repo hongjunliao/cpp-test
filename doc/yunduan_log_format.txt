@@ -1,12 +1,6 @@
 本文档由hongjun.liao <docici@126.com>创建, 于2017/05/03
 注: 本文档数据来源于领导(钟旭)
 
-云端新计费格式
-$site_id $host $remote_addr $header_start_msec $request_time_msec $bytes_sent $upstream_cache_status 
-[$time_local] "$request_method $request_uri $server_protocol" "$log_cache_uri" $status $scheme 
-$request_length $body_bytes_sent "$http_referer" "$remote_user" "$upstream_addr" "$upstream_status" 
-$upstream_total_received $upstream_response_msec "$http_user_agent" "$http_x_forwarded_for" $connection $log_server_addr'
-
 日志字段说明:
 0  $site_id			        该节点配置了域名的域名ID，如果未配置的域名将取默认值'-'，对于内部使用的虚域名可以设为0
 1  $host		            用户访问的域名
@@ -36,3 +30,9 @@ $upstream_total_received $upstream_response_msec "$http_user_agent" "$http_x_for
 23 $http_x_forwarded_for	用户方式时"X-Forwarded-For: "头信息，如果用户采用的是代理服务器访问时，该值可能是客户的真实IP
 24 $connection			    NGINX的连接流水号 
 25 $log_server_addr		    节点的主IP地址
+
+#nginx log format, v1.10.3, this is the default
+$host $remote_addr $request_time_msec $upstream_cache_status [$time_local] "$request_method $request_uri $server_protocol" $status $bytes_sent "$http_referer" "$remote_user" - "$http_user_agent" $scheme $request_length $upstream_response_time $start_response_time_msec $body_bytes_sent "$http_x_forwarded_for" "$connection" "$server_addr"
+#nginx log format, v1.12.0
+$site_id $host $remote_addr $header_start_msec $request_time_msec $bytes_sent $upstream_cache_status [$time_local] "$request_method $request_uri $server_protocol" "$log_cache_uri" $status $scheme $request_length $body_bytes_sent "$http_referer" "$remote_user" "$upstream_addr" "$upstream_status" $upstream_total_received $upstream_response_msec "$http_user_agent" "$http_x_forwarded_for" $connection $log_server_addr
+

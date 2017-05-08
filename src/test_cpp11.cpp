@@ -81,8 +81,15 @@ static int test_cpp11_unicode(int argc, char ** argv)
 	return 0;
 }
 /////////////////////////////////////////////////////////////////////////////
+
+struct s_with_array {
+	int arr[3];
+};
 int test_cpp11_main(int argc, char ** argv)
 {
+	s_with_array a, b;
+	b = a;
+
 	int arr[3] = {3};
 	for(int i = 0; i < 3; ++i)
 		fprintf(stdout, "%s: arr[%d] = %d\n", __FUNCTION__, i, arr[i]);
