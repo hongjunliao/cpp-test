@@ -21,7 +21,8 @@ struct node_pool;
 
 struct rb_tree {
 	rbtree_node * root;
-	node_pool pool;
+	node_pool     pool;
+
 	rbtree_node * (* node_new)(node_pool & p, void * data);
 	void (* node_del)(rbtree_node * node);
 	/* @return: if @param a < @param b, then <0, == then 0, else >0 */
@@ -29,11 +30,14 @@ struct rb_tree {
 	/* to string */
 	char const * (* node_c_str)(void const * a, char * buf, size_t len);
 
-	/* same as rbtree_search but insert new if not found */
-	rbtree_node * operator[](void * data);
+	/* free node data */
+	void (* node_data_free)(void * data);
 };
 
 rbtree_node * rbtree_insert(rb_tree & tr, void * data);
-rbtree_node * rbtree_search(rb_tree & tr, void * data);
+rbtree_node * rbtree_search(rb_tree const& tr, void * data);
+
+void rbtree_inorder_walk(rb_tree const& tr);
+void rbtree_inorder_walk(rb_tree const& tr, void ** nodes, int& len);
 
 #endif /* HONGJUN_LIAO_RB_TREE_H_ */

@@ -514,7 +514,7 @@ void plcdn_la_show_help(FILE * stream)
 			"    (9)http_referer_ua_table: '${datetime} ${device_id} ${site_id} ${user_id} ${domain} \\\n"
 			"                                 ${bytes_total} ${access_total} ${bytes_pc} ${access_pc} ${bytes_mobile} ${access_mobile}'\n"
 			"    for srs:\n"
-			"    (1)srs_flow_table:       '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
+			"    (1)srs_flow_table:        '${site_id} ${datetime} ${device_id} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'\n"
 			"  9.for srs log, currently supports 2 formats of trans_log, 0: official , 1: custom\n"
 			"    >>sample official_format: '[2016-12-07 14:49:54.057][trace][20308][105] <- CPB time=1980013, \\\n"
             "      okbps=0,0,0, ikbps=477,428,472, mr=0/350, p1stpt=20000, pnt=20000'\n"

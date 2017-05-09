@@ -109,7 +109,8 @@ rbtree_node * rbtree_insert(rb_tree & tr, void * data)
 		y = x;
 		auto r = tr.node_cmp(data, x->data);
 		if(r == 0){
-			tr.node_del(x);
+			if(tr.node_data_free)
+				tr.node_data_free(x->data);
 			x->data = data;
 			return x;
 		}
@@ -157,4 +158,49 @@ rbtree_node * rbtree_insert(rb_tree & tr, void * data)
 	}
 
 	return node;
+}
+
+static void rbtree_inorder_walk(rbtree_node const * root,
+		char const * (* fn)(void const * a, char * buf, size_t len))
+{
+	if(!root)
+		return;
+
+	rbtree_inorder_walk(root->left, fn);
+	char buf[32];
+	fprintf(stdout, "%s, ", fn(root->data, buf, 32));
+	rbtree_inorder_walk(root->right, fn);
+}
+
+static void rbtree_inorder_walk(rbtree_node const * root, void ** nodes, int& len)
+{
+	if(!root)
+		return;
+
+	rbtree_inorder_walk(root->left, nodes, len);
+	nodes[len++] = root->data;
+	rbtree_inorder_walk(root->right, nodes, len);
+}
+
+void rbtree_inorder_walk(rb_tree const& tr)
+{
+	return rbtree_inorder_walk(tr.root, tr.node_c_str);
+}
+
+void rbtree_inorder_walk(rb_tree const& tr, void ** nodes, int& len)
+{
+	len = 0;
+	return rbtree_inorder_walk(tr.root, nodes, len);
+}
+
+rbtree_node * rbtree_search(rb_tree const & tr, void * data)
+{
+	auto x = tr.root;
+	for(int r; x && (r = tr.node_cmp(data, x->data)) != 0; ){
+		if(r < 0)
+			x = x->left;
+		else
+			x = x->right;
+	}
+	return x;
 }

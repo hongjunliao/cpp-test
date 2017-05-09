@@ -19,7 +19,7 @@
  */
 void rbtree_draw_to_term(rb_tree const& tr)
 {
-	fprintf(stdout, "%s: \n", __FUNCTION__);
+//	fprintf(stdout, "%s:_____||\n", __FUNCTION__);
 
     int curLayerCount = 0; 	//当前层中的节点数
     int nextLayerCount = 0; //下一层中的节点数
@@ -33,15 +33,13 @@ void rbtree_draw_to_term(rb_tree const& tr)
     	nodes.pop();
         curLayerCount--;
 
-        char buf[512];
-        if(!p->p)
-        	fprintf(stdout, "%s", tr.node_c_str(p->data, buf, sizeof(buf)));
-        else if(p->p->left == p)
+        char buf[512], buf2[512];
+        if(p->p && p->p->left == p)
         	fprintf(stdout, "%s(%s) ", tr.node_c_str(p->data, buf, sizeof(buf)),
-        			tr.node_c_str(p->p->data, buf, sizeof(buf)));
-        else if(p->p->right == p)
+        			tr.node_c_str(p->p->data, buf2, sizeof(buf2)));
+        else if(p->p && p->p->right == p)
         	fprintf(stdout, "(%s)%s ", tr.node_c_str(p->p->data, buf, sizeof(buf)),
-        			tr.node_c_str(p->data, buf, sizeof(buf)));
+        			tr.node_c_str(p->data, buf2, sizeof(buf2)));
         else
         	fprintf(stdout, "%s", tr.node_c_str(p->data, buf, sizeof(buf)));
 
@@ -60,4 +58,6 @@ void rbtree_draw_to_term(rb_tree const& tr)
             fprintf(stdout, "\n");
         }
     }
+
+//    fprintf(stdout, "%s: end\n", __FUNCTION__);
 }
