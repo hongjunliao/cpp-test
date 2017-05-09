@@ -15,6 +15,9 @@
 
 /* plcdn_la_option.cpp */
 extern int g_verbose;
+/* plcdn_la_main.cpp */
+extern std::unordered_map<int, int> g_siteuid;
+
 /* parse nginx_log $request_uri field, return url, @param cache_status: MISS/MISS0/HIT,...
  * @param mode:
  * mode 0, url endwith ' ', reserve all, e.g. "POST /zzz.asp;.jpg HTTP/1.1", return "/zzz.asp;.jpg"
@@ -427,6 +430,35 @@ int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,
 	return 0;
 }
 
+int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist,
+		std::unordered_map<int, int>& siteuid)
+{
+	if(!file || !file[0]) return -1;
+	FILE * f = fopen(file, "r");
+	if(!f){
+		fprintf(stderr, "%s: fopen siteuidlist file %s failed\n", __FUNCTION__, file);
+		return -1;
+	}
+	site_info row;
+	char domain[128];
+	char buf[1024];
+	while(fgets(buf, sizeof(buf), f)){
+		int n = sscanf(buf, "%d%d%s%d",
+				&row.site_id, &row.user_id, domain, &row.is_top);
+		if(n != 4)
+			continue;
+		sitelist[domain] = row;
+		siteuid[row.site_id] = row.user_id;
+	}
+	fclose(f);
+
+//	for(auto const & item : sitelist){
+//		auto & s = item.second;
+//		fprintf(stdout, "%s:____%d____%d____%s____%d____\n", __FUNCTION__,
+//				s.site_id, s.user_id, item.first.c_str(), s.is_top);
+//	}
+	return 0;
+}
 
 int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist)
 {
@@ -447,12 +479,6 @@ int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& 
 		sitelist[domain] = row;
 	}
 	fclose(f);
-
-//	for(auto const & item : sitelist){
-//		auto & s = item.second;
-//		fprintf(stdout, "%s:____%d____%d____%s____%d____\n", __FUNCTION__,
-//				s.site_id, s.user_id, item.first.c_str(), s.is_top);
-//	}
 	return 0;
 }
 
@@ -898,7 +924,7 @@ int parse_log_item(log_item & item, char *& logitem, char const * v[2], char del
 	}
 	item.end = logitem;
 
-	if(is_ngx_log_format_ok(fmt.site_id) && items[fmt.site_id])
+	if(is_ngx_log_format_ok(fmt.site_id) && items[fmt.site_id] && strcmp(items[fmt.site_id], "-") != 0)
 		item.site_id = atoi(items[fmt.site_id]);
 
 	if(is_ngx_log_format_ok(fmt.host))
@@ -971,8 +997,14 @@ int do_nginx_log_stats(log_item const& item, plcdn_la_options const& plcdn_la_op
 		std::unordered_map<std::string, nginx_domain_stat> & logstats)
 {
 	auto & dstat = logstats[item.domain];
-	if(dstat._site_id == 0)
-		find_site_id(sitelist, item.domain, dstat._site_id, &dstat._user_id);
+	if(dstat._site_id == 0){
+		if(item.site_id > 0){
+			dstat._site_id = item.site_id;
+			dstat._user_id = g_siteuid[dstat._site_id];
+		}
+		else
+			find_site_id(sitelist, item.domain, dstat._site_id, &dstat._user_id);
+	}
 
 	auto len = strlen(item.request_url);
 	char buff[64] = "";

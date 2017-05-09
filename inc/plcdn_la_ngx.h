@@ -292,6 +292,8 @@ struct parse_context
  * sample:
  * '377 57 zuzhou.zqgame.com 0 119.147.215.106:80 58.254.169.106:80'
  */
+int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist,
+		std::unordered_map<int, int>& siteuid);
 int load_sitelist(char const* file, std::unordered_map<std::string, site_info>& sitelist);
 /*find site_id by site_name/domain, return 0 on success*/
 int find_site_id(std::unordered_map<std::string, site_info> const& sitelist,

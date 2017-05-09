@@ -497,6 +497,7 @@ void plcdn_la_show_help(FILE * stream)
 			"  6.nginx_log_format: '$host $remote_addr $request_time_msec $upstream_cache_status [$time_local] \"$request_method $request_uri $server_protocol\" \\\n"
 			"      $status $bytes_sent \"$http_referer\" \"$remote_user\" - \"$http_user_agent\" $scheme $request_length $upstream_response_time \\\n"
 			"      $start_response_time_msec $body_bytes_sent \"$http_x_forwarded_for\" \"$connection\" \"$server_addr\"'\n"
+			"    Customize it in configure file, use 'nginx_log_format=<FORMAT>'\n"
 			"  7.DO NOT mix up option '--output-srs-sid' with '--output-split-srs-log' when split srs log!\n"
 			"  8.output table formats\n"
 			"    for nginx:\n"

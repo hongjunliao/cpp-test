@@ -99,6 +99,8 @@ extern struct plcdn_la_options plcdn_la_opt;
 static std::unordered_map<std::string, int> g_devicelist;
 /*map<domain, site_info>*/
 std::unordered_map<std::string, site_info> g_sitelist;
+/* map<site_id, user_id> */
+std::unordered_map<int, int> g_siteuid;
 
 static size_t g_nginx_total_line = 0, g_nginx_failed_line = 0;
 /*srs_log_analysis/split_log.cpp*/
@@ -390,7 +392,7 @@ int test_plcdn_log_analysis_main(int argc, char ** argv)
 	}
 	g_plcdn_la_device_id = plcdn_la_opt.device_id > 0? plcdn_la_opt.device_id : get_device_id(g_devicelist);
 
-	result = load_sitelist(plcdn_la_opt.siteuidlist_file, g_sitelist);
+	result = load_sitelist(plcdn_la_opt.siteuidlist_file, g_sitelist, g_siteuid);
 	if(result != 0){
 		fprintf(stderr, "%s: load_sitelist() failed\n", __FUNCTION__);
 		return PLA_ERR_SITEUIDLIST;
