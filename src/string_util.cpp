@@ -103,3 +103,27 @@ char const * byte_to_mb_kb_str(size_t bytes, char const * fmt)
 	static char buff[64] = "";
 	return byte_to_mb_kb_str_r(bytes, fmt, buff);
 }
+
+
+char const * strnrchr(char const * buf, int sz, char ch)
+{
+	for(auto const * p = buf + sz - 1; p != buf - 1; --p) {
+		if(*p == ch)
+			return p;
+	}
+	return 0;
+}
+
+void str_dump(FILE * f, char const * buf, size_t len)
+{
+	for(size_t i = 0; i < len; ++i){
+		if(buf[i] == '\r')
+			fprintf(f, "\\r");
+		if(buf[i] == '\n')
+			fprintf(f, "\\n");
+		else if(buf[i] == '\0')
+			fprintf(f, "\\0");
+		else
+			fprintf(f, "%c", buf[i]);
+	}
+}

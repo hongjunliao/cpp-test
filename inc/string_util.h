@@ -48,4 +48,9 @@ char * md5sum_file_r(char const * f, char * buff);
 char const * byte_to_mb_kb_str(size_t bytes, char const * fmt);
 char * byte_to_mb_kb_str_r(size_t bytes, char const * fmt, char * buff);
 
+/* like strrchr except that @param buf endwith '\0' NOT requried */
+char const * strnrchr(char const * buf, int sz, char ch);
+/* like printf except print \n as '\n', \0 as '\0' */
+void str_dump(FILE * f, char const * buf, size_t len);
+
 #endif /*_STRING_UTIL_H_*/
