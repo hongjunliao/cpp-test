@@ -31,16 +31,18 @@ struct graph_node {
 
 struct graph {
 	rb_tree tr;
-	node_pool pool;
-	size_t v;		/* vertex */
-	size_t e;       /* edges */
+	node_pool pool;    /* for graph_node */
+	size_t v;		   /* vertex */
+	size_t e;          /* edges */
+
+	bool * dfs_marked; /* for dfs */
 };
 
 static graph_node * graph_node_new(node_pool & p, int key, int n)
 {
-	if(p.i == 32){
+	if(p.i == POOL_N){
 		fprintf(stderr, "%s: outof memory\n", __FUNCTION__);
-		return 0;
+		exit(0);
 	}
 	auto RTR_POOL_N = (32 * 1024 / sizeof(graph_node));
 
@@ -101,85 +103,104 @@ int graph_add_edge(graph & g, int v, int w)
 	return 0;
 }
 
-char * graph_c_str(graph const& g, char * buf, size_t len)
+int const * graph_adj(graph const& g, int v, int & sz)
 {
-	void * vers[1024];
+	auto nodev = graph_search(g, v);
+	if(!(nodev && nodev->data)){
+		sz = 0;
+		return 0;
+	}
+	auto gnode = (graph_node *)nodev->data;
+	sz = gnode->i;
+	return gnode->v;
+}
+
+static void do_graph_simple_dfs(graph & g, int v)
+{
+	g.dfs_marked[v] = true;
+	fprintf(stdout, "%s: found %d\n", __FUNCTION__, v);
+
+	int sz;
+	auto adj = graph_adj(g, v, sz);
+	for(int i = 0; i < sz; ++i){
+		if(!g.dfs_marked[adj[i]])
+			do_graph_simple_dfs(g, adj[i]);
+	}
+}
+/* simple depth first search for graph */
+void graph_simple_dfs(graph & g, int v)
+{
+	g.dfs_marked = (bool *)realloc(g.dfs_marked, g.v * sizeof(bool));
+	memset(g.dfs_marked, 0, g.v * sizeof(bool));
+
+	return do_graph_simple_dfs(g, v);
+}
+/* graph to string, output format:
+ * vertex0: vertex0, vertex1, vertex, ...
+ * vertex1: vertex0, vertex1, ...
+ * ...
+ *
+ * sample:
+ *  0: 5, 1, 2, 6,
+ *	4: 3,
+ *	5: 4, 3,
+ *	6: 4,
+ *	7: 8,
+ *	9: 12, 10, 11,
+ *	11: 12,
+ *
+ * @return:
+ * if actual length of graph > @param len or error ocurred, then return NULL
+ * @param len set to miminal length of graph or set to 0 if error
+ * */
+char * graph_c_str(graph const& g, char * buf, size_t& len)
+{
+	if(!buf)
+		len = 0;
+
+	void * vers[g.v];
 	int vlen;
 	rbtree_inorder_walk(g.tr, vers, vlen);
 
+	char tmp[128];
 	size_t n = 0;
 	for(int i = 0; i < vlen; ++i){
-
 		auto gnode = (graph_node *)vers[i];
-		if(!gnode)
+		if(!gnode || gnode->i == 0)
 			continue;
 
-		auto r = snprintf(buf + n, len - n, "\t%d: ", gnode->key);
-		if(r < 0){
-			buf[0] = '\0';
-			return buf;
-		}
+		auto r = buf && len > n?
+				snprintf(buf + n, len - n, "\t%d: ", gnode->key):
+				snprintf(tmp, 128, "\t%d: ", gnode->key);
+
+		if(r < 0)
+			return 0;
+
 		n += r;
 
 		for(auto j = 0; j < gnode->i; ++j){
-			int r2 = 0;
-			r2 = snprintf(buf + n, len - n, "%d, ", gnode->v[j]);
-			if(r2 < 0){
-				buf[0] = '\0';
-				return buf;
-			}
+			auto r2 = buf && len > n?
+					snprintf(buf + n, len - n, "%d, ", gnode->v[j]):
+					snprintf(tmp, 128, "%d, ", gnode->v[j]);
+
+			if(r2 < 0)
+				return 0;
+
 			n += r2;
 		}
-
-		buf[n++] = '\n';
+		if(buf && len > n)
+			buf[n] = '\n';
+		++n;
 	}
-	buf[n - 1] = '\0';
-	fprintf(stdout, "%s: vers='%d', n=%zu\n", __FUNCTION__, vlen, n);
+	if(!buf || len < n){
+		len = n;
+		return 0;
+	}
+	if(buf && len >= n)
+		buf[n - 1] = '\0';
+	fprintf(stdout, "%s: vertex='%d', strlen=%zu\n", __FUNCTION__, vlen, n);
 
 	return buf;
-}
-
-static int graph_read_edge(graph & g, char * buf)
-{
-	size_t w, x;
-	auto r = sscanf(buf, "%zu%zu",  &w, &x);
-	if(r == EOF || r != 2)
-		return -1;
-	return graph_add_edge(g, w, x);
-}
-
-static int do_graph_init(graph & g, char * buf, size_t len)
-{
-	fprintf(stdout, "%s: _______________", __FUNCTION__);
-	str_dump(stdout, buf, len);
-	fprintf(stdout, "_______________\n");
-
-	for(auto p = buf, q = p; p != buf + len; ++q){
-		if(*q != '\n')
-			continue;
-		if(q == p){
-			++p;
-			continue;
-		}
-		*q = '\0';
-		int r ;
-		if(g.v == 0){
-			r = sscanf(p, "%zu",  &g.v);
-			if(r == EOF || r != 1)
-				return -1;
-		}
-		else if(g.e == 0){
-			r = sscanf(p, "%zu",  &g.e);
-			if(r == EOF || r != 1)
-				return -1;
-		}
-		else{
-			if(graph_read_edge(g, p) != 0)
-				return -1;
-		}
-
-		p = q + 1;
-	}
 }
 
 /* init graph @param g from file @param f, file @param f has the following format:
@@ -187,61 +208,45 @@ static int do_graph_init(graph & g, char * buf, size_t len)
  * edge_total           <---total edges
  * vertex1 vertex2      <---one edge
  * vertex1 vertex2      <---another edge
- * ...                  <---other edges
+ * ...                  <---...(other edges)
  *
  * sample('\n' means newline):
  * 13\n13\n0 5\n4 3\n0 1\n9 12\n6 4\n5 4\n0 2\n11 12\n9 10\n0 6\n7 8\n9 11\n5 3
  * */
 static int graph_init(graph & g, FILE * in)
 {
+	memset(&g, 0, sizeof(g));
+
 	node_pool_init(g.pool);
 	node_pool_init(g.tr.pool);
-	g.v = g.e = 0;
-	g.tr.root = 0;
 	g.tr.node_new = node_new;
 	g.tr.node_cmp = graph_node_cmp;
 	g.tr.node_del = graph_node_del;
 	g.tr.node_c_str = graph_node_c_str;
-	g.tr.node_data_free = 0;
 
-	/* load data */
-	size_t BUF = 1024 * 4;
-	auto buf = (char *)malloc(sizeof(char) * (BUF));
-	char * p = buf;
-	size_t count = 0;
-	for(;; ++count){
-		auto sz = fread(p, sizeof(char), buf + BUF - p, in);
-		if(ferror(in)){
-			fprintf(stderr, "%s: fread failed, exit\n", __FUNCTION__);
-			free(buf);
+	/* vertex and edge count */
+	auto r = fscanf(in, "%zu", &g.v);
+	if(r != 1) return -1;
+	r = fscanf(in, "%zu", &g.e);
+	if(r != 1) return -1;
+
+	fprintf(stderr, "%s: vertex=%zu, edge=%zu\n", __FUNCTION__, g.v, g.e);
+
+	for(size_t i = 0; i < g.v; ++i){
+		auto node = rbtree_insert(g.tr, graph_node_new(g.pool, i, g.v));
+		if(!node)
 			return -1;
-		}
-		if(sz == 0)
-			break;
-
-		auto end = strnrchr(p, sz, '\n');
-		if(!end){
-			p += sz;
-			continue;
-		}
-		auto result = do_graph_init(g, buf, end - buf);
-		if(result != 0){
-			fprintf(stderr, "%s: do_graph_init faield\n", __FUNCTION__);
-			free(buf);
-			return -1;
-		}
-
-		++end; /* skip '\n' */
-		auto len = p + sz - end;
-		memmove(buf, end, len);
-		p = buf + len;
 	}
-	if(p != buf){
-		fprintf(stderr, "%s: ignored:[", __FUNCTION__);
-		str_dump(stderr, buf, p - buf);
-		fprintf(stderr, "\n");
+
+	/* load edge data */
+	int w, x;
+	while((r = fscanf(in, "%d%d",  &w, &x)) != EOF){
+		if(r != 2) continue;
+
+		if(graph_add_edge(g, w, x) != 0){
+			fprintf(stderr, "%s: graph_add_edge for %d-%d failed, skip\n", __FUNCTION__, w, x);
+		}
 	}
-	free(buf);
 	return 0;
 }
 
@@ -276,8 +281,19 @@ int test_graph_1_main(int argc, char ** argv)
 	graph_add_edge(g, 7, 3);
 	graph_add_edge(g, 7, 6);
 
-	char graphbuf[1024];
-	graph_c_str(g, graphbuf, sizeof(graphbuf));
+	size_t len;
+	graph_c_str(g, 0, len);
+	if(len == 0){
+		fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+		return -1;
+	}
+
+	char graphbuf[len];
+	auto p = graph_c_str(g, graphbuf, len);
+	if(!p){
+		fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+		return -1;
+	}
 	fprintf(stdout, "%s: graph=\n%s\n", __FUNCTION__, graphbuf);
 
 	return 0;
@@ -285,6 +301,7 @@ int test_graph_1_main(int argc, char ** argv)
 
 int test_graph_init_from_file_main(int argc, char ** argv)
 {
+	/* graph init from file  */
 	if(argc < 2){
 		fprintf(stdout, "usage: %s <graph_file>\n", __FUNCTION__);
 		return -1;
@@ -297,21 +314,13 @@ int test_graph_init_from_file_main(int argc, char ** argv)
 	}
 
 	graph g;
-	node_pool_init(g.pool);
-	node_pool_init(g.tr.pool);
-	g.v = g.e = 0;
-	g.tr.root = 0;
-	g.tr.node_new = node_new;
-	g.tr.node_cmp = graph_node_cmp;
-	g.tr.node_del = graph_node_del;
-	g.tr.node_c_str = graph_node_c_str;
-	g.tr.node_data_free = 0;
 	auto result = graph_init(g, in);
 	if(result != 0){
 		fprintf(stdout, "%s: graph_init failed!\n", __FUNCTION__);
 		return -1;
 	}
 
+	/* graph print internal rbtree */
 	rbtree_draw_to_term(g.tr);
 
 	char buf[32];
@@ -320,10 +329,32 @@ int test_graph_init_from_file_main(int argc, char ** argv)
 	rbtree_inorder_walk(g.tr);
 	fprintf(stdout, "]\n");
 
-	char graphbuf[1024];
-	graph_c_str(g, graphbuf, sizeof(graphbuf));
+	/* graph to string */
+	size_t len;
+	graph_c_str(g, 0, len);
+	if(len == 0){
+		fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+		return -1;
+	}
+	char graphbuf[len];
+	auto p = graph_c_str(g, graphbuf, len);
+	if(!p){
+		fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+		return -1;
+	}
 	fprintf(stdout, "%s: graph=\n%s\n", __FUNCTION__, graphbuf);
 
+	/* graph adj */
+	int adj_sz;
+	if(!graph_adj(g, -1, adj_sz))
+		fprintf(stdout, "%s: graph_adj NOT found for %d\n", __FUNCTION__, -1);
+	auto adj = graph_adj(g, 9, adj_sz);
+	if(!adj){
+		fprintf(stdout, "%s: graph_adj NOT found for %d\n", __FUNCTION__, 9);
+	}
+
+	/* graph dfs */
+	graph_simple_dfs(g, 0);
 	return 0;
 }
 /////////////////////////////////////////////////////////////////////////////////////

@@ -8,8 +8,9 @@
 
 #include <stdlib.h>
 
+#define POOL_N 512
 struct node_pool {
-	void * n[32];
+	void * n[POOL_N];
 	size_t i;	/* row */
 	size_t j;   /* col */
 };

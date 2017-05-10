@@ -81,6 +81,14 @@ static int test_cpp11_unicode(int argc, char ** argv)
 	return 0;
 }
 /////////////////////////////////////////////////////////////////////////////
+#include <stdarg.h>	/* va_list */
+int test_vsscanf_main(int argc, char ** argv)
+{
+	char buf[] = "23 345 3 2";
+
+	va_list args;
+	vsscanf(buf, "%d%d%d%d", args);
+}
 
 struct s_with_array {
 	int arr[3];
