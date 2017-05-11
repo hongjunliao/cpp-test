@@ -35,7 +35,7 @@ struct rb_tree {
 };
 
 rbtree_node * rbtree_insert(rb_tree & tr, void * data);
-rbtree_node * rbtree_search(rb_tree const& tr, void * data);
+rbtree_node * rbtree_search(rb_tree const& tr, void const* data);
 
 void rbtree_inorder_walk(rb_tree const& tr);
 void rbtree_inorder_walk(rb_tree const& tr, void ** nodes, int& len);

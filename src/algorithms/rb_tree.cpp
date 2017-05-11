@@ -193,7 +193,7 @@ void rbtree_inorder_walk(rb_tree const& tr, void ** nodes, int& len)
 	return rbtree_inorder_walk(tr.root, nodes, len);
 }
 
-rbtree_node * rbtree_search(rb_tree const & tr, void * data)
+rbtree_node * rbtree_search(rb_tree const & tr, void const * data)
 {
 	auto x = tr.root;
 	for(int r; x && (r = tr.node_cmp(data, x->data)) != 0; ){
