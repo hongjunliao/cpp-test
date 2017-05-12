@@ -8,16 +8,16 @@
 
 #include <stdlib.h>
 
-#define POOL_N 512
 struct node_pool {
-	void * n[POOL_N];
+	void ** n;
 	size_t i;	/* row */
 	size_t j;   /* col */
+	size_t N;   /* max of n */
 };
 
 struct rbtree_node;
 
-void node_pool_init(node_pool & p);
+void node_pool_init(node_pool & p, size_t n = 8);
 rbtree_node * node_new(node_pool & p, void * data);
 
 #endif /* HONGJUN_LIAO_NODE_POOL_H_ */

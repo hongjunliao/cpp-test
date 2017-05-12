@@ -16,23 +16,36 @@ graph_bag * graph_search(graph const& g, int key)
 	return ((graph_bag * )node->data);
 }
 
-int graph_add_edge(graph & g, int v, int w)
+int graph_add_edge(graph & g, int v, int w, double weight/* = 0*/)
 {
 	auto nodev = graph_search(g, v);
 	auto nodew = graph_search(g, w);
 	if(!(nodev && nodew && nodev->node && nodew->node))
 		return -1;
 
-	nodev->v[nodev->i++] = nodew->node;
-	if(!g.is_direct)
-		nodew->v[nodew->i++] = nodev->node;
+	g.graph_bag_realloc(nodev, g.weight);
+	if(!g.direct)
+		g.graph_bag_realloc(nodew, g.weight);
+
+	nodev->v[nodev->i] = nodew->node;
+	if(g.weight){
+		nodev->w[nodev->i] = weight;
+	}
+	++nodev->i;
+
+	if(!g.direct){
+		nodew->v[nodew->i] = nodev->node;
+		if(g.weight)
+			nodew->w[nodew->i] = weight;
+		++nodew->i;
+	}
 	return 0;
 }
 
 int graph_add_vertex(graph & g, int v)
 {
 	auto gn = g.graph_node_new(g.npool, v);
-	auto gb = g.graph_bag_new(g.bpool, gn, g.v);
+	auto gb = g.graph_bag_new(g.bpool, gn, g.v, g.weight);
 	if(!(gn && gb))
 		return -1;
 
@@ -81,31 +94,53 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	rbtree_inorder_walk(g.tr, vers, vlen);
 
 	char tmp[128];
+
+	char * buffer;
+	size_t length;
+
 	size_t n = 0;
 	for(int i = 0; i < vlen; ++i){
 		auto gb = (graph_bag *)vers[i];
 		if(!gb || !gb->node || gb->i == 0)
 			continue;
 
-		auto r = buf && len > n?
-				snprintf(buf + n, len - n, "\t%d: ", gb->node->key):
-				snprintf(tmp, 128, "\t%d: ", gb->node->key);
+		if(buf && len > n){
+			buffer = buf + n;
+			length = len - n;
+		}
+		else{
+			buffer = tmp;
+			length = sizeof(tmp);
+		}
 
+		auto r = snprintf(buffer, length, "\t%d: ", gb->node->key);
 		if(r < 0)
 			return 0;
 
 		n += r;
 
 		for(auto j = 0; j < gb->i; ++j){
-			auto r2 = buf && len > n?
-					snprintf(buf + n, len - n, "%d, ", gb->v[j]->key):
-					snprintf(tmp, 128, "%d, ", gb->v[j]->key);
+			if(buf && len > n){
+				buffer = buf + n;
+				length = len - n;
+			}
+			else{
+				buffer = tmp;
+				length = sizeof(tmp);
+			}
+
+			int r2;
+			if(g.weight)
+				r2 = snprintf(buffer, length, "(%f)%d, ", gb->w[j], gb->v[j]->key);
+			else
+				r2 = snprintf(buffer, length, "%d, ", gb->v[j]->key);
 
 			if(r2 < 0)
 				return 0;
 
 			n += r2;
 		}
+
 		if(buf && len > n)
 			buf[n] = '\n';
 		++n;
@@ -119,4 +154,63 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	fprintf(stdout, "%s: vertex='%d', strlen=%zu\n", __FUNCTION__, vlen, n);
 
 	return buf;
+}
+
+int graph_init(graph & g, FILE * in)
+{
+	/* vertex and edge count */
+	auto r = fscanf(in, "%zu", &g.v);
+	if(r != 1) return -1;
+	r = fscanf(in, "%zu", &g.e);
+	if(r != 1) return -1;
+
+//	fprintf(stderr, "%s: vertex=%zu, edge=%zu\n", __FUNCTION__, g.v, g.e);
+
+	for(size_t i = 0; i < g.v; ++i){
+		auto r = graph_add_vertex(g, i);
+		if(r != 0)
+			return -1;
+	}
+
+	/* load edge data */
+	int w, x;
+	while((r = fscanf(in, "%d%d",  &w, &x)) != EOF){
+		if(r != 2) continue;
+
+		if(graph_add_edge(g, w, x) != 0){
+			fprintf(stderr, "%s: graph_add_edge for %d-%d failed, skip\n", __FUNCTION__, w, x);
+		}
+	}
+	return 0;
+}
+
+/* edge_weighted_graph init, @see graph_init */
+int wgraph_init(graph & g, FILE * in)
+{
+	g.weight = true;
+	/* vertex and edge count */
+	auto r = fscanf(in, "%zu", &g.v);
+	if(r != 1) return -1;
+	r = fscanf(in, "%zu", &g.e);
+	if(r != 1) return -1;
+
+	for(size_t i = 0; i < g.v; ++i){
+		auto r = graph_add_vertex(g, i);
+		if(r != 0)
+			return -1;
+	}
+
+	/* load edge data */
+	int w, x;
+	float we;
+	for(int r; (r = fscanf(in, "%d%d%f",  &w, &x, &we)) != EOF; ){
+		if(r != 3)
+			continue;
+
+		if(graph_add_edge(g, w, x, we) != 0){
+			fprintf(stderr, "%s: graph_add_edge for %d-%d failed, skip\n", __FUNCTION__, w, x);
+		}
+	}
+	return 0;
+
 }
