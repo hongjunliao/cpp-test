@@ -185,8 +185,13 @@ int graph_init(graph & g, FILE * in)
 }
 
 /* edge_weighted_graph init, @see graph_init */
-int wgraph_init(graph & g, FILE * in)
+int wgraph_init(graph & g, FILE * in,
+		void(* cb_vertex_begin)(size_t total, size_t n)/* = 0*/,
+		void(* cb_vertex_end)(size_t total, size_t n)/* = 0*/,
+		void(* cb_edge_begin)(size_t total, size_t n)/* = 0*/,
+		void(* cb_edge_end)(size_t total, size_t n)/* = 0*/)
 {
+	fprintf(stdout, "%s: \n", __FUNCTION__);
 	g.weight = true;
 	/* vertex and edge count */
 	auto r = fscanf(in, "%zu", &g.v);
@@ -194,13 +199,20 @@ int wgraph_init(graph & g, FILE * in)
 	r = fscanf(in, "%zu", &g.e);
 	if(r != 1) return -1;
 
-	for(size_t i = 0; i < g.v; ++i){
+	fprintf(stderr, "%s: vertex=%zu, edge=%zu\n", __FUNCTION__, g.v, g.e);
+
+	size_t i = 0;
+	for(; i < g.v; ++i){
 		auto r = graph_add_vertex(g, i);
 		if(r != 0)
 			return -1;
-	}
+		if(cb_vertex_begin)
+			cb_vertex_begin(g.v, i + 1);
 
+	}
+	cb_vertex_end(g.v, i);
 	/* load edge data */
+	size_t n = 0;
 	int w, x;
 	float we;
 	for(int r; (r = fscanf(in, "%d%d%f",  &w, &x, &we)) != EOF; ){
@@ -210,7 +222,13 @@ int wgraph_init(graph & g, FILE * in)
 		if(graph_add_edge(g, w, x, we) != 0){
 			fprintf(stderr, "%s: graph_add_edge for %d-%d failed, skip\n", __FUNCTION__, w, x);
 		}
+
+		++n;
+
+		if(cb_edge_begin)
+			cb_edge_begin(g.e, n + 1);
 	}
+	cb_edge_end(g.e, n);
 	return 0;
 
 }

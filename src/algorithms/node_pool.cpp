@@ -3,11 +3,18 @@
 #include <stdio.h>
 #include <math.h>       /* log2 */
 
-#define RTR_POOL_N (1024 * 1024 * 2 / sizeof(rbtree_node))
+#define RTR_POOL_N (1024 * 1024 * 8 / sizeof(rbtree_node))
 
 rbtree_node * node_new(node_pool & p, void * data)
 {
-//	fprintf(stdout, "%s:\n", __FUNCTION__);
+	if(!p.n[0]){
+		p.n[0] = (rbtree_node * )malloc(RTR_POOL_N * sizeof(rbtree_node));
+		if(!p.n[0]){
+			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
+			exit(0);
+		}
+	}
+
 	if(p.i == p.N - 1){
 		auto NN = (size_t)log2(p.N);
 		p.N += NN < 8? 8 : NN;
@@ -18,17 +25,10 @@ rbtree_node * node_new(node_pool & p, void * data)
 		}
 	}
 
-	if(p.i == 0){
-		p.n[p.i] = (rbtree_node * )calloc(RTR_POOL_N, sizeof(rbtree_node));
-		if(!p.n[p.i]){
-			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
-			exit(0);
-		}
-	}
 	if(p.j == RTR_POOL_N - 1){
 //		fprintf(stdout, "%s: N=%zu, i=%zu, j=%zu\n", __FUNCTION__, p.N, p.i, p.j);
 		++p.i;
-		p.n[p.i] = (rbtree_node * )calloc(RTR_POOL_N, sizeof(rbtree_node));
+		p.n[p.i] = (rbtree_node * )malloc(RTR_POOL_N * sizeof(rbtree_node));
 		if(!p.n[p.i]){
 			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
 			exit(0);

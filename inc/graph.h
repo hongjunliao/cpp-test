@@ -116,7 +116,12 @@ int graph_init(graph & g, FILE * in);
  * 4 7 0.37
  * ...
  *
+ * @param cb_vertex, cb_edge: callbacks while processing
  * @return: 0 on success
  *  */
-int wgraph_init(graph & g, FILE * in);
+int wgraph_init(graph & g, FILE * in,
+		void(* cb_vertex_begin)(size_t total, size_t n) = 0,
+		void(* cb_vertex_end)(size_t total, size_t n) = 0,
+		void(* cb_edge_begin)(size_t total, size_t n) = 0,
+		void(* cb_edge_end)(size_t total, size_t n) = 0);
 #endif /* DOCICI_GRAPH_H_ */

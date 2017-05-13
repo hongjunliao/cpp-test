@@ -26,11 +26,19 @@ static int graph_node_cmp(void const * na, void const * nb);
 static char const * graph_node_c_str(void const * a, char * buf, size_t len);
 static void graph_bag_realloc(graph_bag * gb, bool weight);
 
-#define BAG_N  (1024 * 1024 * 2 / sizeof(graph_bag))
-#define NODE_N (1024 * 256 / sizeof(graph_node))
+#define BAG_N  (1024 * 1024 * 8 / sizeof(graph_bag))
+#define NODE_N (1024 * 1024 * 4 / sizeof(graph_node))
 
 static graph_bag * graph_bag_new(node_pool & p, graph_node * node, size_t v, bool weight)
 {
+	if(!p.n[0]){
+		p.n[0] = (graph_bag * )malloc(BAG_N * sizeof(graph_bag));
+		if(!p.n[0]){
+			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
+			exit(0);
+		}
+	}
+
 	if(p.i == p.N - 1){
 		auto NN = (size_t)log2(p.N);
 		p.N += NN < 8? 8 : NN;
@@ -40,17 +48,10 @@ static graph_bag * graph_bag_new(node_pool & p, graph_node * node, size_t v, boo
 			exit(0);
 		}
 	}
-	if(p.i == 0){
-		p.n[p.i] = (graph_bag * )calloc(BAG_N, sizeof(graph_bag));
-		if(!p.n[p.i]){
-			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
-			exit(0);
-		}
-	}
+
 	if(p.j == BAG_N - 1){
-		fprintf(stdout, "%s: N=%zu, i=%zu, j=%zu\n", __FUNCTION__, p.N, p.i, p.j);
 		++p.i;
-		p.n[p.i] = (graph_bag * )calloc(BAG_N, sizeof(graph_bag));
+		p.n[p.i] = (graph_bag * )malloc(BAG_N * sizeof(graph_bag));
 		if(!p.n[p.i]){
 			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
 			exit(0);
@@ -73,6 +74,14 @@ static graph_bag * graph_bag_new(node_pool & p, graph_node * node, size_t v, boo
 
 static graph_node * graph_node_new(node_pool & p, int key)
 {
+	if(!p.n[0]){
+		p.n[0] = (graph_node * )malloc(NODE_N * sizeof(graph_node));
+		if(!p.n[0]){
+			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
+			exit(0);
+		}
+	}
+
 	if(p.i == p.N - 1){
 		auto NN = (size_t)log2(p.N);
 		p.N += NN < 8? 8 : NN;
@@ -82,17 +91,10 @@ static graph_node * graph_node_new(node_pool & p, int key)
 			exit(0);
 		}
 	}
-	if(p.i == 0){
-		p.n[p.i] = (graph_node * )calloc(NODE_N, sizeof(graph_node));
-		if(!p.n[p.i]){
-			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
-			exit(0);
-		}
-	}
+
 	if(p.j == NODE_N - 1){
-		fprintf(stdout, "%s: N=%zu, i=%zu, j=%zu\n", __FUNCTION__, p.N, p.i, p.j);
 		++p.i;
-		p.n[p.i] = (graph_node * )calloc(NODE_N, sizeof(graph_node));
+		p.n[p.i] = (graph_node * )malloc(NODE_N * sizeof(graph_node));
 		if(!p.n[p.i]){
 			fprintf(stderr, "%s: out of memory\n", __FUNCTION__);
 			exit(0);
@@ -345,7 +347,24 @@ int test_wgraph_main(int argc, char ** argv)
 	g.graph_bag_new = graph_bag_new;
 	g.graph_bag_realloc = graph_bag_realloc;
 
-	auto result = wgraph_init(g, in);
+	auto f1 = [](size_t total, size_t n) {
+		if(n > 0 && (n == total || (n <= 10000000 && n % 100000 == 0) ||
+				(n <= 1000000 && n % 10000 == 0) || (n <= 100000 && n % 1000 == 0)))
+			fprintf(stdout, "\rwgraph_init: processed %zu/%zu %5.1f %% vertex", n, total,
+					n == total? 100.0 : n * 1.0 / total * 100.0);
+		fflush(stdout);
+	};
+	auto f2 = [](size_t total, size_t n) { fprintf(stdout, "\n"); };
+	auto f3 = [](size_t total, size_t n) {
+		if(n > 0 && (n == total || (n <= 10000000 && n % 100000 == 0) ||
+				(n <= 1000000 && n % 10000 == 0) || (n <= 100000 && n % 1000 == 0)))
+			fprintf(stdout, "\rwgraph_init: processed %zu/%zu %5.1f %% edges", n, total,
+					n == total? 100.0 : n * 1.0 / total * 100.0);
+		fflush(stdout);
+	};
+	auto f4 = [](size_t total, size_t n) { fprintf(stdout, "\n"); };
+
+	auto result = wgraph_init(g, in, f1, f2, f3, f4);
 	if(result != 0){
 		fprintf(stdout, "%s: graph_init failed!\n", __FUNCTION__);
 		return -1;
@@ -380,8 +399,8 @@ int test_graph_main(int argc, char ** argv)
 //	node_pool pool;
 //	node_pool_init(pool);
 //	for(size_t i = 0; node_new(pool, 0); ++i){
-//		if( i % 100000 == 0){
-//			printf("%s: node_new, i=%zu\n", __FUNCTION__, i);
+//		if( i > 0 && i % 100000 == 0){
+//			printf("%s: node_new, node=%zu\n", __FUNCTION__, i + 1);
 //			sleep(1);
 //		}
 //	}
