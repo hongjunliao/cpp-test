@@ -116,7 +116,8 @@ int graph_init(graph & g, FILE * in);
  * 4 7 0.37
  * ...
  *
- * @param cb_vertex, cb_edge: callbacks while processing
+ * @param cb_vertex_begin, cb_vertex_end, cb_edge_begin, cb_edge_end:
+ * callbacks while processing
  * @return: 0 on success
  *  */
 int wgraph_init(graph & g, FILE * in,

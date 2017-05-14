@@ -172,7 +172,7 @@ static void rbtree_inorder_walk(rbtree_node const * root,
 	rbtree_inorder_walk(root->right, fn);
 }
 
-static void rbtree_inorder_walk(rbtree_node const * root, void ** nodes, int& len)
+static void rbtree_inorder_walk(rbtree_node const * root, void ** nodes, size_t& len)
 {
 	if(!root)
 		return;
@@ -187,7 +187,7 @@ void rbtree_inorder_walk(rb_tree const& tr)
 	return rbtree_inorder_walk(tr.root, tr.node_c_str);
 }
 
-void rbtree_inorder_walk(rb_tree const& tr, void ** nodes, int& len)
+void rbtree_inorder_walk(rb_tree const& tr, void ** nodes, size_t& len)
 {
 	len = 0;
 	return rbtree_inorder_walk(tr.root, nodes, len);

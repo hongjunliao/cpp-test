@@ -89,9 +89,11 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	if(!buf)
 		len = 0;
 
+	printf("%s: begin rbtree_inorder_walk\n", __FUNCTION__);
 	void * vers[g.v];
-	int vlen;
+	size_t vlen;
 	rbtree_inorder_walk(g.tr, vers, vlen);
+	printf("%s: end rbtree_inorder_walk\n", __FUNCTION__);
 
 	char tmp[128];
 
@@ -99,7 +101,13 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	size_t length;
 
 	size_t n = 0;
-	for(int i = 0; i < vlen; ++i){
+	char buff[64];
+	for(size_t i = 0; i < vlen; ++i){
+
+		if((i + 1) % 10000 == 0)
+			printf("\r%s: processed %zu vertex, strlen=%zu/%s", __FUNCTION__,
+					i + 1, n, byte_to_mb_kb_str_r(n, "%-.2f %cB", buff));
+
 		auto gb = (graph_bag *)vers[i];
 		if(!gb || !gb->node || gb->i == 0)
 			continue;
@@ -151,7 +159,7 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	}
 	if(buf && len >= n)
 		buf[n - 1] = '\0';
-	fprintf(stdout, "%s: vertex='%d', strlen=%zu\n", __FUNCTION__, vlen, n);
+	fprintf(stdout, "%s: vertex='%zu', strlen=%zu\n", __FUNCTION__, vlen, n);
 
 	return buf;
 }

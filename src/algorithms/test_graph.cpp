@@ -194,7 +194,6 @@ int test_graph_1_main(int argc, char ** argv)
 		fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
 		return -1;
 	}
-
 	char graphbuf[len];
 	auto p = graph_c_str(g, graphbuf, len);
 	if(!p){
@@ -348,7 +347,7 @@ int test_wgraph_main(int argc, char ** argv)
 	g.graph_bag_realloc = graph_bag_realloc;
 
 	auto f1 = [](size_t total, size_t n) {
-		if(n > 0 && (n == total || (n <= 10000000 && n % 100000 == 0) ||
+		if((n == total || (n <= 10000000 && n % 100000 == 0) ||
 				(n <= 1000000 && n % 10000 == 0) || (n <= 100000 && n % 1000 == 0)))
 			fprintf(stdout, "\rwgraph_init: processed %zu/%zu %5.1f %% vertex", n, total,
 					n == total? 100.0 : n * 1.0 / total * 100.0);
@@ -356,7 +355,7 @@ int test_wgraph_main(int argc, char ** argv)
 	};
 	auto f2 = [](size_t total, size_t n) { fprintf(stdout, "\n"); };
 	auto f3 = [](size_t total, size_t n) {
-		if(n > 0 && (n == total || (n <= 10000000 && n % 100000 == 0) ||
+		if((n == total || (n <= 10000000 && n % 100000 == 0) ||
 				(n <= 1000000 && n % 10000 == 0) || (n <= 100000 && n % 1000 == 0)))
 			fprintf(stdout, "\rwgraph_init: processed %zu/%zu %5.1f %% edges", n, total,
 					n == total? 100.0 : n * 1.0 / total * 100.0);
@@ -369,8 +368,6 @@ int test_wgraph_main(int argc, char ** argv)
 		fprintf(stdout, "%s: graph_init failed!\n", __FUNCTION__);
 		return -1;
 	}
-
-	return 0;
 	/* graph to string */
 	size_t len;
 	graph_c_str(g, 0, len);
@@ -378,17 +375,20 @@ int test_wgraph_main(int argc, char ** argv)
 		fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
 		return -1;
 	}
-	char graphbuf[len];
+	auto graphbuf = (char *)malloc(len);
 	auto p = graph_c_str(g, graphbuf, len);
 	if(!p){
 		fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+		free(graphbuf);
 		return -1;
 	}
 	fprintf(stdout, "%s: graph(%zu, %zu)=\n%s\n", __FUNCTION__, g.v, g.e, graphbuf);
+	free(graphbuf);
 	return 0;
 }
+
 /////////////////////////////////////////////////////////////////////////////////////
-#include <unistd.h>
+//#include <unistd.h> /* sleep */
 //main
 int test_graph_main(int argc, char ** argv)
 {
