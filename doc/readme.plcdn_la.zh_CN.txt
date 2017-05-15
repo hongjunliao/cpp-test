@@ -1,6 +1,10 @@
 !!!IMPORTANT!!!
 本说明文档可能未及时更新, 若与plcdn_la --help输出描述有出入, 请以plcdn_la --help为准!
 
+plcdn_la日志分析程序中文帮助文档 
+编写: hongjun.liao <docici@126.com> 
+更新日期: 2017/05/20
+
 ##概述
 nginx, srs日志转储分析程序
 
@@ -21,19 +25,20 @@ plcdn_la能分析特定格式nginx和srs日志文件, 输出相应统计结果�
 ##plcdn_la参数说明
   -l, --nginx-log-file=STRING                  指定nginx日志文件
       --nginx-rotate-dir=STRING                指定nginx转储目录
-      --nginx-rotate-time=INT                  指定nginx转储时间
+      --nginx-rotate-time=INT                  指定nginx转储时间, 超过转储时间的日志文件将被删除
       --begin-time=STRING                      
       --end-time=STRING                        
-											   要分析的起止时间, 可以用此限定只分析指定时间范围内的日志
-      --no-merge-datetime                      不要合并时间相同的记录
-  -d, --device-list-file=STRING                devicelist_file
-  -s, --siteuid-list-file=STRING               siteuidlist_file
-  -m, --ipmap-file=STRING                      ipmap_file
+											   要分析的起止时间, 可以用此限定只分析指定时间范围内的日志;可指定为0,或1，详见NOTES
+      --no-merge-datetime                      不要合并时间相同的记录;如果输出文件存在且本次统计结果与文件中有主键相同的字段，
+                                               那么默认会进行合并，打开此选项禁止合并
+  -d, --device-list-file=STRING                devicelist_file, 详见NOTES
+  -s, --siteuid-list-file=STRING               siteuidlist_file， 详见NOTES
+  -m, --ipmap-file=STRING                      ipmap_file，IP数据库文件，详见NOTES
       --parse-url-mode=INT                     解析nginx '$request_uri' 中url的模式, 0|1|2, 当前使用模式2
   -i, --interval=INT                           统计分组的时间间隔, 如300,即每5min统计一次
   -n, --srs-log-file=STRING                    指定srs日志文件
-      --srs-calc-flow-mode=INT                 srs流量计算方式, 0|1
-  -k, --output-srs-sid=STRING                  目录用于存储srs sid日志
+      --srs-calc-flow-mode=INT                 srs流量计算方式, 仅针对自定义格式: 通过直接累计流量字段还是通过累计时间×带宽得出的流量值，0|1
+  -k, --output-srs-sid=STRING                  目录用于存储srs sid日志, sid日志包含连接信息
   -b, --output-srs-flow=STRING                 目录用于存储srs_flow_table,如果NULL则禁用
   -B, --format-srs-flow=STRING                 srs_flow_table文件名格式, 默认 'srscountfile.${day}.${site_id}.${device_id}'
       --output-split-srs-log-by-sid=STRING     目录用于存储按sid拆分的日志, 仅调试使用
@@ -59,21 +64,22 @@ plcdn_la能分析特定格式nginx和srs日志文件, 输出相应统计结果�
   -g, --output-split-nginx-log=STRING          目录用于存储拆分的nginx日志, 如果NULL则禁用
   -G, --format-split-nginx-log=STRING          filename format for split_nginx_log, default '${site_id}/${day}'
   -j, --output-split-srs-log=STRING            目录用于存储拆分的srs日志, 如果NULL则禁用
-  -J, --format-split-srs-log=STRING            filename format for split_srs_log, default '${site_id}/${day}'
+  -J, --format-split-srs-log=STRING            拆分的srs日志文件名格式, default '${site_id}/${day}'
       --device-id=INT                          指定device_id
   -c, --print-divice-id                        输出 device_id并退出
-      --enable-multi-thread                    enable_multi_thread, ONLY for nginx yet
+      --enable-multi-thread                    enable_multi_thread, ONLY for nginx yet(除非你明白整个流程，否则不要打开)
       --merge-srs-flow                         设置工作模式为merge_srs_flow
       --append-flow-nginx                      如果设置了,合并其它的flow(现在是srs)到nginx flow
+      --log-file                               输出错误日志到文件，而不是stderr
+      --config-file                            从配置文件中载入配置，详见doc/.plcdn_la; 注意：命令行参数的值将会覆盖其应对的值
   -h, --help                                   输出本帮助
       --version                                输出版本信息并退出程序
-  -v, --verbose=INT                            输出工作时的详细信息, 值越大越详细
+  -v, --verbose=INT                            输出工作时的详细信息, 值越大越详细,0以禁止输出
 
 ##备注
   1.work_mode, 工作模式
     analysis, 分析模式: 分析日志文件并输出结果表
-    rotate, 转储模式: 类似分析模式, 指定转储目录,
-plcdn_la将会把日志文件的每一行追加到转储目录下相应日期的文件中, 再重新分析转储目录
+    rotate, 转储模式: 类似分析模式, 指定转储目录, plcdn_la将会把日志文件的每一行追加到转储目录下相应日期的文件中, 再重新分析转储目录
     merge_srs_flow, 合并srs流量: 按用户合并srs_flow_table(use --merge-srs-flow). 输出格式: '${datetime} ${obytes} ${ibytes} ${obps} ${ibps} ${user_id}'
   2.about 'filename format'(option --format-*, e.g. --format-ip-source):
     ${datetime}   current date time, format YYYYmmDDHHMM
@@ -114,16 +120,39 @@ plcdn_la将会把日志文件的每一行追加到转储目录下相应日期的
 1.分析nginx日志文件access.log, 并输出所有流量到/tmp/nginx_flow.txt
 ./plcdn_la -l  nginx.log -o /tmp/ -O nginx_flow.txt
 
-2.1.分析srs日志文件srs.log, 并输出所有流量到/tmp/srs_flow.txt, 输出详细信息,级别为2
+2.分析srs日志文件srs.log, 并输出所有流量到/tmp/srs_flow.txt, 输出详细信息,级别为2
 ./plcdn_la -n srs.log  -v2 -k /tmp/ -b /tmp/ -B srs_flow.txt
 
 3.分析nginx,srs日志文件, 输出相应流量表, 追加srs流量到nginx流量
 ./plcdn_la -l nginx.log -o /tmp/ -O nginx_flow.txt -v5 -n srs.log -b /tmp/ -B srs_flow.txt --append-flow-nginx
 
-4.使用配置文件转储及分析
+4.从配置文件'.plcdn_la'中载入相关参数，而不是从命令行指定,但覆盖-l参数
+./plcdn_la　--config-file .plcdn_la -l nginx.log
+
+5.使用配置文件转储及分析
+./nginx_log_analysis nginx_log_analysis_conf
+
+6.日志分析：一个复杂示例
+./plcdn_la -i 300 -d /opt/fenxi/devicelist.txt -s /opt/fenxi/siteuidlist.txt -m /opt/fenxi3/src/iplocaltion.bin \
+-l /var/log/nginx/tmp_acslogs/bdrz.log -o /data/fenxi_file/ -u /data/urlstat/ -w /data/UseAccessSpeedStats/ \
+-p /data/UseAccessNumStats/ -t /data/DomainAccessStatusStats/ -f /data/asstats/ -r /data/IPSource/ -y /data/UrlKey/ \
+--local-url-key /data/localeUrlKey/ -g /data/fenxi_log/ -G '${site_id}/${day}/${interval}' \
+--nginx-hit 'STALE|UPDATING|REVALIDATED|HIT' --nginx-rotate-dir /opt/fenxi//rotate/ --end-time 1
+
+7.按用户ID合并srs流量表１，2到stdout
+cat 1 2 | plcdn_la --merge-srs-flow
+
+8.转换nginx日志格式到格式２(用户＇云端＇的日志格式)
+cat nginx.log | plcdn_la --nginx-transform-log 2
 
 ##其它
 1.云端日志格式说明
 (1)有两个版本: 1.10.3, 1.12.0, 字段说明见yunduan_log_format.txt
 (2)版本1.10.3的样本日志见yunduan_1_10_3.log
 (3)版本1.12.0的样本日志见yunduan_1_12_0.log
+
+2.旧版本(yong.lu版)的nginx日志分析程序参见：/home/jun/plcdn/plcdn-lame-importer-bin.git
+
+##参见
+(1)plcdn_la_dev_doc.txt
+(2)<卢永交接文档>
