@@ -14,7 +14,10 @@
 #include <math.h>        /* log2 */
 #include <string.h>		 /* memmove */
 #include <sys/stat.h>	 /* fstat */
+#include <unistd.h>      /* sleep */
 
+/* tdarr.cpp */
+extern int test_tdarr_main(int argc, char ** argv);
 /* tree_print.cpp */
 extern void rbtree_draw_to_term(rb_tree const& tr);
 
@@ -282,7 +285,7 @@ int test_graph_init_from_file_main(int argc, char ** argv)
 	fprintf(stdout, "%s: graph=\n%s\n", __FUNCTION__, graphbuf);
 
 	/* graph adj */
-	int adj_sz;
+	size_t adj_sz;
 	if(!graph_adj(g, -1, adj_sz))
 		fprintf(stdout, "%s: graph_adj NOT found for %d\n", __FUNCTION__, -1);
 	auto adj = graph_adj(g, 9, adj_sz);
@@ -387,14 +390,80 @@ int test_wgraph_main(int argc, char ** argv)
 	return 0;
 }
 
+static int test_dgraph_reverse_main(int argc, char ** argv)
+{
+	graph g;
+	memset(&g, 0, sizeof(g));
+
+	node_pool_init(g.tr.pool);
+	g.tr.root = 0;
+	g.tr.node_new = node_new;
+	g.tr.node_cmp = graph_node_cmp;
+	g.tr.node_del = graph_node_del;
+	g.tr.node_c_str = graph_node_c_str;
+	g.tr.node_data_free = 0;
+
+	g.v = g.e = 0;
+	g.direct = true;
+	g.weight = false;
+
+	node_pool_init(g.npool);
+	node_pool_init(g.bpool);
+
+	g.graph_node_new = graph_node_new;
+	g.graph_bag_new = graph_bag_new;
+	g.graph_bag_realloc = graph_bag_realloc;
+
+	auto result = graph_init(g, stdin);
+	if(result != 0){
+		fprintf(stderr, "%s: graph_init failed!\n", __FUNCTION__);
+		return -1;
+	}
+	/* graph to string */
+	{
+		size_t len;
+		graph_c_str(g, 0, len);
+		if(len == 0){
+			fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+			return -1;
+		}
+		char graphbuf[len];
+		auto p = graph_c_str(g, graphbuf, len);
+		if(!p){
+			fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+			return -1;
+		}
+		fprintf(stdout, "%s: graph=\n%s\n", __FUNCTION__, graphbuf);
+	}
+
+	auto && rg = dgraph_reverse_copy(g);
+	{
+		size_t len;
+		graph_c_str(rg, 0, len);
+		if(len == 0){
+			fprintf(stdout, "%s: graph_c_str failed(get length)!\n", __FUNCTION__);
+			return -1;
+		}
+		char graphbuf[len];
+		auto p = graph_c_str(rg, graphbuf, len);
+		if(!p){
+			fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+			return -1;
+		}
+		fprintf(stdout, "%s: reverse graph=\n%s\n", __FUNCTION__, graphbuf);
+	}
+	return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
-//#include <unistd.h> /* sleep */
 //main
 int test_graph_main(int argc, char ** argv)
 {
 //	test_graph_1_main(argc, argv);
 //	test_graph_init_from_file_main(argc, argv);
-	test_wgraph_main(argc, argv);
+//	test_tdarr_main(argc, argv);
+//	test_wgraph_main(argc, argv);
+	test_dgraph_reverse_main(argc, argv);
 
 //	node_pool pool;
 //	node_pool_init(pool);

@@ -27,8 +27,8 @@ struct graph_bag {
 	graph_node * node; /* this node */
 	graph_node ** v;   /* adjs for this node, v[i] */
 	double * w;        /* weight for edges, w[i] */
-	int i;             /* index for v and w */
-	int I;             /* max of v and w */
+	size_t i;             /* index for v and w */
+	size_t I;             /* max of v and w */
 };
 
 struct graph {
@@ -48,6 +48,8 @@ struct graph {
 };
 
 /////////////////////////////////////////////////////////////////////////////////////
+/* query all vertex  */
+graph_node ** graph_vertex(graph const& g, graph_node ** v, size_t & n);
 /* @param key:  key for graph_node */
 graph_bag * graph_search(graph const& g, int key);
 
@@ -58,7 +60,7 @@ int graph_add_edge(graph & g, int v, int w, double weight = 0);
 
 int graph_add_vertex(graph & g, int v);
 /* search adj for vertex @param v */
-graph_node ** graph_adj(graph const& g, int v, int & sz);
+graph_node ** graph_adj(graph const& g, int v, size_t & sz);
 
 /* simple depth first search for graph */
 void graph_simple_dfs(graph & g, int v, FILE * out);
@@ -125,4 +127,9 @@ int wgraph_init(graph & g, FILE * in,
 		void(* cb_vertex_end)(size_t total, size_t n) = 0,
 		void(* cb_edge_begin)(size_t total, size_t n) = 0,
 		void(* cb_edge_end)(size_t total, size_t n) = 0);
+/* NOTE: only for direct_graph
+ * reverse dgraph @param g
+ * */
+graph dgraph_reverse_copy(graph const& og);
+graph & dgraph_reverse(graph & g);
 #endif /* DOCICI_GRAPH_H_ */

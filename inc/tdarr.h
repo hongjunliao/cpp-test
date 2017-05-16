@@ -11,9 +11,11 @@ struct tdarr {
 	void ** p;
 	size_t i;
 	size_t j;
+	size_t I;    /* size for 1d, sample: 8 */
+	size_t J;    /* size for 2d, sample: 1024 * 1024 * 8 / sizeof(int) */
 };
 
-void tdarr_init(tdarr & a, size_t n = 8);
-void tdarr_int_add(tdarr & a, int key);
+void tdarr_init(tdarr & a, size_t i, size_t j);
+int * tdarr_int_new(tdarr & a, int key);
 
 #endif /* DOCICI_TDARRAY_H_ */

@@ -4,6 +4,14 @@
 #include <string.h>		 /* memmove */
 
 /////////////////////////////////////////////////////////////////////////////////////
+graph_node ** graph_vertex(graph const& g, graph_node ** v, size_t & n)
+{
+	rbtree_inorder_walk(g.tr, (void **)v, n);
+	for(size_t i = 0; i < n; ++i)
+		v[i] = ((graph_bag *)v[i])->node;
+	return v;
+}
+
 graph_bag * graph_search(graph const& g, int key)
 {
 	graph_node gn{ key };
@@ -52,7 +60,7 @@ int graph_add_vertex(graph & g, int v)
 	return rbtree_insert(g.tr, gb)? 0 : -1;
 }
 
-graph_node ** graph_adj(graph const& g, int v, int & sz)
+graph_node ** graph_adj(graph const& g, int v, size_t & sz)
 {
 	auto gb = graph_search(g, v);
 	if(!(gb && gb->node)){
@@ -68,9 +76,9 @@ static void do_graph_simple_dfs(graph & g, int v, FILE * out)
 	g.dfs_marked[v] = true;
 	fprintf(out, "%d,", v);
 
-	int sz;
+	size_t sz;
 	auto adj = graph_adj(g, v, sz);
-	for(int i = 0; i < sz; ++i){
+	for(size_t i = 0; i < sz; ++i){
 		if(!g.dfs_marked[adj[i]->key])
 			do_graph_simple_dfs(g, adj[i]->key, out);
 	}
@@ -89,11 +97,11 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	if(!buf)
 		len = 0;
 
-	printf("%s: begin rbtree_inorder_walk\n", __FUNCTION__);
+//	printf("%s: begin rbtree_inorder_walk\n", __FUNCTION__);
 	void * vers[g.v];
 	size_t vlen;
 	rbtree_inorder_walk(g.tr, vers, vlen);
-	printf("%s: end rbtree_inorder_walk\n", __FUNCTION__);
+//	printf("%s: end rbtree_inorder_walk\n", __FUNCTION__);
 
 	char tmp[128];
 
@@ -101,12 +109,12 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	size_t length;
 
 	size_t n = 0;
-	char buff[64];
+//	char buff[64];
 	for(size_t i = 0; i < vlen; ++i){
 
-		if((i + 1) % 10000 == 0)
-			printf("\r%s: processed %zu vertex, strlen=%zu/%s", __FUNCTION__,
-					i + 1, n, byte_to_mb_kb_str_r(n, "%-.2f %cB", buff));
+//		if((i + 1) % 10000 == 0)
+//			printf("\r%s: processed %zu vertex, strlen=%zu/%s", __FUNCTION__,
+//					i + 1, n, byte_to_mb_kb_str_r(n, "%-.2f %cB", buff));
 
 		auto gb = (graph_bag *)vers[i];
 		if(!gb || !gb->node || gb->i == 0)
@@ -127,7 +135,7 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 
 		n += r;
 
-		for(auto j = 0; j < gb->i; ++j){
+		for(size_t j = 0; j < gb->i; ++j){
 			if(buf && len > n){
 				buffer = buf + n;
 				length = len - n;
@@ -159,7 +167,7 @@ char * graph_c_str(graph const& g, char * buf, size_t& len)
 	}
 	if(buf && len >= n)
 		buf[n - 1] = '\0';
-	fprintf(stdout, "%s: vertex='%zu', strlen=%zu\n", __FUNCTION__, vlen, n);
+//	fprintf(stdout, "%s: vertex='%zu', strlen=%zu\n", __FUNCTION__, vlen, n);
 
 	return buf;
 }
@@ -239,4 +247,53 @@ int wgraph_init(graph & g, FILE * in,
 	cb_edge_end(g.e, n);
 	return 0;
 
+}
+
+graph dgraph_reverse_copy(graph const& og)
+{
+	graph g{0};
+	if(!og.direct)
+		return g;
+
+	g = og;
+	node_pool_init(g.tr.pool);
+	g.tr.root = 0;
+	node_pool_init(g.npool);
+	node_pool_init(g.bpool);
+	g.dfs_marked = 0;
+
+	for(size_t i = 0; i < og.v; ++i){
+		auto r = graph_add_vertex(g, i);
+		if(r != 0)
+			return graph{0};
+	}
+
+	graph_node * vers[g.v];
+	size_t V;
+	if(!graph_vertex(og, vers, V) || V == 0)
+		return graph{0};
+
+	for(size_t i = 0; i < V; ++i){
+		if(!vers[i])
+			continue;
+
+		size_t sz;
+		auto adj = graph_adj(og, vers[i]->key, sz);
+		if(!adj || sz == 0)
+			continue;
+
+		for(size_t j = 0; j < sz; ++j){
+			if(!adj[j])
+				continue;
+			graph_add_edge(g, adj[j]->key, vers[i]->key);
+		}
+	}
+	return g;
+}
+
+graph & dgraph_reverse(graph & g)
+{
+	if(!g.direct)
+		return g;
+	return g;
 }
