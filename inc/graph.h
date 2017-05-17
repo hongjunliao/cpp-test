@@ -128,8 +128,9 @@ int wgraph_init(graph & g, FILE * in,
 		void(* cb_edge_begin)(size_t total, size_t n) = 0,
 		void(* cb_edge_end)(size_t total, size_t n) = 0);
 /* NOTE: only for direct_graph
- * reverse dgraph @param g
+ * reverse direct_graph @param og
  * */
 graph dgraph_reverse_copy(graph const& og);
+/* overload, see dgraph_reverse_copy */
 graph & dgraph_reverse(graph & g);
 #endif /* DOCICI_GRAPH_H_ */

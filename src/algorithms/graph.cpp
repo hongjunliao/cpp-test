@@ -2,7 +2,7 @@
 #include "string_util.h" /* strnrchr */
 #include <stdlib.h>
 #include <string.h>		 /* memmove */
-
+#include <utility>	     /* std::pair */
 /////////////////////////////////////////////////////////////////////////////////////
 graph_node ** graph_vertex(graph const& g, graph_node ** v, size_t & n)
 {
@@ -291,9 +291,45 @@ graph dgraph_reverse_copy(graph const& og)
 	return g;
 }
 
+/* FIXME: to be continued */
 graph & dgraph_reverse(graph & g)
 {
 	if(!g.direct)
 		return g;
+
+	graph_bag * gbs[g.v];
+	size_t V;
+	rbtree_inorder_walk(g.tr, (void **)gbs, V);
+
+	std::pair<graph_node **, size_t> adjs[V];
+	for(size_t i = 0; i < V; ++i){
+		if(!(gbs[i] && gbs[i]->node))
+			continue;
+
+		size_t sz;
+		auto adj = graph_adj(g, gbs[i]->node->key, sz);
+//		for(size_t j = 0; j < sz; ++j){
+//			fprintf(stdout, "%d_", adj[j]->key);
+//		}
+//		fprintf(stdout, "\n");
+
+		adjs[i].first = adj;
+		adjs[i].second = sz;
+
+		gbs[i]->i = 0;
+	}
+
+	for(size_t i = 0; i < V; ++i){
+		if(!(gbs[i] && gbs[i]->node) || !adjs[i].first || adjs[i].second == 0)
+			continue;
+
+		for(size_t j = 0; j < adjs[i].second; ++j){
+			if(!adjs[i].first[j])
+				continue;
+			graph_add_edge(g, adjs[i].first[j]->key, gbs[i]->node->key);
+			fprintf(stdout, "%d_", adjs[i].first[j]->key);
+		}
+		fprintf(stdout, "=>%d\n", gbs[i]->node->key);
+	}
 	return g;
 }

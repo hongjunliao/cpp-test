@@ -147,7 +147,6 @@ static void graph_bag_realloc(graph_bag * gb, bool weight)
 	auto II = (size_t)log2((double)gb->I);
 	gb->I += II < 8? 8 : II;
 	gb->v = (graph_node **)realloc(gb->v, gb->I * sizeof(graph_node *));
-	gb->i = 0;
 	if(weight)
 		gb->w = (double * )realloc(gb->w, gb->I * sizeof(double));
 }
@@ -436,8 +435,8 @@ static int test_dgraph_reverse_main(int argc, char ** argv)
 		fprintf(stdout, "%s: graph=\n%s\n", __FUNCTION__, graphbuf);
 	}
 
-	auto && rg = dgraph_reverse_copy(g);
 	{
+		auto && rg = dgraph_reverse_copy(g);
 		size_t len;
 		graph_c_str(rg, 0, len);
 		if(len == 0){
@@ -446,6 +445,22 @@ static int test_dgraph_reverse_main(int argc, char ** argv)
 		}
 		char graphbuf[len];
 		auto p = graph_c_str(rg, graphbuf, len);
+		if(!p){
+			fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
+			return -1;
+		}
+		fprintf(stdout, "%s: reverse(copy) graph=\n%s\n", __FUNCTION__, graphbuf);
+	}
+	{
+		dgraph_reverse(g);
+		size_t len;
+		graph_c_str(g, 0, len);
+		if(len == 0){
+			fprintf(stdout, "%s: graph_c_str failed(get length)!\n", __FUNCTION__);
+			return -1;
+		}
+		char graphbuf[len];
+		auto p = graph_c_str(g, graphbuf, len);
 		if(!p){
 			fprintf(stdout, "%s: graph_c_str failed!\n", __FUNCTION__);
 			return -1;
