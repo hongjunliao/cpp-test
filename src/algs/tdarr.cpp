@@ -1,5 +1,6 @@
 /*!
  * This file is PART of docici/cpp-test
+ * @author hongjun.liao <docici@126.com>
  * 2d-array
  */
 #include "tdarr.h"    /* tdarr */
@@ -58,5 +59,6 @@ int test_tdarr_main(int argc, char ** argv)
 		}
 	}
 	fprintf(stdout, "\n");
+
 	return 0;
 }

@@ -53,4 +53,6 @@ char const * strnrchr(char const * buf, int sz, char ch);
 /* like printf except print \n as '\n', \0 as '\0' */
 void str_dump(FILE * f, char const * buf, size_t len);
 
+/* just like std::atoi */
+int myatoi(char const * str, size_t len);
 #endif /*_STRING_UTIL_H_*/

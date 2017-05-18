@@ -32,6 +32,11 @@ extern int test_graph_main(int argc, char ** argv);
 /* dynamic_programming.cpp */
 extern int test_dynamic_programming_main(int argc, char ** argv);
 
+/* test_string_util.cpp */
+extern  int test_string_util_main(int argc, char ** argv);
+
+/* ordered_2d_array_search.cpp */
+extern int ordered_2d_array_search(int argc, char ** argv);
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -81,6 +86,8 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"rbtree", test_rbtree_main},
 			{"graph", test_graph_main},
 			{"dyn_p", test_dynamic_programming_main},
+			{"string_util", test_string_util_main},
+			{"jzoffer", ordered_2d_array_search},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 };
 

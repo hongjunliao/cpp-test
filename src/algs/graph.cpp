@@ -1,3 +1,7 @@
+/*!
+ * graph implementation
+ * @author hongjun.liao <docici@126.com>
+ */
 #include "graph.h"       /* graph */
 #include "string_util.h" /* strnrchr */
 #include <stdlib.h>
@@ -291,7 +295,7 @@ graph dgraph_reverse_copy(graph const& og)
 	return g;
 }
 
-/* FIXME: to be continued */
+/* FIXME: with bugs, to be continued */
 graph & dgraph_reverse(graph & g)
 {
 	if(!g.direct)

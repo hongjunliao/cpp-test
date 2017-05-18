@@ -127,3 +127,32 @@ void str_dump(FILE * f, char const * buf, size_t len)
 			fprintf(f, "%c", buf[i]);
 	}
 }
+
+/* FIXME: overflow */
+int myatoi(char const * str, size_t len)
+{
+	if(!(str && str[0] != '\0' && len > 0))
+		return 0;
+
+	bool f = false;
+	if(str[0] == '+' || str[0] == '-'){
+		if(str[0] == '-')
+			f = true;
+		++str;
+		--len;
+	}
+
+	int ints[64];
+	int i = 0;
+	for(auto p = str; p != str + len; ++p){
+		if(!(*p >= '0' && *p <= '9'))
+			break;
+		ints[i++] = *p - '0';
+	}
+
+	int r = 0;
+	for(int j = 0; j < i; ++j){
+		r += ints[j] * pow(10, i - j - 1);
+	}
+	return f? -r : r;
+}

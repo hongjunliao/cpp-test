@@ -1,3 +1,6 @@
+/*!
+ * @author hongjun.liao <docici@126.com>
+ */
 #include "node_pool.h"
 #include "rb_tree.h"	/* rbtree_node */
 #include <stdio.h>
