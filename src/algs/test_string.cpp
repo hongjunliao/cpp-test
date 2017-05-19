@@ -7,6 +7,7 @@
 #include <string.h> /* strlen, strncat */
 /*
  * 替换字符为指定字符串
+ * replace every char @param c in @param str to @param r
  * @param buf: out
  * @param len: in, length for @param buf
  * @return:    return @param buf if success, else 0
@@ -21,14 +22,18 @@ static char* replace_char_to_str(char const * str,
 
 	size_t n = 0;
 	auto rlen = strlen(r);
-	for(auto p = str, q = p; q != end; ++q){
-		if(*q == c){
+	for(auto p = str, q = p; ; ++q){
+		if(*q == c || q == end){
 			auto blen = q - p;
-			if(n + blen > len - 1) /* for '\0' at end */
-				return 0;
+			if(blen > 0){
+				if(n + blen > len - 1) /* for '\0' at end */
+					return 0;
 
-			memcpy(buf + n, p, blen);
-			n += blen;
+				memcpy(buf + n, p, blen);
+				n += blen;
+			}
+			if(q == end)
+				break;
 
 			if(n + rlen > len - 1)
 				return 0;
@@ -38,6 +43,8 @@ static char* replace_char_to_str(char const * str,
 			p = q + 1;
 		}
 	}
+	buf[n] = '\0';
+
 	return buf;
 }
 
@@ -50,6 +57,7 @@ int test_string_main(int argc, char ** argv)
 	if(!s)
 		fprintf(stdout, "%s: replace_char_to_str failed\n", __FUNCTION__);
 	else
-		fprintf(stdout, "%s: replace_char_to_str, old='%s', new='%s'\n", __FUNCTION__, data, s);
+		fprintf(stdout, "%s: replace_char_to_str, old='%s', char='%c', replace='%s', new='%s'\n",
+				__FUNCTION__, data, ' ', "%20", s);
 	return 0;
 }

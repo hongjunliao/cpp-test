@@ -33,7 +33,7 @@ static bool ordered_2d_array_search(int * a, size_t m, size_t n, int key)
 	return false;
 }
 
-int test_jzoffter_ordered_2d_array_search_main(int argc, char ** argv)
+int test_jzoffter_main(int argc, char ** argv)
 {
 	int arr[] { 1, 2, 8, 9, 2, 4, 9, 12, 4, 7, 10, 13, 6, 8, 11, 15 };
 	size_t M = 4, N = 4;
