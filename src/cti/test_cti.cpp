@@ -12,6 +12,7 @@
 #include <boost/random.hpp>
 #include <boost/algorithm/string.hpp>  /* boost::split */
 #include <boost/foreach.hpp>   /* BOOST_FOREACH */
+#include <boost/container/list.hpp>
 //////////////////////////////////////////////////////////////////////////
 void clear_matrix(int** matrix, size_t m, size_t n, int val){
 	for(size_t i = 0; i != m; ++i){

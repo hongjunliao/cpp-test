@@ -226,7 +226,7 @@ void topological_sort(Graph& g, InsertIerator iter)
 
 	vertex_iterator viter, vend;
 	std::map<int, vertex_descriptor> m;
-	for(tie(viter, vend) = vertices(g); viter != vend; ++viter)
+	for(boost::tie(viter, vend) = vertices(g); viter != vend; ++viter)
 		m[g[*viter].f_] = *viter;
 	for(auto it = m.begin(); it != m.end(); ++it)
 		*iter = it->second;

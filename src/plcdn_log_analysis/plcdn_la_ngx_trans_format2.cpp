@@ -6,6 +6,7 @@
  * transform log format, currently only for nginx
  */
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef (__CYGWIN__ || __GCC__)
 #include <unistd.h>	/* sysconf */
 #include <sys/uio.h>	/* iovec */
 #include <limits.h>		/* IOV_MAX */
@@ -316,3 +317,5 @@ int pl_logtrans_trans_file(char const * fmt, int rn, FILE * in, FILE * out)
 	pl_logtrans_free_format(fmtf, arn);
 	return 0;
 }
+
+#endif /* WIN32 */

@@ -75,17 +75,17 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"subprocess_wait_pipe_handle", test_subprocess_wait_pipe_handle_main},
 			{"mykeys", mykeys_main},
 			{"cygwin_posix_ipc", test_cygwin_posix_ipc_main},
-#endif /*__CYGWIN_GCC__*/
 			{"nginx_log_split", test_nginx_log_split_main},
 			{"srs_log_stats", test_srs_log_stats_main},
 			{"plcdn_log_analysis", test_plcdn_log_analysis_main},
 			{"plcdn_log_split", test_plcdn_log_split_main},
-			{"cpp11", test_cpp11_main},
 			{"opencv", test_opencv_main},
 			{"opengl", test_opengl_main},
-			{"plcdn_logtrans", test_nginx_transform_log_main_2},
-			{"chess", chess_test_main},
 			{"nginx_log_fmt", test_ngx_parse_nginx_log_format_main},
+			{"plcdn_logtrans", test_nginx_transform_log_main_2},
+#endif /*__CYGWIN_GCC__*/
+			{"cpp11", test_cpp11_main},
+			{"chess", chess_test_main},
 			{"bst", test_binary_search_tree_main},
 			{"radix", test_radix_tree_main},
 			{"bs23t", test_bs23tree_main},
@@ -114,6 +114,7 @@ char const * bd_test_get_test_list()
 
 int bd_test_main(int argc, char ** argv, char const * stest)
 {
+	setbuf(stdout, 0);
 	if(!stest)
 		return -1;
 	auto fn = testmap[stest];

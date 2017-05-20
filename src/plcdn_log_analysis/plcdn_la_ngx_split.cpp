@@ -4,7 +4,6 @@
  * @author hongjun.liao <docici@126.com>
  * @date 2016/11
  */
-#include <sys/mman.h>	/*mmap*/
 #include <stdio.h>
 #include <time.h>		/*tm*/
 #include <string> 		/*std::string*/

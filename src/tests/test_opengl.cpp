@@ -6,7 +6,7 @@
  * link:    -lglut
  * */
 #include <stdio.h>
-#if 1
+#if 0
 
 #include <GL/glut.h>
 
