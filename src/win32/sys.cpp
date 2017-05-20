@@ -4,13 +4,14 @@
  */
 #ifdef WIN32
 #include "mywin32_api.h"
+#include <windows.h>
 
 int get_nprocs (void)
 {
 	SYSTEM_INFO si;
 	GetSystemInfo(&si);
-	count = si.dwNumberOfProcessors;
+	int count = si.dwNumberOfProcessors;
 	return count;
 }
-#endif
+#endif /* WIN32 */
 

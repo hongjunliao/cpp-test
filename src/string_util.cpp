@@ -114,17 +114,30 @@ char const * strnrchr(char const * buf, int sz, char ch)
 	return 0;
 }
 
+void chr_dump(FILE * f, char chr, char const * beg/* = 0*/, char const * end/* = 0*/)
+{
+	if(beg)
+		fprintf(f, "%s", beg);
+	if(chr == '\r')
+		fprintf(f, "\\r");
+	if(chr == '\n')
+		fprintf(f, "\\n");
+	else if(chr == '\0')
+		fprintf(f, "\\0");
+	else if(chr == '\t')
+		fprintf(f, "\\t");
+	else
+		fprintf(f, "%c", chr);
+	if(end)
+		fprintf(f, "%s", end);
+}
+
 void str_dump(FILE * f, char const * buf, size_t len)
 {
+	if(!(f && buf && len > 0))
+		return;
 	for(size_t i = 0; i < len; ++i){
-		if(buf[i] == '\r')
-			fprintf(f, "\\r");
-		if(buf[i] == '\n')
-			fprintf(f, "\\n");
-		else if(buf[i] == '\0')
-			fprintf(f, "\\0");
-		else
-			fprintf(f, "%c", buf[i]);
+		chr_dump(f, buf[i]);
 	}
 }
 

@@ -31,18 +31,17 @@ extern int test_opengl_main(int argc, char ** argv);
 extern int test_graph_main(int argc, char ** argv);
 /* dynamic_programming.cpp */
 extern int test_dynamic_programming_main(int argc, char ** argv);
-
 /* test_string_util.cpp */
 extern  int test_string_util_main(int argc, char ** argv);
-
 /* ordered_2d_array_search.cpp */
 extern int test_jzoffter_main(int argc, char ** argv);
-
 /* test_string.cpp */
 extern int test_string_main(int argc, char ** argv);
-
 /* lds_main.cpp */
 extern int test_lds_main(int argc, char ** argv);
+/* exec.cpp */
+extern int test_exec_main(int argc, char ** argv);
+
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -95,8 +94,11 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"string_util", test_string_util_main},
 			{"jzoffer", test_jzoffter_main},
 			{"string", test_string_main},
-			{"lds", test_lds_main}
+			{"lds", test_lds_main},
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
+#ifdef WIN32
+			{"exec", test_exec_main },
+#endif /* WIN32 */
 };
 
 char const * bd_test_get_test_list()
