@@ -5,6 +5,7 @@
  * water quality parameters/wqp parse
  *
  */
+#include "lds_inc.h"
 #include "string_util.h"   /* str_t */
 #include <map>             /* std::map */
 
@@ -16,7 +17,6 @@
  * @param m: map<wqp_tag, wqp_val>
  * @return: 0 on success
  * */
-
 int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m)
 {
 	if(!(str && str[0] != '\0' && len > 0))

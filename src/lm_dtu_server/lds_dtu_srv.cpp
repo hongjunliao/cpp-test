@@ -4,31 +4,62 @@
  * dtu service
  */
 #include "string_util.h"   /* str_t */
+#include "lds_dtu_module.h"/* ModemDataStruct, ... */
 #include "lds_inc.h"       /*  */
-#include <unistd.h>        /* sleep */
 #include <stdio.h>
 #include <string.h>        /* strchr */
 #include <map>             /* std::map */
 
 #define WQP_DELIM_CH ';'
-/* buffer for receiving DTU data */
-static char recv_buf[1024 * 1024 * 4] =
-		"M005S0RAT120820063133Y1Z0A202.6B8.24C1.33D0.00E29.5F76.3G4.651;"
-		"M005S0RAT120820063133Y1Z0A202.6B8.24C1.33D0.00E29.5F76.3G4.652;haha;";
+#define MODEM_MAX 512
+#define RECV_MAX (1024 * 1014 * 2)
 
 /* lds_wqp_parse.cpp */
 extern int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m);
-/* lds_main.cpp */
-extern int (*gfn_lds_log)(int type, int level, char const * fmt, ...);;
+
+/* buffer for receiving DTU data */
+static char * recvbuf[MODEM_MAX] = { 0 };
+static size_t recvbuf_len[MODEM_MAX] = { 0 };
 
 int lm_dtu_recv_run()
 {
+	ModemDataStruct data;
 	for(;;){
-		fprintf(stdout, "%s: recv_buf='%s'\n", __FUNCTION__, recv_buf);
-		/* read data from dtu */
+		data.m_modemId = 0;
+		data.m_data_len = 0;
+
+		/* read data from dtu, with no waiting */
+		int r = lds_dtu_get_next_data(data, 0);
+		if(r != 0)
+			continue;
+
+		if(data.m_modemId > MODEM_MAX){
+			lds_log(LDS_LOG_DTU, LDS_LOG_DEBUG,"%s: modem_id too big, %u(max %d), skip \n",
+					__FUNCTION__, data.m_modemId, MODEM_MAX);
+			continue;
+		}
+		if(data.m_data_len <= 0){
+			lds_log(LDS_LOG_DTU, LDS_LOG_DEBUG,"%s: %d, buffer empty, skip\n",
+					__FUNCTION__, data.m_modemId);
+			continue;
+		}
+
+		char *& recv_buf = recvbuf[data.m_modemId];
+		size_t & len = recvbuf_len[data.m_modemId];
+
+		if(!recv_buf)
+			recv_buf = (char *)malloc(RECV_MAX);
+
 		/* append to recv_buf */
-		/* parse buf */
-		size_t len = strlen(recv_buf);
+		if(len >= RECV_MAX || len + data.m_data_len > RECV_MAX)
+			len = 0;
+
+		memcpy(recv_buf + len, data.m_data_buf, data.m_data_len);
+		len += data.m_data_len;
+
+		fprintf(stdout, "%s: id=%u, recv_buf='%s'\n", __FUNCTION__, data.m_modemId, recv_buf);
+
+		/* parse recv_buf */
 		char * end = 0;
 		for(char * p = recv_buf, * q = strchr(p, WQP_DELIM_CH);
 				; q = strchr(p, WQP_DELIM_CH)){
@@ -40,7 +71,7 @@ int lm_dtu_recv_run()
 			int r = lds_parse_wqp_log(p, q - p, wqplog);
 			if(r != 0){
 				*q = '\0';
-				gfn_lds_log(LDS_LOG_WQP, LDS_LOG_DEBUG,"%s: parse_wqp_log failed for '%s'\n", __FUNCTION__, p);
+				lds_log(LDS_LOG_WQP, LDS_LOG_DEBUG,"%s: parse_wqp_log failed for '%s'\n", __FUNCTION__, p);
 			}
 			else{
 				/* save to database*/
@@ -51,13 +82,12 @@ int lm_dtu_recv_run()
 		}
 		if(end){
 			++end;
+			len = recv_buf + len - end;
 			memset(recv_buf, 0, end - recv_buf);
-			memmove(recv_buf, end, recv_buf + len - end);
+			memmove(recv_buf, end, len);
 		}
 
-		fprintf(stdout, "%s: recv_buf(left)='%s'\n", __FUNCTION__, recv_buf);
-		/* sleep a while and go to next loop */
-		sleep(1);
+		fprintf(stdout, "%s: id=%u, recv_buf(left)='%s'\n", __FUNCTION__, data.m_modemId, recv_buf);
 	}
 	return 0;
 }

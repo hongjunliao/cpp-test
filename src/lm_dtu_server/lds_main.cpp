@@ -11,50 +11,55 @@
  *
  * 水质参数日志示例: 'M005S0RAT120820063133Y1Z0A202.6B8.24C1.33D0.00E29.5F76.3G4.651'
  */
-#include "string_util.h"   /* str_t */
+#include "string_util.h"          /* str_t */
+#include "lds_inc.h"              /* lds_log */
+#include "lds_dtu_module.h"       /* lds_dtu_start_service, ... */
 #include <stdio.h>
 #include <string.h>        /* strlen */
 #include <map>             /* std::map */
 
-/* log */
-int (*gfn_lds_log)(int type, int level, char const * fmt, ...);
-
+/* lds_option.cpp */
+extern lds_options opt;
 /* lds_wqp_parse.cpp */
 extern int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m);
 /* lds_dtu_srv.cpp */
 extern int lm_dtu_recv_run();
-/* lds_log.cpp */
-extern int lds_log_to_file(int type, int level, char const * fmt, ...);
-
-static int test_lds_parse_wqp_log_main(int argc, char ** argv)
-{
-	char const * str = "M005S0RAT120820063133Y1Z0A202.6B8.24C1.33D0.00E29.5F76.3G4.651";
-
-	std::map<char, str_t> wqplog;
-	int r = lds_parse_wqp_log(str, strlen(str), wqplog);
-	if(r != 0){
-		fprintf(stdout, "%s: parse_wqp_log failed\n", __FUNCTION__);
-		return -1;
-	}
-
-	fprintf(stdout, "%s: data='%s', parse results:\n", __FUNCTION__, str);
-	for(std::map<char, str_t>::iterator it = wqplog.begin(); it != wqplog.end(); ++it){
-		fprintf(stdout, "%s: %c=", __FUNCTION__, it->first);
-		str_t_fprint(&it->second, stdout);
-	}
-
-	return 0;
-}
+/* tests
+ * lds_test.cpp */
+extern int test_lds_parse_wqp_log_main(int argc, char ** argv);
 
 int test_lds_main(int argc, char ** argv)
 {
 //	test_lds_parse_wqp_log_main(argc, argv);
+
+	int r = lds_parse_cmdline(argc, argv);
+	char const * cmd = argc > 0? argv[0] : "lds_dtu_server";
+	if(r != 0 || opt.help){
+		lds_show_usage(cmd, stdout);
+		return opt.help? 0 : -1;
+	}
+	if(opt.ver){
+		lds_show_verison(cmd, stdout);
+		return 0;
+	}
 	/* app init */
-	gfn_lds_log = lds_log_to_file;
+	r = lds_dtu_module_load("gprsdll.dll");
+	if(r != 0){
+		lds_log(LDS_LOG_APP, LDS_LOG_DEBUG, "%s: lds_dtu_module_load 'gprsdll.dll' failed\n", __FUNCTION__);
+		return -1;
+	}
 	/* start dtu service */
+	r = lds_dtu_start_service(opt.port);
+	if(r != 0){
+		lds_log(LDS_LOG_APP, LDS_LOG_DEBUG, "%s: DSStartService %d failed\n", __FUNCTION__, opt.port);
+		return -1;
+	}
+	lds_log(LDS_LOG_APP, LDS_LOG_DEBUG, "%s: DSStartService at %d\n", __FUNCTION__, opt.port);
+
 	/* run receive dtu data loop */
 	lm_dtu_recv_run();
 
 	/* stop dtu service */
+	lds_dtu_stop_service();
 	return 0;
 }
