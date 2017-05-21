@@ -156,40 +156,18 @@ bool is_os_version_major_less_equal(int ver)
 	osvi.dwMajorVersion= ver;
 	DWORDLONG dwlConditionMask = 0;
 	VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_LESS_EQUAL);
-	auto result = (::VerifyVersionInfo(&osvi, VER_MAJORVERSION, dwlConditionMask) != FALSE);
+	BOOL result = (::VerifyVersionInfo(&osvi, VER_MAJORVERSION, dwlConditionMask) != FALSE);
 	return result;
 	return false;
 }
 
 #endif	/* defined __CYGWIN__ || defined WIN32 */
 
-struct intercmdctx {
-	char const * dir;
-	char const * cmd;
-	char const * direct;
-	HANDLE hproc;
-	HANDLE rh;
-	HANDLE whp;
-	HANDLE wh;
-};
-#define is_intercmdctx_ok(ctx) (ctx.hproc && ctx.rh && ctx.wh && ctx.direct && ctx.direct[0] != '\0')
-/*
- * 交互式命令/interactive_cmd, inter_cmd, 交互式命令是指需要提输入的命令, 如sqlcmd, shell, gdb
- * (1)程序启动后, 不会马上退出, 而是等待输入指令(directive), 并按下回车键(通常)以执行该指令;
- * (2)如果输入的指令是"退出"(如'quit', 'exit', 'bye'), 则程序退出
- * (3)如果是其它指令, 执行并输出结果, 如sqlcmd的查询语句
- * */
-/* boot the cmd
- * @return: if success then return 0 and the pipes
- * */
-int begin_intercmd(intercmdctx & ctx);
-/* send directive
- * send 'exit' like directive to exit cmd */
-int send_intercmd_direct(intercmdctx & ctx, char * buff, size_t length,
-		int (*stdout_cb)(char const * data, size_t length, void * arg), void * arg);
+#define is_intercmdctx_ok(ctx) (ctx.dir && ctx.dir[0] != '\0' && ctx.cmd && ctx.cmd[0] != '\0' && ctx.direct && ctx.direct[0] != '\0')
+#define is_intercmdctx_ready(ctx) (ctx.hproc && ctx.rh && ctx.wh)
 
 /* @see sample code from https://msdn.microsoft.com/en-us/library/windows/desktop/ms682499(v=vs.85).aspx */
-int begin_intercmd(intercmdctx & ctx)
+static int exec_intercmd(intercmdctx & ctx)
 {
 	char const * dir = ctx.dir, * cmd = ctx.cmd;
 	fprintf(stdout, "%s: dir='%s', cmd='%s'\n", __FUNCTION__, dir, cmd);
@@ -230,20 +208,30 @@ int begin_intercmd(intercmdctx & ctx)
 	ctx.hproc = pi.hProcess;
 	ctx.rh = fd1[0];
 	ctx.wh = fd2[1];
-	ctx.whp = fd1[1];
 	return 0;
 }
 
-int send_intercmd_direct(intercmdctx & ctx, char * buff, size_t length,
+int send_intercmd(intercmdctx & ctx, char * buf, size_t length,
 		int (*stdout_cb)(char const * data, size_t length, void * arg), void * arg)
 {
-	char const * direct = ctx.direct;
-	fprintf(stdout, "%s: direct='%s'\n", __FUNCTION__, direct);
-	if(!(direct && direct[0] != '\0' && buff && length > 0))
-		return -1;
-
 	if(!is_intercmdctx_ok(ctx))
 		return -1;
+	if(!is_intercmdctx_ready(ctx)){
+		int r = exec_intercmd(ctx);
+		if(r != 0){
+			fprintf(stderr, "%s: exec_intercmd failed\n", __FUNCTION__);
+			return -1;
+		}
+	}
+
+	DWORD ec;
+	GetExitCodeProcess(ctx.hproc, &ec);
+	if(ec != STILL_ACTIVE){
+		ctx.hproc = 0;
+		return -1;
+	}
+
+//	str_dump(stdout, ctx.direct, strlen(ctx.direct), __FUNCTION__, "_______\n");
 
 	DWORD written = 0;
 	BOOL r = WriteFile(ctx.wh, ctx.direct, strlen(ctx.direct), &written, NULL);
@@ -251,8 +239,11 @@ int send_intercmd_direct(intercmdctx & ctx, char * buff, size_t length,
 		fprintf(stdout, "%s: failed, written=%ld\n", __FUNCTION__, written);
 		return -1;
 	}
-	if(arg)
-		CloseHandle((HANDLE) arg);
+	if(ctx.exit)
+		return 0;
+	if(!(buf && length > 0))
+		return 0;
+
 	for(;;){
 		DWORD dw = WaitForSingleObject(ctx.wh, 80);
 		if(dw == WAIT_OBJECT_0){
@@ -260,17 +251,19 @@ int send_intercmd_direct(intercmdctx & ctx, char * buff, size_t length,
 			if(r){
 				//TODO: GetExitCodeProcess?
 				fprintf(stdout, "%s: process finished\n", __FUNCTION__);
+				ctx.hproc = 0;
+				CloseHandle(ctx.wh);
 			}
 
 			DWORD bytes_read = 0;
-			r = ReadFile(ctx.rh, buff, length, &bytes_read, NULL);
+			r = ReadFile(ctx.rh, buf, length, &bytes_read, NULL);
 			if(r != TRUE)
 				return -1;
 			if(bytes_read == 0)
 				continue;
 
-			buff[bytes_read] = '\0';
-			if(stdout_cb && stdout_cb(buff, bytes_read, arg) == 2)
+			buf[bytes_read] = '\0';
+			if(stdout_cb && stdout_cb(buf, bytes_read, arg) == 2)
 				return 0;
 		}
 		else if(dw == WAIT_TIMEOUT){
@@ -291,17 +284,15 @@ int send_intercmd_direct(intercmdctx & ctx, char * buff, size_t length,
 	return 0;
 }
 
+#ifdef DEBUG
+
 static int sample_intercmd_stdout(char const * data, size_t len, void * arg)
 {
-	fprintf(stdout, "%s", data);
-//	str_dump(stdout, data, len);
-	fflush(stdout);
+//	fprintf(stdout, "%s", data);
+	str_dump(stdout, data, len, 0, "\n");
 	if(data && len > 2){
-//		chr_dump(stdout, data[len - 2], ">>>____________", 0);
-//		chr_dump(stdout, data[len - 1], 0, "____________<<<\n");
-
 		if(data[len - 3] == ')' && data[len - 1] == '\n'){
-			fprintf(stdout, "%s: ___________________________\n", __FUNCTION__);
+			fprintf(stdout, "%s: _________________________\n", __FUNCTION__);
 			return 2;
 		}
 	}
@@ -310,32 +301,41 @@ static int sample_intercmd_stdout(char const * data, size_t len, void * arg)
 
 int test_exec_main(int argc, char ** argv)
 {
-	intercmdctx ctx;
+	intercmdctx ctx = { 0 };
 	ctx.dir = "D:/ws/release/";
 	ctx.cmd = "sqlcmd -u -S 121.37.60.39,2073 -P pwqp43we9_45fn320vgd_irb_i92p6hge3_873w98jmwutc5602301"
 			" -U pooi9008_fn320vgd_irb_i92p6hge3_873w98jmwutc56023vfi8";
-
-	int r = begin_intercmd(ctx);
+	char buf[1024 * 10];
+	/* sql select */
+	ctx.direct = "select top 1 A,PH from waterparameter001\ngo\n";
+	int r = send_intercmd(ctx, buf, sizeof(buf), sample_intercmd_stdout, 0);
 	if(r != 0){
-		fprintf(stderr, "%s: begin_inter_cmd failed\n", __FUNCTION__);
+		fprintf(stderr, "%s: send_intercmd_direct failed\n", __FUNCTION__);
 		return -1;
 	}
 
-	ctx.direct = "select top 1 * from waterparameter001\ngo\n";
-	char buf[1024 * 10];
-	for(int i = 0; i < 10; ++i){
-		r = send_intercmd_direct(ctx, buf, sizeof(buf), sample_intercmd_stdout, 0);
-		if(r != 0){
-			fprintf(stderr, "%s: send_intercmd_direct failed\n", __FUNCTION__);
-			return -1;
-		}
+	/* sql insert */
+	ctx.direct = "exec sp_insert_wpp 1,'2012-04-06 15:04:03','0','A',24.5,76.1,517.8,7.48,7.35,4.01,0.0, 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,'9','1'";
+	r = send_intercmd(ctx, buf, sizeof(buf), sample_intercmd_stdout, 0);
+	if(r != 0){
+		fprintf(stderr, "%s: send_intercmd_direct failed\n", __FUNCTION__);
+		return -1;
 	}
+
 	/* send exit direct */
 	ctx.direct = "exit\n";
-	r = send_intercmd_direct(ctx, buf, sizeof(buf), sample_intercmd_stdout, ctx.wh);
+	ctx.exit = true;
+	r = send_intercmd(ctx, buf, sizeof(buf), sample_intercmd_stdout, 0);
 	if(r != 0){
 		fprintf(stderr, "%s: send_intercmd_direct failed\n", __FUNCTION__);
 		return -1;
 	}
 	return 0;
 }
+#else
+int test_exec_main(int argc, char ** argv)
+{
+	fprintf(stderr, "%s: define DEBUG to open this test\n", __FUNCTION__);
+	return -1;
+}
+#endif /* DEBUG */

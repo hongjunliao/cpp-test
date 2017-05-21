@@ -11,17 +11,12 @@
  *
  * 水质参数日志示例: 'M005S0RAT120820063133Y1Z0A202.6B8.24C1.33D0.00E29.5F76.3G4.651'
  */
-#include "string_util.h"          /* str_t */
 #include "lds_inc.h"              /* lds_log */
 #include "lds_dtu_module.h"       /* lds_dtu_start_service, ... */
 #include <stdio.h>
-#include <string.h>        /* strlen */
-#include <map>             /* std::map */
 
 /* lds_option.cpp */
 extern lds_options opt;
-/* lds_wqp_parse.cpp */
-extern int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m);
 /* lds_dtu_srv.cpp */
 extern int lm_dtu_recv_run();
 /* tests

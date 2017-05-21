@@ -132,13 +132,20 @@ void chr_dump(FILE * f, char chr, char const * beg/* = 0*/, char const * end/* =
 		fprintf(f, "%s", end);
 }
 
-void str_dump(FILE * f, char const * buf, size_t len)
+void str_dump(FILE * f, char const * buf, size_t len
+		, char const * beg/* = 0*/, char const * end/* = 0*/)
 {
 	if(!(f && buf && len > 0))
 		return;
+
+	if(beg)
+		fprintf(f, "%s", beg);
 	for(size_t i = 0; i < len; ++i){
 		chr_dump(f, buf[i]);
 	}
+	if(end)
+		fprintf(f, "%s", end);
+	fflush(f);
 }
 
 /* FIXME: overflow */

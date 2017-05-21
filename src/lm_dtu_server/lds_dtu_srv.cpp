@@ -3,19 +3,18 @@
  * @author hongjun.liao <docici@126.com>, @date 2017/05/20
  * dtu service
  */
-#include "string_util.h"   /* str_t */
-#include "lds_dtu_module.h"/* ModemDataStruct, ... */
 #include "lds_inc.h"       /*  */
+#include "lds_wqp.h"       /* lds_parse_wqp, ... */
+#include "lds_dtu_module.h"/* ModemDataStruct, ... */
 #include <stdio.h>
 #include <string.h>        /* strchr */
-#include <map>             /* std::map */
 
 #define WQP_DELIM_CH ';'
 #define MODEM_MAX 512
 #define RECV_MAX (1024 * 1014 * 2)
 
-/* lds_wqp_parse.cpp */
-extern int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m);
+/* lds_option.cpp */
+extern lds_options opt;
 
 /* buffer for receiving DTU data */
 static char * recvbuf[MODEM_MAX] = { 0 };
@@ -24,6 +23,7 @@ static size_t recvbuf_len[MODEM_MAX] = { 0 };
 int lm_dtu_recv_run()
 {
 	ModemDataStruct data;
+	char direct[1024];
 	for(;;){
 		data.m_modemId = 0;
 		data.m_data_len = 0;
@@ -61,24 +61,30 @@ int lm_dtu_recv_run()
 
 		/* parse recv_buf */
 		char * end = 0;
-		for(char * p = recv_buf, * q = strchr(p, WQP_DELIM_CH);
-				; q = strchr(p, WQP_DELIM_CH)){
+		for(char * p = recv_buf, * q; p != recv_buf + len; p = q + 1){
+			q = strchr(p, WQP_DELIM_CH);
 			if(!q)
 				break;
 			end = q;
+			*q = '\0';
 
-			std::map<char, str_t> wqplog;
-			int r = lds_parse_wqp_log(p, q - p, wqplog);
+			lds_wqp wqplog;
+			int r = lds_parse_wqp(p, q - p, wqplog);
 			if(r != 0){
-				*q = '\0';
-				lds_log(LDS_LOG_WQP, LDS_LOG_DEBUG,"%s: parse_wqp_log failed for '%s'\n", __FUNCTION__, p);
-			}
-			else{
-				/* save to database*/
-
+				lds_log(LDS_LOG_WQP, LDS_LOG_DEBUG,"%s: lds_parse_wqp failed for '%s', skip\n", __FUNCTION__, p);
+				continue;
 			}
 
-			p = q + 1; /* to next wqp_log */
+			char const * str = lds_sprintf_wqp(direct, sizeof(direct), opt.sav, wqplog);
+			if(!str){
+				lds_log(LDS_LOG_WQP, LDS_LOG_DEBUG,"%s: lds_sprintf_wqp failed for '%s', skip, fmt='%s'\n",
+						__FUNCTION__, p, opt.sav);
+				continue;
+			}
+
+			r = lds_send_wqp(str);
+			if(r != 0)
+				lds_log(LDS_LOG_WQP, LDS_LOG_DEBUG,"%s: lds_send_wqp failed for '%s', skip\n", __FUNCTION__, p);
 		}
 		if(end){
 			++end;

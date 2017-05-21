@@ -51,7 +51,7 @@ char * byte_to_mb_kb_str_r(size_t bytes, char const * fmt, char * buff);
 /* like strrchr except that @param buf endwith '\0' NOT requried */
 char const * strnrchr(char const * buf, int sz, char ch);
 /* like printf except print \n as '\n', \0 as '\0' */
-void str_dump(FILE * f, char const * buf, size_t len);
+void str_dump(FILE * f, char const * buf, size_t len, char const * beg = 0, char const * end = 0);
 /* format: <beg>chr<end> */
 void chr_dump(FILE * f, char chr, char const * beg = 0, char const * end = 0);
 

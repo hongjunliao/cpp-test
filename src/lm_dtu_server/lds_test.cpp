@@ -3,13 +3,13 @@
  * @author hongjun.liao <docici@126.com>, @date 2017/05/20
  * test
  */
+
+#ifdef DEBUG
+
 #include "string_util.h"   /* str_t */
 #include <stdio.h>
 #include <string.h>        /* strlen */
 #include <map>             /* std::map */
-
-/* lds_wqp_parse.cpp */
-extern int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m);
 
 int test_lds_parse_wqp_log_main(int argc, char ** argv)
 {
@@ -30,3 +30,5 @@ int test_lds_parse_wqp_log_main(int argc, char ** argv)
 
 	return 0;
 }
+#endif /* DEBUG */
+

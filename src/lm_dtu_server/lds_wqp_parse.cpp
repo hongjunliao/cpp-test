@@ -5,34 +5,52 @@
  * water quality parameters/wqp parse
  *
  */
+#include "lds_wqp.h"   /*  */
 #include "lds_inc.h"
-#include "string_util.h"   /* str_t */
-#include <map>             /* std::map */
 
 #define IS_CHAR_A_TO_Z(ch) ((ch) >= 'A' && (ch) <= 'Z')
 
-/* parse @param str as wqp_log
- * sample: 'M005S0RAT120820063133Y1Z0A202.6B8.24C1.33D0.00E29.5F76.3G4.651'
- * @param delim: delimer for wqp_log
- * @param m: map<wqp_tag, wqp_val>
- * @return: 0 on success
- * */
-int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m)
+/* 水质参数 */
+struct wqp_vaal {
+	int mid;                              /* 监控点ID */
+	int theTime_;                         /* 时间 */
+	char runStatus;                       /* 运行状态 */
+	char remark_;                         /* 备注 */
+	float devroom_tem, devroom_hum;       /* 温度, 湿度 */
+	float a, ph, orp, do_, sd;            /* A, PH值, ORP, DO, SD */
+	float cod, nh, chla, tp, water_tem;   /* COD, NH, CHLA, TP, 水温 */
+	float level1, level2, level3, level4; /* 液位 */
+	char za1, za2;                        /* 闸门 */
+};
+
+#define convert_wqp_val_chr(buf, c) { buf[0] = c; buf[1] = '\0'; }
+
+static void convert_wqp_val(char * buf, char c, char const * str, size_t len)
+{
+	if(!buf)
+		return;
+	switch(c){
+	case 'M': break;
+	}
+	buf[0] = '2';
+	buf[1] = '\0';
+}
+
+int lds_parse_wqp(char * str, size_t len, lds_wqp & m)
 {
 	if(!(str && str[0] != '\0' && len > 0))
 		return -1;
 
-	for(char const * q = str; q != str + len;){
+	for(char * q = str; q != str + len;){
 		if(IS_CHAR_A_TO_Z(*q)){
-			char const * p = q + 1;
+			char * p = q + 1;
 
 			if(p == str + len)
-				return -1;	/* syntax error */
+				return 0;
 
-			m[*q].beg = (char *)p;
-
+			wqp_val & val = m[*q];
 			if(IS_CHAR_A_TO_Z(*p)){ /* wqp_val is only a char */
-				m[*q].end = (char *)p + 1;
+				convert_wqp_val_chr(val.val, *p);
 				q +=2;
 				continue;
 			}
@@ -41,8 +59,10 @@ int lds_parse_wqp_log(char const * str, size_t len, std::map<char, str_t> & m)
 				++p;
 			}
 			while(p != str + len && !IS_CHAR_A_TO_Z(*p));
+			convert_wqp_val(val.val, *q, q + 1, p - (q + 1));	/* p - (q + 1) >= 1 */
 
-			m[*q].end = (char *)p;
+			if(p == str + len)
+				return 0;
 
 			q = p; /* move to next wqp_log */
 			continue;

@@ -28,6 +28,7 @@ extern int lds_log(int type, int level, char const * fmt, ...);
 /* cmdlime and options */
 struct lds_options {
 	int port;
+	char const * sav;
 	int ver;
 	int help;
 };
@@ -35,4 +36,6 @@ extern int lds_parse_cmdline(int argc, char ** argv);
 extern void lds_show_usage(char const * cmd, FILE * f);
 extern void lds_show_verison(char const * cmd, FILE * f);
 
+/* config file */
+extern int lds_load_conf(char const * f);
 #endif /* LDS_INC_H_ */
