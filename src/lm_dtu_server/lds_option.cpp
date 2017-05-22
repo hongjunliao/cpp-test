@@ -8,13 +8,17 @@
 #include <stdlib.h>	/* strtol */
 #include <string.h>	/* strlen */
 
-lds_options opt = { 0 };
+lds_options opt = { 8010, "exec sp_insert_wpp $M,$S,$R,$T,$Y,$Z,$A,$B,$C,$D,$E,$F,$G\ngo\n", 0, 0 };
+
+#define is_param(str, len, opt) ((str) && (len) > 2 && strncmp((str), (opt), 2) == 0)
+#define is_opt(str, opt)        ((str) && strcmp((str), (opt)) == 0)
+
 
 int lds_parse_cmdline(int argc, char ** argv)
 {
 	for(int i = 0; i < argc; ++i){
-		if(strncmp(argv[i], "-p", 2) == 0){
-
+		size_t len = strlen(argv[i]);
+		if(is_param(argv[i], len, "-p")){
 			char * s = argv[i] + 2, * end;
 			int port = strtol(s, &end, 10);
 			if(port <= 0)
@@ -22,9 +26,11 @@ int lds_parse_cmdline(int argc, char ** argv)
 
 			opt.port = port;
 		}
-		else if(strcmp(argv[i], "-h") == 0)
+		else if(is_param(argv[i], len, "-s"))
+			opt.sav = argv[i] + 2;
+		else if(is_opt(argv[i], "-h"))
 			opt.help = 1;
-		else if(strcmp(argv[i], "-v") == 0)
+		else if(is_opt(argv[i], "-v"))
 			opt.ver = 1;
 
 	}

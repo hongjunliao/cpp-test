@@ -2,13 +2,16 @@
  * This file is PART of landmark_dtu_server
  * @author hongjun.liao <docici@126.com>, @date 2017/05/20
  * test
+ * NOTE: 本文件的内容仅供测试用
  */
+#include "string_util.h"   /* sdump_str */
+#include "lds_wqp.h"      /* lds_sprintf_wqp */
+#include "lds_inc.h"
+#include <string.h>        /* strlen */
 
 #ifdef DEBUG
 
-#include "string_util.h"   /* str_t */
 #include <stdio.h>
-#include <string.h>        /* strlen */
 #include <map>             /* std::map */
 
 int test_lds_parse_wqp_log_main(int argc, char ** argv)
@@ -32,3 +35,25 @@ int test_lds_parse_wqp_log_main(int argc, char ** argv)
 }
 #endif /* DEBUG */
 
+int test_lds_sprintf_wqp(int argc, char ** argv)
+{
+	char const * fmt = "exec sp_insert_wpp $M,$S,$R,$T,$Y,$Z,$A,$B,$C,$D,$E,$F,$G\ngo\n";
+	char direct[1024];
+	lds_wqp wqplog;
+	fprintf(stdout, "%s: _____K='%s'____\n", __FUNCTION__, wqplog['K'].val);
+
+	strcpy(wqplog['M'].val, "1.1");
+	strcpy(wqplog['A'].val, "2.2");
+	strcpy(wqplog['G'].val, "3.3");
+	char const * str = lds_sprintf_wqp(direct, sizeof(direct), fmt, wqplog);
+	if(!str){
+		lds_log(LDS_LOG_TST, LDS_LOG_DEBUG,"%s: lds_sprintf_wqp failed, fmt='%s'\n",
+				__FUNCTION__, fmt);
+		return -1;
+	}
+
+	lds_log(LDS_LOG_TST, LDS_LOG_DEBUG,"%s: fmt='%s', result='%s'\n",
+			__FUNCTION__, fmt, str);
+
+	return 0;
+}

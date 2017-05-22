@@ -1,32 +1,6 @@
 #include "string_util.h"
-#include <boost/regex.hpp> 		/*  boost::regex_search */
-
-int parse_domain_from_url(const char* url, char* domain)
-{
-	/*sample: 'rtmp://127.0.0.1:1359/'*/
-	boost::cmatch cm;
-	auto f = boost::regex_search(url, cm, boost::regex("://([^/:]+)(?::[0-9]+)?/"));
-	if(!f) return -1;
-
-	auto length = cm.length(1);
-	strncpy(domain, cm[1].first, length);
-	domain[length] = '\0';
-	return 0;
-}
-
-int parse_domain_from_url(char const * url, str_t * domain)
-{
-//	fprintf(stderr, "%s: url='%s'\n", __FUNCTION__, url);
-	auto c = strchr(url, ':');
-	if(c && *(c + 1) == '/' && *(c + 2) == '/'){
-		domain->beg = const_cast<char *>(c + 3);
-		domain->end = strchr(domain->beg, '/');
-
-//		str_t_fprint(domain, stdout);
-		return 0;
-	}
-	return -1;
-}
+#include <stdio.h>
+#include <math.h>        /* pow */
 
 int str_t_fprint(str_t const * s, FILE * f)
 {
@@ -112,40 +86,6 @@ char const * strnrchr(char const * buf, int sz, char ch)
 			return p;
 	}
 	return 0;
-}
-
-void chr_dump(FILE * f, char chr, char const * beg/* = 0*/, char const * end/* = 0*/)
-{
-	if(beg)
-		fprintf(f, "%s", beg);
-	if(chr == '\r')
-		fprintf(f, "\\r");
-	if(chr == '\n')
-		fprintf(f, "\\n");
-	else if(chr == '\0')
-		fprintf(f, "\\0");
-	else if(chr == '\t')
-		fprintf(f, "\\t");
-	else
-		fprintf(f, "%c", chr);
-	if(end)
-		fprintf(f, "%s", end);
-}
-
-void str_dump(FILE * f, char const * buf, size_t len
-		, char const * beg/* = 0*/, char const * end/* = 0*/)
-{
-	if(!(f && buf && len > 0))
-		return;
-
-	if(beg)
-		fprintf(f, "%s", beg);
-	for(size_t i = 0; i < len; ++i){
-		chr_dump(f, buf[i]);
-	}
-	if(end)
-		fprintf(f, "%s", end);
-	fflush(f);
 }
 
 /* FIXME: overflow */

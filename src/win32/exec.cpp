@@ -303,8 +303,7 @@ int test_exec_main(int argc, char ** argv)
 {
 	intercmdctx ctx = { 0 };
 	ctx.dir = "D:/ws/release/";
-	ctx.cmd = "sqlcmd -u -S 121.37.60.39,2073 -P pwqp43we9_45fn320vgd_irb_i92p6hge3_873w98jmwutc5602301"
-			" -U pooi9008_fn320vgd_irb_i92p6hge3_873w98jmwutc56023vfi8";
+	ctx.cmd = "sqlcmd";
 	char buf[1024 * 10];
 	/* sql select */
 	ctx.direct = "select top 1 A,PH from waterparameter001\ngo\n";

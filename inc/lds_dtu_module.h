@@ -2,6 +2,7 @@
  * This file is PART of landmark_dtu_server
  * @author hongjun.liao <docici@126.com>, @date 2017/05/20
  * dtu module
+ * 本头文件来有源于gprsdll.h, 为支持gcc编译而使用动态加载gprsdll模块
  */
 #ifndef LDS_DTU_MODULE_H_
 #define LDS_DTU_MODULE_H_
@@ -36,7 +37,7 @@ typedef struct _modem_data_t {
 }ModemDataStruct;
 
 int lds_dtu_module_load(char const * s);
-/* call lds_dtu_module_load before call the flowing functions */
+/* NOTE: call lds_dtu_module_load before call the flowing functions */
 int lds_dtu_start_service(u16t port);
 int lds_dtu_stop_service();
 int lds_dtu_get_next_data(ModemDataStruct & d, u16t wait);

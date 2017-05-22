@@ -9,8 +9,9 @@
 #include <time.h>     /* ctime_s */
 
 static char const * log_level[LDS_LOG_LEVEL_MAX + 1] = { "info", "debug", "error", "unknown"};
-static char const * log_type[LDS_LOG_TYPE_MAX + 1] = { "app", "memory", "wqp", "dtu", "unknown"};
+static char const * log_type[LDS_LOG_TYPE_MAX + 1] = { "app", "memory", "wqp", "dtu", "fmt", "test", "unknown"};
 
+/* currently log to stdout/stderr, add your code to log to syslog, (e.g. Windows Event Manager) */
 int lds_log(int type, int level, char const * fmt, ...)
 {
 	time_t t = time(NULL);

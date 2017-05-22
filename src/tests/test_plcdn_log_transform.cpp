@@ -15,6 +15,7 @@
  * use in gcc:
  * -L ${folly}/.libs/ -lfollybase
  */
+#if 0
 #include <plcdn_la_ngx.h>	/* do_parse_nginx_log_item */
 #include <stdio.h>
 #include <string.h>				/* strcpy */
@@ -155,3 +156,4 @@ int test_nginx_transform_log_main(int argc, char ** argv)
 	}
 	return 0;
 }
+#endif //0

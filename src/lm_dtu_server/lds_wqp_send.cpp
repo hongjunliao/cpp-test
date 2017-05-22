@@ -5,7 +5,7 @@
  * water quality parameters/wqp value
  *
  */
-#include "process_util.h"  /* send_intercmd */
+#include "process_util.h"  /* intercmdctx */
 #include "lds_inc.h"
 
 int lds_send_wqp(char const * str)

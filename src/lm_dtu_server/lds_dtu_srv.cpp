@@ -10,6 +10,10 @@
 #include <string.h>        /* strchr */
 
 #define WQP_DELIM_CH ';'
+/*
+ * 支持的最大DTU个数, 你可以调整该值以支持更多的DTU, 但目前已符全设计要求;
+ * set DTU ID to [0,MODEM_MAX), or will be ignored
+ * */
 #define MODEM_MAX 512
 #define RECV_MAX (1024 * 1014 * 2)
 
@@ -20,6 +24,7 @@ extern lds_options opt;
 static char * recvbuf[MODEM_MAX] = { 0 };
 static size_t recvbuf_len[MODEM_MAX] = { 0 };
 
+/* 运行DTU数据接收, 解析, 及保存服务 */
 int lm_dtu_recv_run()
 {
 	ModemDataStruct data;

@@ -22,9 +22,12 @@ extern int lm_dtu_recv_run();
 /* tests
  * lds_test.cpp */
 extern int test_lds_parse_wqp_log_main(int argc, char ** argv);
+extern int test_lds_sprintf_wqp(int argc, char ** argv);
 
 int test_lds_main(int argc, char ** argv)
 {
+//	test_lds_sprintf_wqp(argc, argv);
+//	return 0;
 //	test_lds_parse_wqp_log_main(argc, argv);
 
 	int r = lds_parse_cmdline(argc, argv);

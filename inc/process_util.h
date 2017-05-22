@@ -47,7 +47,10 @@ struct intercmdctx {
 };
 
 /* send directive
- * send 'exit' like directive to exit cmd */
+ * send 'exit' like directive to exit cmd
+ * @NOTE:
+ * (1)当前该函数存在BUG,不能正确返回指令的输出, 返回值仅表示指令已被正确发送到@param ctx
+ * */
 int send_intercmd(intercmdctx & ctx, char * buf, size_t length,
 		int (*stdout_cb)(char const * data, size_t length, void * arg), void * arg);
 
