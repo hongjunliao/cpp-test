@@ -161,8 +161,6 @@ bool is_os_version_major_less_equal(int ver)
 	return false;
 }
 
-#endif	/* defined __CYGWIN__ || defined WIN32 */
-
 #define is_intercmdctx_ok(ctx) (ctx.dir && ctx.dir[0] != '\0' && ctx.cmd && ctx.cmd[0] != '\0' && ctx.direct && ctx.direct[0] != '\0')
 #define is_intercmdctx_ready(ctx) (ctx.hproc && ctx.rh && ctx.wh)
 
@@ -283,6 +281,8 @@ int send_intercmd(intercmdctx & ctx, char * buf, size_t length,
 	fprintf(stdout, "%s: done, written=%ld\n", __FUNCTION__, written);
 	return 0;
 }
+
+#endif	/* defined __CYGWIN__ || defined WIN32 */
 
 #ifdef DEBUG
 
