@@ -94,7 +94,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"string_util", test_string_util_main},
 			{"jzoffer", test_jzoffter_main},
 			{"string", test_string_main},
-			{"lds", test_lds_main},
+			/*{"lds", test_lds_main},*/
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 #ifdef WIN32
 			{"exec", test_exec_main },

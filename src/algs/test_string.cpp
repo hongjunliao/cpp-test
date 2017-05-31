@@ -48,8 +48,66 @@ static char* replace_char_to_str(char const * str,
 	return buf;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+/* 键索引计数法: algs-5
+ * LSD:低位优先的字符串排序法:运行时间与输入规模成正比
+ * */
+struct kic {
+	char name[128];
+	int key;		/* [0, R) */
+};
+
+static int test_kic_main(int argc, char ** argv)
+{
+	size_t const N = 64, R = 10;
+	kic e[N], aux[N];
+	int count[R];
+	for(auto & i : e)
+		++count[i.key + 1];
+	for(size_t i = 0; i < R; ++i)
+		count[i + 1] += count[i];
+	for(size_t i = 0; i < N; ++i)
+		aux[count[e[i].key]++] = e[i];
+
+	return 0;
+}
+
+static int test_lsd_sort_main(int argc, char ** argv)
+{
+	size_t const W = 7;   /* length of string */
+	size_t const N = 13;  /* size of elements */
+	size_t const R = 256; /* alphabets */
+	char * a[N] = { "4PGC938", "2IYE230", "3CI0720", "1ICK750", "10HV845", "4JZY524", "1ICK750", "3CIO720",
+	"10HV845", "10HV845", "2rLA629", "2RLA629", "3ATW723"}, * aux[N];
+
+	fprintf(stdout, "%s: sort before: [", __FUNCTION__);
+	for(size_t i = 0; i < N; ++i)
+		fprintf(stdout, "%s, ", a[i]);
+	fprintf(stdout, "]\n");
+
+	for(int d = W - 1; d >= 0; --d){
+		int count[R + 1] = { 0 };
+		for(size_t i = 0; i < N; ++i)
+			++count[a[i][d] + 1];
+		for(size_t r = 0; r < R; ++r)
+			count[r + 1] += count[r];
+		for(size_t i = 0; i < N; ++i)
+			aux[count[a[i][d]]++] = a[i];
+	}
+
+	fprintf(stdout, "%s: sort after: [", __FUNCTION__);
+	for(size_t i = 0; i < N; ++i)
+		fprintf(stdout, "%s, ", aux[i]);
+	fprintf(stdout, "\n");
+
+	return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 int test_string_main(int argc, char ** argv)
 {
+	return test_lsd_sort_main(argc, argv);
+
 	auto data = "we are happy";
 	char str[128];
 	auto s = replace_char_to_str(data, ' ', "%20", str, sizeof(str));
@@ -59,5 +117,7 @@ int test_string_main(int argc, char ** argv)
 	else
 		fprintf(stdout, "%s: replace_char_to_str, old='%s', char='%c', replace='%s', new='%s'\n",
 				__FUNCTION__, data, ' ', "%20", s);
+
+	test_kic_main(argc, argv);
 	return 0;
 }
