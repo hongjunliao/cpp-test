@@ -1,11 +1,11 @@
 /*!
  * 测试字符串处理算法
  * @author hongjun.liao <docici@126.com>, @date 2017//05/05/18
- * <剑指Offer>_2.3.4
  */
 #include <stdio.h>
 #include <string.h> /* strlen, strncat */
 /*
+ * <剑指Offer>_2.3.4
  * 替换字符为指定字符串
  * replace every char @param c in @param str to @param r
  * @param buf: out

@@ -42,6 +42,9 @@ extern int test_lds_main(int argc, char ** argv);
 /* exec.cpp */
 extern int test_exec_main(int argc, char ** argv);
 
+/* trie_st.cpp */
+extern int test_trie_st_main(int argc, char ** argv);
+
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -94,6 +97,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"string_util", test_string_util_main},
 			{"jzoffer", test_jzoffter_main},
 			{"string", test_string_main},
+			{"trie_st", test_trie_st_main},
 			/*{"lds", test_lds_main},*/
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 #ifdef WIN32
