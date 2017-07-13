@@ -104,8 +104,65 @@ static int test_lsd_sort_main(int argc, char ** argv)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+/* 暴力字符串查找算法
+ * @return: return index if found, else return @param N
+ * */
+size_t str_search_force(char const * str, size_t N, char const * pat, size_t M)
+{
+	for(size_t i = 0; i < N - M; ++i){
+		size_t j;
+		for(j = 0; j < M; ++j){
+			if(str[i + j] != pat[j])
+				break;
+		}
+		if(j == M) return i;
+	}
+	return N;
+}
+
+/* 暴力字符串查找算法,显式回退
+ * @return: return index if found, else return @param N
+ * */
+size_t str_search_force2(char const * str, size_t N, char const * pat, size_t M)
+{
+	size_t i = 0, j = 0;
+	for(; i < N && j < M; ++i){
+		if(str[i] == pat[j]) ++j;
+		else { i -= j; j = 0; }
+	}
+	if(j == M) return i - M;
+	return N;
+}
+
+int test_str_search_force2_main(int argc, char ** argv)
+{
+	auto str = "hello, this is a really good day and good luck";
+	auto pat = "good";
+	auto r = str_search_force2(str, strlen(str), pat, strlen(pat));
+	if(r < strlen(str))
+		fprintf(stdout, "%s: find '%s' in '%s', index=%zu\n", __FUNCTION__, pat, str, r);
+	else
+		fprintf(stdout, "%s: find '%s' in '%s', NOT found\n", __FUNCTION__, pat, str);
+	return 0;
+}
+
+int test_str_search_force_main(int argc, char ** argv)
+{
+	auto str = "hello, this is a really good day and good luck";
+	auto pat = "good";
+	auto r = str_search_force(str, strlen(str), pat, strlen(pat));
+	if(r < strlen(str))
+		fprintf(stdout, "%s: find '%s' in '%s', index=%zu\n", __FUNCTION__, pat, str, r);
+	else
+		fprintf(stdout, "%s: find '%s' in '%s', NOT found\n", __FUNCTION__, pat, str);
+	return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 int test_string_main(int argc, char ** argv)
 {
+	return test_str_search_force2_main(argc, argv);
+	return test_str_search_force_main(argc, argv);
 	return test_lsd_sort_main(argc, argv);
 
 	auto data = "we are happy";
