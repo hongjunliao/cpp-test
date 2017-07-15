@@ -1,7 +1,9 @@
 #include <plcdn_cpp_test.h>
+#include <stdio.h>      /*  */
 #include <thread>		/*std::thread*/
 #include <atomic>		/*std::atomic*/
-#include <vector>	/*std::vector*/
+#include <vector>	    /*std::vector*/
+#include <stdarg.h>	    /* va_list */
 
 /*!
  * test for c++11
@@ -80,8 +82,7 @@ static int test_cpp11_unicode(int argc, char ** argv)
 			anscii_str, utf8, utf16, utf32);
 	return 0;
 }
-/////////////////////////////////////////////////////////////////////////////
-#include <stdarg.h>	/* va_list */
+
 int test_vsscanf_main(int argc, char ** argv)
 {
 	char buf[] = "23 345 3 2";
@@ -93,8 +94,31 @@ int test_vsscanf_main(int argc, char ** argv)
 struct s_with_array {
 	int arr[3];
 };
+
+/////////////////////////////////////////////////////////////////////////////
+class sizeof_a {
+//	int a;
+//	static int b;
+//	virtual void func();
+};
+
+class sizeof_b : public sizeof_a {
+	int c;
+	virtual void func();
+//	char d;
+//	double e;
+};
+
+static int test_sizeof_class_main(int argc, char ** argv)
+{
+	fprintf(stdout, "%s: sizeof_a=%zu, sizeof_b=%zu\n", __FUNCTION__,
+			sizeof(sizeof_a), sizeof(sizeof_b));
+	return 0;
+}
+
 int test_cpp11_main(int argc, char ** argv)
 {
+	test_sizeof_class_main(argc, argv);
 	s_with_array a, b;
 	b = a;
 

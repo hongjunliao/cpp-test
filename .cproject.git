@@ -74,6 +74,27 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.405975240" name="/" resourcePath="src/chess">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.9683878" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base" unusedChildren="">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1119866727" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.1531453524"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.976024082" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base.878530">
+								<option id="gnu.cpp.compiler.option.include.paths.1208420801" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/chess/inc}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/chess/inc}&quot;"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.547802412" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.1753080728" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base.719571365">
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.373704031" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.1709496301" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base.1908505394"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.1265876270" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base.941834911"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.base.727129645" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base.524089503">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1267842892" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
 					<sourceEntries>
 						<entry excluding="src/srs_log_analysis|src/test_bison_flex|src/spice_display_streaming|src/plcdn_log_analysis|src/nginx_log_analysis" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
