@@ -7,7 +7,6 @@
  * test for chess project
  */
 
-#include "plcdn_cpp_test.h"	/* chess_test_main */
 #include "chess.h"			/* chess_board_find, ... */
 #include <stdio.h>
 #include <stdlib.h>	        /* malloc */

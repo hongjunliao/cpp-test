@@ -7,12 +7,12 @@
 #define TEST_CRACKING_THE_CODING_INTERVIEW
 
 #include <string> /* std::string */
-#include "boost/pending/disjoint_sets.hpp"	//不相交集
-#include "boost/unordered_map.hpp"
+#include <iostream> /* std::iostream */
+#include <list> 	/* std::list */
 
 //////////////////////////////////////////////////////////////////////////
-//汉诺塔问题:将@n个盘子从@a移动到@c, 
-//期间要求所有柱子(@a, @b, @c)上的盘子小的在上, 可使用@b 
+//汉诺塔问题:将@n个盘子从@a移动到@c,
+//期间要求所有柱子(@a, @b, @c)上的盘子小的在上, 可使用@b
 void Hanoi(char a, char b, char c, int n);
 void my_strcpy(char* from, char const* to);
 //归并排序, length为数组长度
@@ -49,7 +49,7 @@ long gcd(long m, long n);
 //@expre 中缀表达式, @postfix 后缀表达式
 //例 a + b * c + (d * e + f) * g 转 a b c * + d e * f + g * +
 void infix2postfix(char const* infix, char* postfix);
-//比较运算符优先级(限'+', '-', '*', '/', '('), 
+//比较运算符优先级(限'+', '-', '*', '/', '('),
 //如果inputOpa > stackOpb 返回true
 // '+'  == '-' < '*' == '/'
 //特别地对'(', 若处栈中(stackOpb == '(')则优先级最低

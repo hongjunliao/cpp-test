@@ -13,6 +13,9 @@
 #include <boost/algorithm/string.hpp>  /* boost::split */
 #include <boost/foreach.hpp>   /* BOOST_FOREACH */
 #include <boost/container/list.hpp>
+#include "boost/pending/disjoint_sets.hpp"	//不相交集
+#include "boost/unordered_map.hpp"
+#include <map> /* std::map */
 //////////////////////////////////////////////////////////////////////////
 void clear_matrix(int** matrix, size_t m, size_t n, int val){
 	for(size_t i = 0; i != m; ++i){
@@ -532,7 +535,7 @@ int test_cti_main(int argc, char* argv[]){
 
 	}
 	{
-		//二分搜索 
+		//二分搜索
 		size_t const count = 32;
 		int arr[count];
 		for(int i = 0; i != count; ++i){

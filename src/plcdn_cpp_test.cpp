@@ -45,6 +45,15 @@ extern int test_exec_main(int argc, char ** argv);
 /* trie_st.cpp */
 extern int test_trie_st_main(int argc, char ** argv);
 
+/* chess_test.cpp */
+extern int chess_test_main(int argc, char ** argv);
+
+/* xhsdk_select_server.cpp */
+extern int xhsdk_select_server_main(int argc, char ** argv);
+
+/* tcp_echo_cli.cpp */
+extern int tcp_echo_cli_main(int argc, char ** argv);
+
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -85,9 +94,9 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"opengl", test_opengl_main},
 			{"nginx_log_fmt", test_ngx_parse_nginx_log_format_main},
 			{"plcdn_logtrans", test_nginx_transform_log_main_2},
+			{"chess", chess_test_main},
 #endif /*__CYGWIN_GCC__*/
 			{"cpp11", test_cpp11_main},
-			{"chess", chess_test_main},
 			{"bst", test_binary_search_tree_main},
 			{"radix", test_radix_tree_main},
 			{"bs23t", test_bs23tree_main},
@@ -98,6 +107,9 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"jzoffer", test_jzoffter_main},
 			{"string", test_string_main},
 			{"trie_st", test_trie_st_main},
+			{"xhsdksrv", xhsdk_select_server_main},
+			{"tcpechocli", tcp_echo_cli_main},
+
 			/*{"lds", test_lds_main},*/
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 #ifdef WIN32
@@ -130,4 +142,3 @@ int bd_test_main(int argc, char ** argv, char const * stest)
 	}
 	return fn(argc, argv);
 }
-
