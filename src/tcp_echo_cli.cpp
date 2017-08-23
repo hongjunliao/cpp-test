@@ -51,7 +51,8 @@ int tcp_echo_cli_main(int argc, char ** argv)
 		}
 		ret = read(fd, buf, sizeof(buf));
 		if(ret != -1){
-			fprintf(stdout, "%s: from server, buff='%s'\n", __FUNCTION__, buf);
+			buf[ret] = '\0'; /* required */
+			fprintf(stdout, "%s: from server, len=%ld, buff='%s'\n", __FUNCTION__, ret, buf);
 		}
 		sleep(3);
 	}

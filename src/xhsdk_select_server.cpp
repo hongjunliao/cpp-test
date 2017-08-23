@@ -105,7 +105,7 @@ static int select_on_socket_connect(XhSDKClient & cli)
 	fprintf(stdout, "%s: connection from '%s'\n", __FUNCTION__, cli.ip);
 
 	if(xhsdkclient_add(cli) != 0){
-		fprintf(stderr, "%s: TO many clients, closing it\n", __FUNCTION__);
+		fprintf(stderr, "%s: TOO many clients, closing\n", __FUNCTION__);
 		close(confd);
 		return -2;
 	}
@@ -128,7 +128,7 @@ static int select_on_socket_rw(fd_set & fds)
 	for(int i = 0; i < XHSDKCLIENT_MAX; ++i){
 		int& fd = g_xhsdk_clis[i].fd;
 		if( fd != 0 && FD_ISSET(fd, &fds)){
-			char buf[1024] = "";
+			char buf[1024];
 			ssize_t ret = read(fd, buf, sizeof(buf));
 			if(ret == -1 || ret == 0){
 				if(ret == -1)
@@ -141,11 +141,10 @@ static int select_on_socket_rw(fd_set & fds)
 				fd = 0;
 				continue;
 			}
-
-			fprintf(stdout, "%s: fd=%d, buff='%s'\n", __FUNCTION__, fd, buf);
+			buf[ret] = '\0';	/* required */
+			fprintf(stdout, "%s: fd=%d, len=%ld, buff='%s'\n", __FUNCTION__, fd, ret, buf);
 
 			size_t t = 0;;
-			buf[0] = '\0';
 			sprintf(buf, "%zu: hello client", t);
 
 			ret = write(fd, buf, strlen(buf));
