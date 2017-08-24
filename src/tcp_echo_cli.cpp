@@ -42,8 +42,8 @@ int tcp_echo_cli_main(int argc, char ** argv)
 
 	size_t t = 0;
 	char buf[512];
-	sprintf(buf, "%zu: hello, xhsdkserver", t);
 	for(;;){
+		sprintf(buf, "%zu: hello, xhsdkserver", t++);
 		ssize_t ret = write(fd, buf, strlen(buf));
 		if(ret == -1){
 			fprintf(stderr, "%s: write failed, buff='%s'\n", __FUNCTION__, buf);
