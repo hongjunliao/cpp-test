@@ -4,13 +4,13 @@
  */
 
 #include "string_util.h"        /* str_t */
-#include <boost/regex.hpp> 		/*  boost::regex_search */
+#include <regex> 		        /* std::regex_search */
 
 int parse_domain_from_url(const char* url, char* domain)
 {
 	/*sample: 'rtmp://127.0.0.1:1359/'*/
-	boost::cmatch cm;
-	auto f = boost::regex_search(url, cm, boost::regex("://([^/:]+)(?::[0-9]+)?/"));
+	std::cmatch cm;
+	auto f = std::regex_search(url, cm, std::regex("://([^/:]+)(?::[0-9]+)?/"));
 	if(!f) return -1;
 
 	auto length = cm.length(1);

@@ -2,6 +2,7 @@
  * a virtual camera, using COM
  * @author hongjun.liao <docici@126.com>, @date 2017/9/6
  * */
+#ifdef WIN32
 
 #include "targetver.h"
 
@@ -103,3 +104,4 @@ int main(int argc, char ** argv)
 	return 0;
 }
 
+#endif /* WIN32 */
