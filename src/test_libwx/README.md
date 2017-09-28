@@ -25,5 +25,9 @@ make && make samples && make install
 -I/usr/local/lib/wx/include/msw-unicode-static-3.0 -I/usr/local/include/wx-3.0/
 -L/usr/local/lib/ -mwindows -static  -lwx_mswu-3.0 -lwxscintilla-3.0 -lwxregexu-3.0 -lwx_mswu_gl-3.0 -lpng16 -lz -lrpcrt4 -loleaut32 -lole32 -luuid -lole32 -lwinspool -lwinmm -lshell32 -lcomctl32 -lcomdlg32 -ladvapi32 -lcomdlg32 -lwsock32 -lgdi32
 
+如果含有.rc资源文件
+x86_64-w64-mingw32-windres  speedtop-uploader.rc -o speedtop-uploader.o   \
+-D_GNU_SOURCE -D__WXMSW__ -DWX_PRECOMP -DwxDEBUG_LEVEL=0 -D_FILE_OFFSET_BITS=64 -I/usr/local/lib/wx/include/msw-unicode-static-3.0 -I/usr/local/include/wx-3.0/
+
 注:
 (1)自行下载编译libpng: http://mirrors.aliyun.com/cygwin/noarch/release/mingw64-x86_64-openjpeg/mingw64-x86_64-openjpeg-1.5.2-3-src.tar.xz
