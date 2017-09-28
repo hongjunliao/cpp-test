@@ -4,7 +4,6 @@
  *
  * dump a buffer to FILE or to another buffer, escape some special chars, e.g. \n -> \\n, \0 -> \\0
  */
-
 #include "string_util.h"
 #include <stdio.h>
 #include <stdlib.h>
