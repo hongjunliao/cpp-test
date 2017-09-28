@@ -4,12 +4,14 @@
  */
 #include <stdio.h>
 #include <string.h> 	/* strlen */
+#include <stdlib.h> 	/* atoi */
 #include <unistd.h>
 #include <sys/socket.h>	/* basic socket definitions */
 #include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
 #include <arpa/inet.h>	/* inet_ntop */
 #include <sys/select.h>
 #include <time.h>
+#include <errno.h>      /* errno */
 
 /* from xhsdk */
 //#include "D:/jun/sdk-windows/libprotocol/protocol.h" /* PROTOCOL_MAGIC */
@@ -45,6 +47,9 @@ int xhsdk_select_server_main(int argc, char ** argv)
 			sizeof(unsigned long));
 
 	fprintf(stdout, "%s: build at %s %s\n", __FUNCTION__, __DATE__, __TIME__);
+	int port = 80;
+
+	if(argc > 1) port = atoi(argv[1]);
 
 	int fd;
 	int stdinfd = fileno(stdin);
@@ -56,17 +61,19 @@ int xhsdk_select_server_main(int argc, char ** argv)
 	}
 
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(17000);
+	servaddr.sin_port = htons(port);
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if(bind(fd, (sockaddr *) &servaddr, sizeof(servaddr)) < 0){
-		fprintf(stderr, "%s: socket error(bind failed)\n", __FUNCTION__);
+		fprintf(stderr, "%s: socket error, errno=%d, error='%s'\n", __FUNCTION__, errno, strerror(errno));
 		return -1;
 	}
 	if(listen(fd, LISTENQ) < 0){
 		fprintf(stderr, "%s: socket error(listen failed)\n", __FUNCTION__);
 		return -1;
 	}
+
+	fprintf(stdout, "%s: listening on port=%d...\n", __FUNCTION__, port);
 
 	SelectContext sctx;
 	fd_set & rfds = sctx.rfds;
@@ -86,7 +93,7 @@ int xhsdk_select_server_main(int argc, char ** argv)
 			break;
 		}
 		if(ret == 0){
-			fprintf(stdout, "%s: select timedout\n", __FUNCTION__);
+//			fprintf(stdout, "%s: select timedout\n", __FUNCTION__);
 			continue;
 		}
 

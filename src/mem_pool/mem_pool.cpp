@@ -11,12 +11,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>    /* memset */
-#include <unistd.h>    /* usleep */
+#include <unistd.h>    /* usleep, sysconf */
 #include <math.h>      /* log2 */
-#include <limits.h>    /* PAGE_SIZE */
 
 #define MAX_OBJ_SIZE 1024
 static int verbose  = 0;
+static int page_size = 0;
 
 struct mem_pool {
 	void ** ptr;             /* start addr of table allocated */
@@ -39,11 +39,13 @@ mem_pool * mp_create(int objsize, int factor)
 	if(objsize <= 0) return (mem_pool *)0;
 	if(!(factor >=1 && factor <= 10)) factor = 5;
 
+	page_size = sysconf(_SC_PAGESIZE);
+
 	struct mem_pool * mp = (struct mem_pool* )calloc(1, sizeof(struct mem_pool));
 	if(!mp) return (mem_pool *)0;
 
 	mp->obj_size = objsize;
-	mp->Y = (factor * PAGE_SIZE) / (objsize * 10.0) - 2;
+	mp->Y = (factor * page_size) / (objsize * 10.0) - 2;
 	if(mp->Y <= 1)  mp->Y = 2;
 
 	mp->X =  factor * ((log2(objsize) < 8)? 8 : (int)log2(objsize));
@@ -155,7 +157,7 @@ int mp_test_main(int argc, char ** argv)
 	if(n <= 0) n = 10000000;
 
 	fprintf(stdout, "%s: use method '%s' to alloc objects, count=%d, object_size=%zu, PAGE_SIZE=%d\n"
-			, __FUNCTION__, (method == 0? "mempool" : "malloc"), n, sizeof(struct list_node), PAGE_SIZE);
+			, __FUNCTION__, (method == 0? "mempool" : "malloc"), n, sizeof(struct list_node), page_size);
 
 	mp_set_loglevel(1);
 	struct mem_pool * mp = mp_create(sizeof(struct list_node), 10);
