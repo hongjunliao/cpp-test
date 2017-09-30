@@ -10,6 +10,7 @@
 #include <arpa/inet.h>	/* inet_ntop */
 #include <sys/select.h>
 #include <time.h>
+#include <errno.h>      /* errno */
 
 int tcp_echo_cli_main(int argc, char ** argv)
 {
@@ -17,7 +18,7 @@ int tcp_echo_cli_main(int argc, char ** argv)
 
 	int fd;
 	if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-		fprintf(stderr, "%s: socket error(socket failed)\n", __FUNCTION__);
+		fprintf(stderr, "%s: socket failed, errno=%d, error='%s'\n", __FUNCTION__, errno, strerror(errno));
 		return -1;
 	}
 
@@ -32,11 +33,11 @@ int tcp_echo_cli_main(int argc, char ** argv)
 	inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
 
 	if(bind(fd, (sockaddr *) &cliaddr, sizeof(cliaddr)) < 0){
-		fprintf(stderr, "%s: socket error(bind failed)\n", __FUNCTION__);
+		fprintf(stderr, "%s: bind failed, errno=%d, error='%s'\n", __FUNCTION__, errno, strerror(errno));
 		return -1;
 	}
 	if(connect(fd, (sockaddr *)&servaddr, sizeof(servaddr)) < 0){
-		fprintf(stderr, "%s: socket error(connect failed)\n", __FUNCTION__);
+		fprintf(stderr, "%s: connect failed, errno=%d, error='%s'\n", __FUNCTION__, errno, strerror(errno));
 		return -1;
 	}
 
