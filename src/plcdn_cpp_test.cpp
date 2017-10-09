@@ -57,6 +57,9 @@ extern int tcp_echo_cli_main(int argc, char ** argv);
 /* mem_pool.cpp */
 extern int mp_test_main(int argc, char ** argv);
 
+/* test_zlib.cpp */
+extern int test_zlib_main(int argc, char ** argv);
+
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -113,6 +116,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"xhsdksrv", xhsdk_select_server_main},
 			{"tcpechocli", tcp_echo_cli_main},
 			{"mempool", mp_test_main},
+			{"zlib", test_zlib_main},
 			/*{"lds", test_lds_main},*/
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 #ifdef WIN32
