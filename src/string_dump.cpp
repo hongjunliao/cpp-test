@@ -93,3 +93,12 @@ char * sdump_str(char * out, char const * buf, size_t len
 	out[n] = '\0';
 	return out;
 }
+
+char const * dumpstr(char const * buf, size_t len, size_t dumplen)
+{
+    static char dumpbuf[1024];
+    dumpbuf[0] = '\0';
+
+    dumplen = dumplen <= (int)sizeof(dumpbuf) - 1? dumplen:  sizeof(dumpbuf) - 1;
+	return sdump_str(dumpbuf, buf, dumplen, 0, dumplen < len? "..." : 0);
+}

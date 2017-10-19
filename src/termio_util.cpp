@@ -96,4 +96,13 @@ void termio_debug_log(FILE * stream, const char *fmt, ...)
 #endif /*__CYGWIN_GCC__*/
 }
 
+#ifndef NDEBUG
+#include <unistd.h> /* isatty */
+#include <stdio.h>
+static int test_termio_main(int argc, char ** argv)
+{
+	bool istty = isatty(fileno(stdout));
+	return 0;
+}
+#endif
 #endif /* (defined __GCC__ || defined  __CYGWIN_GCC__) */

@@ -58,6 +58,8 @@ char * sdump_str(char * out, char const * buf, size_t len, char const * beg = 0,
 /* format: <beg>chr<end> */
 void fdump_chr(FILE * f, char chr, char const * beg = 0, char const * end = 0);
 int sdump_chr(char * buf, char chr, char const * beg = 0, char const * end = 0);
+/* usually for debug */
+char const * dumpstr(char const * buf, size_t len, size_t dumplen);
 /* just like std::atoi */
 int myatoi(char const * str, size_t len);
 #endif /*_STRING_UTIL_H_*/
