@@ -66,6 +66,25 @@ char const * netutil_get_ip_str(uint32_t ip, char * buff, size_t len)
 	return inet_ntop(AF_INET, (void *)&inaddr, buff, len);
 }
 
+int netutil_get_ipv4_cstr(char * buf)
+{
+	char ips[64][64];
+	int count = 64;
+	int result  = get_if_addrs(ips[0], count, 64);
+	if(result != 0)
+		return -1;
+
+	for(int i = 0; i < count; ++i){
+		int len = strlen(ips[i]);
+		if(len > 3 && len <= 15 &&
+				strncmp(ips[i], "127.0.0.1", strlen("127.0.0.1")) != 0){
+			strcpy(buf, ips[i]);
+			return 0;
+		}
+	}
+	return -1;
+}
+
 int test_net_util_main(int argc, char ** argv)
 {
 	char ips[64][64];
@@ -78,9 +97,16 @@ int test_net_util_main(int argc, char ** argv)
 	}
 	char const * sip = "182.247.200.210";
 	uint32_t ip = netutil_get_ip_from_str(sip);
-	char ipbuff[16];
-	fprintf(stdout, "%s: sip=%s, netutil_get_ip_from_str=%u, netutil_get_ip_str=%s\n", __FUNCTION__,
-			sip, ip, netutil_get_ip_str(ip, ipbuff, 16));
-    exit(0);
+	char ipbuff[16], ipbuff2[16] = "<null>";
+
+	netutil_get_ipv4_cstr(ipbuff2);
+
+	fprintf(stdout, "%s: sip=%s, netutil_get_ip_from_str=%u, netutil_get_ip_str=%s, netutil_get_ipv4_cstr='%s'\n", __FUNCTION__,
+			sip, ip, netutil_get_ip_str(ip, ipbuff, 16)
+			, ipbuff2);
+
+    return 0;
 }
+
+
 #endif /* (!defined _WIN32 && (defined __GNUC__ || defined  __CYGWIN_GCC__)) */

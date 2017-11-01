@@ -62,4 +62,7 @@ int sdump_chr(char * buf, char chr, char const * beg = 0, char const * end = 0);
 char const * dumpstr(char const * buf, size_t len, size_t dumplen);
 /* just like std::atoi */
 int myatoi(char const * str, size_t len);
+
+/* sort using qsort and strcmp */
+void strutil_qsort(char ** strs, int size);
 #endif /*_STRING_UTIL_H_*/

@@ -96,6 +96,7 @@ char * sdump_str(char * out, char const * buf, size_t len
 
 char const * dumpstr(char const * buf, size_t len, size_t dumplen)
 {
+a
     static char dumpbuf[1024];
     dumpbuf[0] = '\0';
 

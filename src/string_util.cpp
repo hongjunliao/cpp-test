@@ -1,11 +1,13 @@
 #include "string_util.h"
 #include <stdio.h>
 #include <math.h>        /* pow */
+#include <string.h>      /* strcmp */
+#include <stdlib.h>      /* qsort */
 
 int str_t_fprint(str_t const * s, FILE * f)
 {
 	int r = 0;
-	for(auto c = s->beg; c != s->end; ++c){
+	for(char * c = s->beg; c != s->end; ++c){
 		if(*c == '\0')
 			r = fprintf(f, "\\0");
 		else if(*c == '\n')
@@ -81,7 +83,7 @@ char const * byte_to_mb_kb_str(size_t bytes, char const * fmt)
 
 char const * strnrchr(char const * buf, int sz, char ch)
 {
-	for(auto const * p = buf + sz - 1; p != buf - 1; --p) {
+	for(char const * p = buf + sz - 1; p != buf - 1; --p) {
 		if(*p == ch)
 			return p;
 	}
@@ -104,7 +106,7 @@ int myatoi(char const * str, size_t len)
 
 	int ints[64];
 	int i = 0;
-	for(auto p = str; p != str + len; ++p){
+	for(char const * p = str; p != str + len; ++p){
 		if(!(*p >= '0' && *p <= '9'))
 			break;
 		ints[i++] = *p - '0';
@@ -115,4 +117,14 @@ int myatoi(char const * str, size_t len)
 		r += ints[j] * pow(10, i - j - 1);
 	}
 	return f? -r : r;
+}
+
+static int compare_strs(const void* a, const void* b)
+{
+	return strcmp(*(const char **)a, *(const char **)b);
+}
+
+void strutil_qsort(char ** strs, int size)
+{
+	return qsort(strs, size, sizeof(char *), compare_strs);
 }
