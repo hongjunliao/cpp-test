@@ -10,6 +10,7 @@ RM := rm -rf
 -include sources.mk
 -include src/xh_vircam/subdir.mk
 -include src/win32/subdir.mk
+-include src/usb/subdir.mk
 -include src/tests/subdir.mk
 -include src/test_libwx/subdir.mk
 -include src/mem_pool/subdir.mk
@@ -20,8 +21,6 @@ RM := rm -rf
 -include src/alsa_pcm/subdir.mk
 -include src/algs/subdir.mk
 -include src/subdir.mk
--include Release/src/xh_vircam/subdir.mk
--include Debug/src/cti/subdir.mk
 -include subdir.mk
 -include objects.mk
 

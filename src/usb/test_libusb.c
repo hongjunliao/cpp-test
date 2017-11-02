@@ -1,3 +1,11 @@
+/*!
+ * This file is Part of cpp-test
+ * @author: hongjun.liao<docici@126.com>, @date 2017/12/19
+ *
+ * install:
+ * libusb-1.0-0-dev
+ * */
+
 /*
  * libusb example program to list devices on the bus
  * Copyright © 2007 Daniel Drake <dsd@gentoo.org>
@@ -16,12 +24,12 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-#ifdef __CYGWIN_GCC__
+#include "cpp_test.h"
 #include <stdio.h>
 
-#include <libusb.h>
-#include "bd_test.h"
+#ifdef WITH_LIBUSB
+
+#include "libusb.h"
 
 int test_write_txt_main(int argc, char * argv[])
 {
@@ -99,5 +107,17 @@ int test_libusb_main(int argc, char * argv[])
 
 	return 0;
 }
+#else
+int test_libusb_main(int argc, char * argv[])
+{
+	fprintf(stderr, "%s: define WITH_LIBUSB to enable this test\n", __FUNCTION__);
+	return -1;
+}
+#endif /* WITH_LIBUSB */
 
-#endif /*__CYGWIN_GCC__*/
+static char const * help_libusb()
+{
+	return "libusb_1_0";
+}
+
+struct test_entry libusb_1_0 = { "libusb_1_0", test_libusb_main, help_libusb };

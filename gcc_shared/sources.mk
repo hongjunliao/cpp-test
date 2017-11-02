@@ -23,8 +23,6 @@ C_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-Debug/src/cti \
-Release/src/xh_vircam \
 src/algs \
 src/alsa_pcm \
 src/bluez \
@@ -35,6 +33,7 @@ src/jzoffer \
 src/mem_pool \
 src/test_libwx \
 src/tests \
+src/usb \
 src/win32 \
 src/xh_vircam \
 

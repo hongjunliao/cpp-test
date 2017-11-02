@@ -1,4 +1,10 @@
-#include <plcdn_cpp_test.h>
+/*!
+ * This file is PART of xh_http_proxy project
+ * @author hongjun.liao <docici@126.com>
+ * */
+
+#include "cpp_test.h"
+#include <string.h>	       /* strncmp */
 #include <algorithm>
 #include <string>
 #include <map>
@@ -14,6 +20,9 @@ typedef int(*test_main_fn)(int argc, char * argv[]);
 #define  TEST_LIB_PULSEAUDIO "libpulseaudio"
 #define  TEST_LIB_H323PLUS	"libh323plus"
 #define  TEST_LIB_SPICE_SERVER_DISPLAY_STREAMING	"libspice-server_display_streaming"
+
+/*test_cpp11.cpp, c++11*/
+int test_cpp11_main(int argc, char **argv);
 
 /* plcdn_la_ngx_log_fmt.cpp */
 extern int test_ngx_parse_nginx_log_format_main(int argc, char ** argv);
@@ -68,7 +77,6 @@ int rfcomm_client_main(int argc, char *argv[]);
 int rfcomm_server_main(int argc, char * argv[]);
 /* alsa_pcm_play_file.c */
 int test_alsa_pcm_main(int argc, char * argv[]);
-
 }
 
 #ifdef __GNUC__
@@ -148,6 +156,14 @@ static std::map<std::string, test_main_fn> testmap = {
 #endif /* WIN32 */
 };
 
+extern struct test_entry hello_libusb;
+extern struct test_entry libusb_1_0;
+
+static test_entry const * testmap2[512] = {
+		&hello_libusb,
+		&libusb_1_0
+};
+
 char const * bd_test_get_test_list()
 {
 	char const * ret = "";
@@ -157,6 +173,14 @@ char const * bd_test_get_test_list()
 		s += iter->first;
 	}
 	s += "]";
+
+	int i = 0;
+	for(; testmap2[i]; ++i){
+		struct test_entry const * tst = testmap2[i];
+		s += "\n";
+		s += tst->help? tst->help() : "";
+	}
+
 	ret = s.c_str();
 	return ret;
 }
@@ -168,6 +192,12 @@ int bd_test_main(int argc, char ** argv, char const * stest)
 		return -1;
 	auto fn = testmap[stest];
 	if(!fn){
+		int i = 0;
+		for(; testmap2[i]; ++i){
+			struct test_entry const * tst = testmap2[i];
+			if(strcmp(tst->name, stest) == 0 && tst->main)
+				return tst->main(argc, argv);
+		}
 		fprintf(stderr, "%s: no such test: %s\n", __FUNCTION__, stest);
 		return BD_TEST_NO_SUCH_TEST;
 	}

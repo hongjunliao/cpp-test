@@ -71,6 +71,15 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205.1421726071.1266850372" name="test_libusb.c" rcbsApplicability="disable" resourcePath="src/usb/test_libusb.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.95652808.645458624">
+						<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.95652808.645458624" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.95652808">
+							<option id="gnu.c.compiler.option.include.paths.66825865" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+								<listOptionValue builtIn="false" value="/usr/include/libusb-1.0/"/>
+								<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/inc}&quot;"/>
+							</option>
+							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.173983018" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="src/nginx_log_analysis|src/tests|src/test_bison_flex|src/net_util.cpp|src/test_plcdn_log_analysis|src/nginx_log_split|src/plcdn_log_split|src/plcdn_log_analysis|src/srs_log_analysis" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -163,6 +172,15 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.771809740.238125473" name="test_libusb.c" rcbsApplicability="disable" resourcePath="src/usb/test_libusb.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.base.944425371.824071402">
+						<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.944425371.824071402" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base.944425371">
+							<option id="gnu.c.compiler.option.include.paths.969145837" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+								<listOptionValue builtIn="false" value="/usr/include/libusb-1.0/"/>
+								<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/inc}&quot;"/>
+							</option>
+							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1860528300" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.771809740.src/cti/test_cti.h" name="test_cti.h" rcbsApplicability="disable" resourcePath="src/cti/test_cti.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
@@ -232,6 +250,8 @@
 								</option>
 								<option id="gnu.cpp.link.option.libs.390470096" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="bluetooth"/>
+									<listOptionValue builtIn="false" value="usb"/>
+									<listOptionValue builtIn="false" value="usb-1.0"/>
 									<listOptionValue builtIn="false" value="z"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1010187636" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
@@ -283,6 +303,43 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.771809740.1819158180.922101587" name="/" resourcePath="src/usb">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.563493608" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base" unusedChildren="">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.GNU_ELF" id="cdt.managedbuild.target.gnu.platform.base" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.545389271" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.1122244006"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.936539866" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base.906177411">
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1086119712" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.861662183" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base.395247699">
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.864507030" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+									<listOptionValue builtIn="false" value="WITH_LIBUSB"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.930103060" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.448957104" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base.571781852"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.783340180" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base.1099138819"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.base.1091583316" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base.429715370">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.971888862" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.771809740.1819158180.1468007488" name="test_libusb.c" rcbsApplicability="disable" resourcePath="src/usb/test_libusb.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.base.861662183.301482015">
+						<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.861662183.301482015" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base.861662183">
+							<option id="gnu.c.compiler.option.include.files.1210779404" name="Include files (-include)" superClass="gnu.c.compiler.option.include.files" useByScannerDiscovery="false" valueType="includeFiles"/>
+							<option id="gnu.c.compiler.option.include.paths.1616993086" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+								<listOptionValue builtIn="false" value="/usr/include/libusb-1.0/"/>
+								<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/inc}&quot;"/>
+							</option>
+							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.507647031" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+						</tool>
+						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1846061020" name="Resource Custom Build Step">
+							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.1099220739" name="Resource Custom Build Step Input Type">
+								<additionalInput kind="additionalinputdependency" paths=""/>
+							</inputType>
+							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.1880753755" name="Resource Custom Build Step Output Type"/>
+						</tool>
+					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.771809740.1819158180.src/cti/test_cti.h" name="test_cti.h" rcbsApplicability="disable" resourcePath="src/cti/test_cti.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="src/llvm" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>

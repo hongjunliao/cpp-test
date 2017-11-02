@@ -9,7 +9,7 @@
   Compile with gcc -lbluetooth <executable> <source>
 */
 #include <stdio.h>
-#ifndef WITHOUT_LIBBLUEZ
+#ifdef WITH_LIBBLUEZ
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -59,8 +59,8 @@ int rfcomm_server_main(int argc, char * argv[])
 #else
 int rfcomm_server_main(int argc, char * argv[])
 {
-	fprintf(stderr, "%s: undefine WITH_LIBBLUEZ to enable this test\n", __FUNCTION__);
+	fprintf(stderr, "%s: define WITH_LIBBLUEZ to enable this test\n", __FUNCTION__);
 	return 0;
 }
 
-#endif /* WITHOUT_LIBBLUEZ */
+#endif /* WITH_LIBBLUEZ */

@@ -6,7 +6,7 @@
  * https://github.com/balle/bluetooth-snippets
  */
 #include <stdio.h>
-#ifndef WITHOUT_LIBBLUEZ
+#ifdef WITH_LIBBLUEZ
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -57,8 +57,8 @@ int test_bluez_main(int argc, char * argv[])
 
 int test_bluez_main(int argc, char * argv[])
 {
-	fprintf(stderr, "%s: undefine WITH_LIBBLUEZ to enable this test\n", __FUNCTION__);
+	fprintf(stderr, "%s: define WITH_LIBBLUEZ to enable this test\n", __FUNCTION__);
 	return 0;
 }
 
-#endif /* WITHOUT_LIBBLUEZ */
+#endif /* WITH_LIBBLUEZ */

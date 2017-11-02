@@ -5,8 +5,8 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/chksum.cpp \
+../src/cpp_test.cpp \
 ../src/hexdump.cpp \
-../src/plcdn_cpp_test.cpp \
 ../src/string_util_url.cpp \
 ../src/tcp_echo_cli.cpp \
 ../src/termio_util.cpp \
@@ -22,10 +22,10 @@ C_SRCS += \
 
 OBJS += \
 ./src/chksum.o \
+./src/cpp_test.o \
 ./src/hexdump.o \
 ./src/hp_sig.o \
 ./src/net_util.o \
-./src/plcdn_cpp_test.o \
 ./src/string_dump.o \
 ./src/string_util.o \
 ./src/string_util_url.o \
@@ -37,8 +37,8 @@ OBJS += \
 
 CPP_DEPS += \
 ./src/chksum.d \
+./src/cpp_test.d \
 ./src/hexdump.d \
-./src/plcdn_cpp_test.d \
 ./src/string_util_url.d \
 ./src/tcp_echo_cli.d \
 ./src/termio_util.d \
