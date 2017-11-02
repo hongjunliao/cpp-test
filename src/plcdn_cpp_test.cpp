@@ -66,6 +66,9 @@ int test_bluez_main(int argc, char ** argv);
 int rfcomm_client_main(int argc, char *argv[]);
 /* rfcomm-server.c */
 int rfcomm_server_main(int argc, char * argv[]);
+/* alsa_pcm_play_file.c */
+int test_alsa_pcm_main(int argc, char * argv[]);
+
 }
 
 #ifdef __GNUC__
@@ -133,6 +136,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"bluez", test_bluez_main},
 			{"rfcomm_client", rfcomm_client_main},
 			{"rfcomm_server", rfcomm_server_main},
+			{"alsa_pcm", test_alsa_pcm_main},
 			/*{"lds", test_lds_main},*/
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 #ifdef __GNUC__

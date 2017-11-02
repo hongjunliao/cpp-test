@@ -17,10 +17,9 @@ RM := rm -rf
 -include src/cti/subdir.mk
 -include src/chess/src/subdir.mk
 -include src/bluez/subdir.mk
+-include src/alsa_pcm/subdir.mk
 -include src/algs/subdir.mk
 -include src/subdir.mk
--include gcc_bluez/src/bluez/subdir.mk
--include gcc_bluez/src/subdir.mk
 -include Release/src/xh_vircam/subdir.mk
 -include Debug/src/cti/subdir.mk
 -include subdir.mk

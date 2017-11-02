@@ -25,9 +25,8 @@ C_DEPS :=
 SUBDIRS := \
 Debug/src/cti \
 Release/src/xh_vircam \
-gcc_bluez/src/bluez \
-gcc_bluez/src \
 src/algs \
+src/alsa_pcm \
 src/bluez \
 src/chess/src \
 src \
