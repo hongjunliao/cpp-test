@@ -6,10 +6,8 @@
 CPP_SRCS += \
 ../src/chksum.cpp \
 ../src/hexdump.cpp \
-../src/net_util.cpp \
+../src/hp_sig.cpp \
 ../src/plcdn_cpp_test.cpp \
-../src/string_dump.cpp \
-../src/string_util.cpp \
 ../src/string_util_url.cpp \
 ../src/tcp_echo_cli.cpp \
 ../src/termio_util.cpp \
@@ -17,9 +15,15 @@ CPP_SRCS += \
 ../src/test_string_util.cpp \
 ../src/xhsdk_select_server.cpp 
 
+C_SRCS += \
+../src/net_util.c \
+../src/string_dump.c \
+../src/string_util.c 
+
 OBJS += \
 ./src/chksum.o \
 ./src/hexdump.o \
+./src/hp_sig.o \
 ./src/net_util.o \
 ./src/plcdn_cpp_test.o \
 ./src/string_dump.o \
@@ -34,10 +38,8 @@ OBJS += \
 CPP_DEPS += \
 ./src/chksum.d \
 ./src/hexdump.d \
-./src/net_util.d \
+./src/hp_sig.d \
 ./src/plcdn_cpp_test.d \
-./src/string_dump.d \
-./src/string_util.d \
 ./src/string_util_url.d \
 ./src/tcp_echo_cli.d \
 ./src/termio_util.d \
@@ -45,12 +47,24 @@ CPP_DEPS += \
 ./src/test_string_util.d \
 ./src/xhsdk_select_server.d 
 
+C_DEPS += \
+./src/net_util.d \
+./src/string_dump.d \
+./src/string_util.d 
+
 
 # Each subdirectory must supply rules for building sources it contributes
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
 	g++ -std=c++0x -D_GNU_SOURCE -I"/home/jun/ws/cpp-test/inc" -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+src/%.o: ../src/%.c
+	@echo 'Building file: $<'
+	@echo 'Invoking: GCC C Compiler'
+	gcc -std=c11 -I"/home/jun/ws/cpp-test/inc" -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

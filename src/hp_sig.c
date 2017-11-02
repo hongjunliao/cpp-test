@@ -20,6 +20,7 @@
 /* this callback is call when receive SIGCHLD */
 static void (*hp_on_sigchld)() = 0;
 static void (*hp_on_exit)() = 0;
+static void (*hp_on_usr1)() = 0;
 
 /* Return the number of digits of 'v' when converted to string in radix 10.
  * See ll2string() for more information. */
@@ -136,7 +137,7 @@ err:
 
 static void sigShutdownHandler(int sig) {
     char const * msg;
-    int is_chld = 0;
+    int is_chld = 0, is_usr1 = 0;
 
     switch (sig) {
     case SIGINT:
@@ -149,6 +150,10 @@ static void sigShutdownHandler(int sig) {
     	msg = "Received SIGCHLD, call wait";
     	is_chld = 1;
     	break;
+    case SIGUSR1:
+    	msg = "Received SIGUSR1";
+    	is_usr1 = 1;
+    	break;
     default:
         msg = "Received shutdown signal, scheduling shutdown...";
     };
@@ -159,6 +164,10 @@ static void sigShutdownHandler(int sig) {
      * on disk. */
     serverLogFromHandler(msg);
 
+	if(is_usr1){
+		if(hp_on_usr1) hp_on_usr1();
+		return;
+	}
 	if(is_chld && hp_on_sigchld)
 		hp_on_sigchld();
 
@@ -169,10 +178,11 @@ static void sigShutdownHandler(int sig) {
 	}
 }
 
-void set_on_sig(void (*sigchld)(), void (*on_exit)())
+void set_on_sig(void (*sigchld)(), void (*on_exit)(), void (*on_usr1)())
 {
 	hp_on_sigchld = sigchld;
 	hp_on_exit = on_exit;
+	hp_on_usr1 = on_usr1;
 }
 
 void setupSignalHandlers(void) {
@@ -186,6 +196,7 @@ void setupSignalHandlers(void) {
     sigaction(SIGTERM, &act, NULL);
     sigaction(SIGINT, &act, NULL);
     sigaction(SIGCHLD, &act, NULL);
+    sigaction(SIGUSR1, &act, NULL);
 
 #ifdef HAVE_BACKTRACE
     sigemptyset(&act.sa_mask);

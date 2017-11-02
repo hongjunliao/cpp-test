@@ -29,6 +29,7 @@ src \
 src/cti \
 src/jzoffer \
 src/mem_pool \
+src/test_libwx \
 src/tests \
 src/win32 \
 src/xh_vircam \

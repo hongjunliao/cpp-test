@@ -11,6 +11,7 @@ RM := rm -rf
 -include src/xh_vircam/subdir.mk
 -include src/win32/subdir.mk
 -include src/tests/subdir.mk
+-include src/test_libwx/subdir.mk
 -include src/mem_pool/subdir.mk
 -include src/jzoffer/subdir.mk
 -include src/cti/subdir.mk

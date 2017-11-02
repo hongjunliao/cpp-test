@@ -6,6 +6,9 @@
 #define _STRING_UTIL_H_
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 //////////////////////////////////////////////////////////////////////////////////
 /* a string [beg, end) */
 typedef struct {
@@ -55,4 +58,9 @@ void strutil_qsort(char ** strs, int size);
  * find the maximum vlaue less than @param str
  * */
 char const * strutil_findmax(char const * str, char ** strs, int size);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /*_STRING_UTIL_H_*/

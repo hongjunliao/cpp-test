@@ -42,9 +42,11 @@
 #define SO_ORIGINAL_DST 0
 #endif /* __linux__ */
 
-/* hp_sig.cpp */
-extern void setupSignalHandlers(void);
-extern void set_on_sigchld(void (*fn)());
+/* hp_sig.c */
+extern "C"{
+void setupSignalHandlers(void);
+void set_on_sig(void (*sigchld)(), void (*on_exit)(), void (*on_usr1)());
+}
 
 #define LISTENQ            128		    /* for socket/listen */
 #define SOCK_CLI_MAX       2            /**/
@@ -423,7 +425,7 @@ int test_fork_call_main(int argc, char ** argv)
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
 	setupSignalHandlers();
-	set_on_sigchld(on_sigchld);
+	set_on_sig(on_sigchld, 0, 0);
 
 	gpid = getpid();
 

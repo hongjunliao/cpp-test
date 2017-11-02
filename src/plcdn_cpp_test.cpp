@@ -58,7 +58,15 @@ extern int tcp_echo_cli_main(int argc, char ** argv);
 extern int mp_test_main(int argc, char ** argv);
 
 /* test_zlib.cpp */
-extern int test_zlib_main(int argc, char ** argv);
+int test_zlib_main(int argc, char ** argv);
+extern "C" {
+/* hello_bluez.c */
+int test_bluez_main(int argc, char ** argv);
+/* rfcomm-client.c */
+int rfcomm_client_main(int argc, char *argv[]);
+/* rfcomm-server.c */
+int rfcomm_server_main(int argc, char * argv[]);
+}
 
 #ifdef __GNUC__
 /* test_fork.cpp */
@@ -122,6 +130,9 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"tcpechocli", tcp_echo_cli_main},
 			{"mempool", mp_test_main},
 			{"zlib", test_zlib_main},
+			{"bluez", test_bluez_main},
+			{"rfcomm_client", rfcomm_client_main},
+			{"rfcomm_server", rfcomm_server_main},
 			/*{"lds", test_lds_main},*/
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
 #ifdef __GNUC__

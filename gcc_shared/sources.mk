@@ -23,8 +23,12 @@ C_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+Debug/src/cti \
 Release/src/xh_vircam \
+gcc_bluez/src/bluez \
+gcc_bluez/src \
 src/algs \
+src/bluez \
 src/chess/src \
 src \
 src/cti \

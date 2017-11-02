@@ -16,9 +16,13 @@ RM := rm -rf
 -include src/jzoffer/subdir.mk
 -include src/cti/subdir.mk
 -include src/chess/src/subdir.mk
+-include src/bluez/subdir.mk
 -include src/algs/subdir.mk
 -include src/subdir.mk
+-include gcc_bluez/src/bluez/subdir.mk
+-include gcc_bluez/src/subdir.mk
 -include Release/src/xh_vircam/subdir.mk
+-include Debug/src/cti/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -54,7 +58,7 @@ all: libcpp-test.so
 libcpp-test.so: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -pthread -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L../lib/ -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
@@ -65,7 +69,7 @@ clean:
 	-@echo ' '
 
 post-build:
-	-strip libcpp-test.so
+	-install libcpp-test.so ../bin/
 	-@echo ' '
 
 .PHONY: all clean dependents post-build

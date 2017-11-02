@@ -22,7 +22,8 @@ int get_if_addrs(char *ips, int * count, int sz)
         return -1;
     }
     int i = 0;
-    for (struct ifaddrs * ifa = ifaddr; ifa ; ifa = ifa->ifa_next) {
+    struct ifaddrs * ifa = ifaddr;
+	for(; ifa ; ifa = ifa->ifa_next) {
         if (!ifa->ifa_addr)
             continue;
         int family = ifa->ifa_addr->sa_family;
@@ -74,7 +75,8 @@ int netutil_get_ipv4_cstr(char * buf)
 	if(result != 0)
 		return -1;
 
-	for(int i = 0; i < count; ++i){
+	int i = 0;
+	for(; i < count; ++i){
 		int len = strlen(ips[i]);
 		if(len > 3 && len <= 15 &&
 				strncmp(ips[i], "127.0.0.1", strlen("127.0.0.1")) != 0){
@@ -92,7 +94,8 @@ int test_net_util_main(int argc, char ** argv)
 	int result  = get_if_addrs(ips[0], &count, 64);
 	if(result != 0)
 		return -1;
-	for(int i = 0; i < count; ++i){
+	int i = 0;
+	for(; i < count; ++i){
 		fprintf(stdout, "%s: i=%d, ip=%s\n", __FUNCTION__, i, ips[i]);
 	}
 	char const * sip = "182.247.200.210";
