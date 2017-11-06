@@ -31,6 +31,8 @@ src \
 src/cti \
 src/jzoffer \
 src/mem_pool \
+src/mmpool \
+src/nghhtp2 \
 src/test_libwx \
 src/tests \
 src/usb \
