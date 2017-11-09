@@ -1,6 +1,7 @@
 #include "string_util.h"
 #include <stdio.h>
 
+#ifdef WITH_OPENSSL
 /*coreutils-8.21 also ok*/
 #include <openssl/md5.h> /*MD5()*/
 #include <openssl/sha.h> /*SHA1()*/
@@ -62,3 +63,4 @@ char * md5sum_file_r(char const * f, char * buff)
 
 	return buff;
 }
+#endif /* WITH_OPENSSL*/

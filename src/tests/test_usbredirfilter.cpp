@@ -4,7 +4,7 @@
  *  Created on: Jan 21, 2016
  *      Author: liaohj
  */
-#ifdef __CYGWIN_GCC__
+#ifdef TEST_USB
 #include <curl/curl.h>
 #include <json/json.h>
 #include <usb-device-manager.h>
@@ -91,4 +91,4 @@ int test_usbredirfilter_main(int argc, char ** argv) {
 
 	return 0;
 }
-#endif /*__CYGWIN_GCC__*/
+#endif /*TEST_USB*/

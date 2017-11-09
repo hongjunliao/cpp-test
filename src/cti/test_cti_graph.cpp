@@ -3,6 +3,7 @@
  * @author hongjun.liao <docici@126.com>, @date 2017//05/05/18
  * 图论
  * */
+#ifdef WITH_BOOST
 //////////////////////////////////////////////////////////////////////////
 #include "test_cti_graph.h"
 #include <cstdio>
@@ -416,3 +417,5 @@ int test_cti_graph_main(int argc, char* argv[])
 	breadth_first_search(dag, 3);
 
 }
+
+#endif /* WITH_BOOST */

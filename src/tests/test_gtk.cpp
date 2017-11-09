@@ -5,7 +5,7 @@
  *  Created on: Jan 5, 2016
  *      Author: root
  */
-#ifdef __CYGWIN_GCC__
+#ifdef TEST_GTK
 #include "bd_test.h"
 #include "test_glib.h"
 #include <gtk/gtk.h>
@@ -156,4 +156,4 @@ static int test_gtk_main_3(int argc, char ** argv)
 
 	return 0;
 }
-#endif /*__CYGWIN_GCC__*/
+#endif /*TEST_GTK*/

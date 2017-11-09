@@ -3,7 +3,7 @@
  * @author hongjun.liao <docici@126.com>, @date 2017//05/05/18
  * */
 
-#if 1
+#ifdef WITH_BOOST
 #include "test_cti.h"
 #include <cstdio>
 #include <cstdlib>
@@ -619,4 +619,4 @@ int test_cti_main(int argc, char* argv[]){
 	return EXIT_SUCCESS;
 }	//test_main()
 
-#endif
+#endif /* WITH_BOOST */

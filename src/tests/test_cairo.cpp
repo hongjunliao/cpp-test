@@ -4,7 +4,7 @@
  *  Created on: Jan 7, 2016
  *      Author: jun
  */
-#ifdef __CYGWIN_GCC__
+#ifdef TEST_CAIRO
 #include "bd_test.h"
 #include <cairo-svg.h>
 #include <stdio.h>
@@ -79,4 +79,4 @@ int test_cairo_main(int argc, char **argv) {
 	test_cairo_2();
     return 0;
 }
-#endif /*__CYGWIN_GCC__*/
+#endif /*TEST_CAIRO*/

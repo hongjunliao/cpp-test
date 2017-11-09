@@ -4,7 +4,7 @@
 
 // wxWidgets "Hello world" Program
 // For compilers that support precompilation, includes "wx/wx.h".
-#if 0
+#ifdef TEST_LIBWX
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
     #include <wx/wx.h>
@@ -76,4 +76,4 @@ int test_libwx_main(int argc, char ** argv)
 
 	return 0;
 }
-#endif
+#endif /* TEST_LIBWX */

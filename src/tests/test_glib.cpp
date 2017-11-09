@@ -5,7 +5,7 @@
  *  Created on: Jan 5, 2016
  *      Author: root
  */
-#ifdef __CYGWIN_GCC__
+#ifdef TEST_GTK
 #include "bd_test.h"
 #include "test_glib.h"
 #include <gtk/gtk.h>
@@ -50,4 +50,4 @@ static int test_glib_timeout_main(int argc, char ** argv)
 	g_main_loop_quit(loop);
 	return 0;
 }
-#endif /*__CYGWIN_GCC__*/
+#endif /*TEST_GTK*/
