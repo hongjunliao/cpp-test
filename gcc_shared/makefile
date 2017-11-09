@@ -57,12 +57,17 @@ libcpp-test.so: $(OBJS) $(USER_OBJS)
 	g++ -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
+	$(MAKE) --no-print-directory post-build
 
 # Other Targets
 clean:
 	-$(RM) $(LIBRARIES)$(CC_DEPS)$(C++_DEPS)$(C_UPPER_DEPS)$(CXX_DEPS)$(OBJS)$(CPP_DEPS)$(C_DEPS) libcpp-test.so
 	-@echo ' '
 
-.PHONY: all clean dependents
+post-build:
+	-strip libcpp-test.so
+	-@echo ' '
+
+.PHONY: all clean dependents post-build
 
 -include ../makefile.targets

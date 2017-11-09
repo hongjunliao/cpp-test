@@ -3,14 +3,33 @@
  * @author hongjun.liao <docici@126.com>, @date 2017//05/05/18
  * 二叉堆
  * */
+#include "test_cti.h"
 #include "test_cti_heap.h"
+#include <limits.h>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>            /* std::cout, cin, std::endl */
 #include <algorithm>		   /* std::copy */
 #include <iterator>		       /* std::ostream_iterator */
 
-extern int compare_ints(const void* a, const void* b);;
+//////////////////////////////////////////////////////////////////////////
+int cut_rod(int const* p, int n){
+	if( 0 == n)
+		return 0;
+	int q = INT_MIN;
+	for(int i = 1; i <= n; ++i)
+		q = std::max(p[i - 1], cut_rod(p, n - i));
+	return q;
+}
+
+int compare_ints(const void* a, const void* b)   // comparison function
+{
+	int arg1 = *reinterpret_cast<const int*>(a);
+	int arg2 = *reinterpret_cast<const int*>(b);
+	if(arg1 < arg2) return -1;
+	if(arg1 > arg2) return 1;
+	return 0;
+}
 //////////////////////////////////////////////////////////////////////////
 //二叉堆, 实现
 template<typename Comparable>

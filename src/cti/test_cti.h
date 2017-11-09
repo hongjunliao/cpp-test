@@ -82,7 +82,5 @@ int quicksort_partition(T & a, int p, int r);
 //快速排序
 template<typename T>
 void quicksort(T & a, int p, int r);
-//std::qsort比较函数
-int compare_ints(const void* a, const void* b);
 
 #endif /* TEST_CRACKING_THE_CODING_INTERVIEW */
