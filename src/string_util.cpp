@@ -128,3 +128,15 @@ void strutil_qsort(char ** strs, int size)
 {
 	return qsort(strs, size, sizeof(char *), compare_strs);
 }
+
+char const * strutil_findmax(char const * str, char ** strs, int size)
+{
+	qsort(strs, size, sizeof(char *), compare_strs);
+
+	for(int i = 0; i < size; ++i){
+		if(strncmp(strs[i], str, strlen(strs[i])) == 0 && i > 0)
+				return strs[i - 1];
+	}
+	return 0;
+}
+

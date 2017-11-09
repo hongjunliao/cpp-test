@@ -65,4 +65,8 @@ int myatoi(char const * str, size_t len);
 
 /* sort using qsort and strcmp */
 void strutil_qsort(char ** strs, int size);
+/*
+ * find the maximum vlaue less than @param str
+ * */
+char const * strutil_findmax(char const * str, char ** strs, int size);
 #endif /*_STRING_UTIL_H_*/

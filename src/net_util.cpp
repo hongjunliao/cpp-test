@@ -4,7 +4,7 @@
  * for get local ip
  */
 #if(!defined _WIN32 && (defined __GNUC__ || defined  __CYGWIN_GCC__))
-#include "net_util.h"	/**/
+#include "net_util.h"	/*  */
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netdb.h>
