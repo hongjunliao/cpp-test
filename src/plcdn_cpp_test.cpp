@@ -60,6 +60,11 @@ extern int mp_test_main(int argc, char ** argv);
 /* test_zlib.cpp */
 extern int test_zlib_main(int argc, char ** argv);
 
+#ifdef __GNUC__
+/* test_fork.cpp */
+extern int test_fork_call_main(int argc, char ** argv);
+#endif /* __GNUC__ */
+
 static std::map<std::string, test_main_fn> testmap = {
 #ifdef __CYGWIN_GCC__
 
@@ -119,6 +124,10 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"zlib", test_zlib_main},
 			/*{"lds", test_lds_main},*/
 			/*{"lxrandr",lxrandr_0_3_1_main},*/
+#ifdef __GNUC__
+			{"fork", test_fork_call_main},
+#endif /* __GNUC__ */
+
 #ifdef WIN32
 			{"exec", test_exec_main },
 #endif /* WIN32 */

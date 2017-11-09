@@ -20,7 +20,7 @@
 #define LOGIN2_RESP					            	3
 
 #define LISTENQ 1024		   /* for socket/listen */
-#define XHSDKCLIENT_MAX 1024   /**/
+#define SOCK_CLI_MAX 1024   /**/
 
 struct XhSDKClient {
 	int fd;
@@ -33,7 +33,7 @@ struct SelectContext {
 };
 
 /* MAX for client, 0 for NOT use */
-static XhSDKClient g_xhsdk_clis[XHSDKCLIENT_MAX] = { 0 };
+static XhSDKClient g_xhsdk_clis[SOCK_CLI_MAX] = { 0 };
 static int xhsdkclient_add(XhSDKClient const & cli);
 
 static int select_on_socket_connect(SelectContext & sctx, XhSDKClient & cli);
@@ -141,7 +141,7 @@ static int select_on_socket_connect(SelectContext & sctx, XhSDKClient & cli)
 
 static int xhsdkclient_add(XhSDKClient const & cli)
 {
-	for(int i = 0; i < XHSDKCLIENT_MAX; ++i){
+	for(int i = 0; i < SOCK_CLI_MAX; ++i){
 		if(g_xhsdk_clis[i].fd == 0){
 			g_xhsdk_clis[i] = cli;
 			return 0;
@@ -253,7 +253,7 @@ static int select_on_socket_rw(SelectContext & sctx)
 {
 	fd_set & rfds = sctx.rfds;
 
-	for(int i = 0; i < XHSDKCLIENT_MAX; ++i){
+	for(int i = 0; i < SOCK_CLI_MAX; ++i){
 		int& fd = g_xhsdk_clis[i].fd;
 		if( fd != 0 && FD_ISSET(fd, &rfds)){
 			protocol_echo(sctx, fd);

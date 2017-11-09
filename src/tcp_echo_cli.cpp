@@ -22,6 +22,9 @@ int tcp_echo_cli_main(int argc, char ** argv)
 		return -1;
 	}
 
+
+	char const * ip = "127.0.0.1";
+	int port = 9000;
 	struct sockaddr_in	cliaddr = { 0 }, servaddr = { 0 };
 
 	cliaddr.sin_family = AF_INET;
@@ -29,15 +32,16 @@ int tcp_echo_cli_main(int argc, char ** argv)
 	cliaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(17000);
-	inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
+	servaddr.sin_port = htons(port);
+	inet_pton(AF_INET, ip, &servaddr.sin_addr);
 
 	if(bind(fd, (sockaddr *) &cliaddr, sizeof(cliaddr)) < 0){
 		fprintf(stderr, "%s: bind failed, errno=%d, error='%s'\n", __FUNCTION__, errno, strerror(errno));
 		return -1;
 	}
 	if(connect(fd, (sockaddr *)&servaddr, sizeof(servaddr)) < 0){
-		fprintf(stderr, "%s: connect failed, errno=%d, error='%s'\n", __FUNCTION__, errno, strerror(errno));
+		fprintf(stderr, "%s: connect failed, server='%s:%d', errno=%d, error='%s'\n"
+				, __FUNCTION__, ip, port, errno, strerror(errno));
 		return -1;
 	}
 
