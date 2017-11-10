@@ -28,6 +28,14 @@
 #include <assert.h>      /* assert */
 #include "string_util.h" /* byte_to_mb_kb_str_r */
 
+#ifdef __linux__
+#include <linux/netfilter_ipv4.h>   /* SO_ORIGINAL_DST */
+#else
+#warning "SO_ORIGINAL_DST needed but __linux__ NOT defined, will NOT work correctly on this platform"
+#define SO_ORIGINAL_DST 0
+#endif /* __linux__ */
+
+
 #define LISTENQ            128		     /* for socket/listen */
 #define SOCK_CLI_MAX       1            /**/
 #define SOCK_BUF           (1024 * 10)
@@ -91,35 +99,54 @@ static int select_on_socket_connect(SelectContext & sctx, sock_cli & cli)
 	sockaddr_in clientaddr = { 0 };
 	socklen_t len = sizeof(clientaddr);
 
-	int confd = accept(cli.fd, (struct sockaddr *)&clientaddr, &len);
-	if(confd < 0){
+	int connfd = accept(cli.fd, (struct sockaddr *)&clientaddr, &len);
+	if(connfd < 0){
 		fprintf(stderr, "%s/%d: accept failed, errno=%d, error='%s'\n"
 				, __FUNCTION__, gpid, errno, strerror(errno));
 		return -1;
 	}
-	cli.fd = confd;
+	cli.fd = connfd;
 
 	inet_ntop(AF_INET, &clientaddr.sin_addr, cli.ip, sizeof(cli.ip));
 	fprintf(stdout, "%s/%d: connection from '%s'\n", __FUNCTION__, gpid, cli.ip);
 
+	{
+		struct sockaddr_in originDst = { 0 };
+		socklen_t sin_size = sizeof(originDst);
+		if (getsockopt(connfd, SOL_IP, SO_ORIGINAL_DST, &originDst, &sin_size) == 0) {
+
+			fprintf(stdout,
+					"%s: SO_ORIGINAL_DST, addr='%s', port=%u, fd=%d\n",
+					__FUNCTION__, inet_ntoa(originDst.sin_addr),
+					ntohs(originDst.sin_port), connfd);
+		}
+		else
+			fprintf(stderr, "%s/%d: getsockopt failed for '%s', , errno=%d, error='%s'\n"
+					, __FUNCTION__, gpid, "SO_ORIGINAL_DST", errno, strerror(errno));
+
+	}
+	{
+
+	}
 	if(sock_cli_add(cli) != 0){
 		fprintf(stderr, "%s/%d: TOO many clients, forking child ...\n", __FUNCTION__, gpid);
 
 		pid_t cpid = fork();
-		if(cpid == 0){ /* child process */
-
+		if(cpid > 0){ /* parent process */
+			_exit(0);
 		}
 		else if(cpid < 0){
 			fprintf(stderr, "%s/%d: fork child process failed, errno=%d, error='%s', closing client ...\n"
 					, __FUNCTION__, gpid, errno, strerror(errno));
-			close(confd);
+			close(connfd);
 			return -2;
 		}
+		gpid = getpid();
 	}
 
-	FD_SET(confd, &sctx.rfds);
-	FD_SET(confd, &sctx.wfds);
-	sctx.maxfd = confd > sctx.maxfd? confd : sctx.maxfd;
+	FD_SET(connfd, &sctx.rfds);
+	FD_SET(connfd, &sctx.wfds);
+	sctx.maxfd = connfd > sctx.maxfd? connfd : sctx.maxfd;
 
 	return 0;
 }
