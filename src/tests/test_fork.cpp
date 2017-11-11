@@ -15,11 +15,13 @@
  */
 #ifdef __GNUC__
 
-#include <stdio.h>
+#include <stdio.h>  /* setvbuf */
+#include <signal.h> /* signal */
 #include <string.h> 	/* strlen */
 #include <stdlib.h> 	/* atoi */
 #include <unistd.h>     /* fork */
 #include <sys/socket.h>	/* basic socket definitions */
+#include <sys/ioctl.h>  /* ioctl */
 #include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
 #include <arpa/inet.h>	/* inet_ntop */
 #include <sys/select.h>
@@ -37,7 +39,7 @@
 
 
 #define LISTENQ            128		     /* for socket/listen */
-#define SOCK_CLI_MAX       1            /**/
+#define SOCK_CLI_MAX       2            /**/
 #define SOCK_BUF           (1024 * 10)
 
 struct sock_cli {
@@ -52,7 +54,7 @@ struct sock_cli {
 	int stat;
 };
 
-struct SelectContext {
+struct evtctx {
 	fd_set rfds;
 	fd_set wfds;
 	int maxfd;
@@ -61,6 +63,18 @@ struct SelectContext {
 static pid_t gpid = 0;
 /* MAX for client, 0 for NOT use */
 static sock_cli gfds[SOCK_CLI_MAX] = { 0 };
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+static void evtctx_init(struct evtctx* ctx)
+{
+	if(!ctx) return;
+
+	FD_ZERO(&ctx->rfds);
+	FD_ZERO(&ctx->wfds);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static int sock_cli_size()
 {
@@ -78,6 +92,7 @@ static int sock_cli_add(sock_cli const & cli)
 	for(int i = 0; i < SOCK_CLI_MAX; ++i){
 		if(gfds[i].fd == 0){
 			gfds[i] = cli;
+			fprintf(stdout, "%s/%d: client added, fd=%d, left=%d\n", __FUNCTION__, gpid, cli.fd, sock_cli_size());
 			return 0;
 		}
 	}
@@ -87,89 +102,66 @@ static int sock_cli_add(sock_cli const & cli)
 static void sock_cli_remove(struct sock_cli * cli)
 {
 	for(int i = 0; i < SOCK_CLI_MAX; ++i){
-		if(gfds[i].fd == cli->fd){
+		if(gfds[i].fd > 0 && gfds[i].fd == cli->fd){
 			gfds[i].fd = 0;
+			fprintf(stdout, "%s/%d: client removed, fd=%d, left=%d\n", __FUNCTION__, gpid, cli->fd, sock_cli_size());
 			return;
 		}
 	}
 }
 
-static int select_on_socket_connect(SelectContext & sctx, sock_cli & cli)
+static int select_on_socket_connect(struct evtctx * ctx, sock_cli & cli)
 {
 	sockaddr_in clientaddr = { 0 };
 	socklen_t len = sizeof(clientaddr);
 
-	int connfd = accept(cli.fd, (struct sockaddr *)&clientaddr, &len);
-	if(connfd < 0){
-		fprintf(stderr, "%s/%d: accept failed, errno=%d, error='%s'\n"
-				, __FUNCTION__, gpid, errno, strerror(errno));
+	int confd = accept(cli.fd, (struct sockaddr *)&clientaddr, &len);
+	if(confd < 0 ){
+		if(errno == EINTR || errno == EAGAIN)
+			return 0;
+
+		fprintf(stderr, "%s/%d: accept failed, errno=%d, error='%s'\n", __FUNCTION__, gpid, errno, strerror(errno));
 		return -1;
 	}
-	cli.fd = connfd;
+
+	unsigned long sockopt = 1;
+	if(ioctl(confd, FIONBIO, &sockopt) < 0)
+		fprintf(stdout, "%s/%d: ioctl(FIONBIO) failed for fd=%d\n", __FUNCTION__, gpid, confd);
+
+	cli.fd = confd;
 
 	inet_ntop(AF_INET, &clientaddr.sin_addr, cli.ip, sizeof(cli.ip));
 	fprintf(stdout, "%s/%d: connection from '%s'\n", __FUNCTION__, gpid, cli.ip);
 
-	{
-		struct sockaddr_in originDst = { 0 };
-		socklen_t sin_size = sizeof(originDst);
-		if (getsockopt(connfd, SOL_IP, SO_ORIGINAL_DST, &originDst, &sin_size) == 0) {
-
-			fprintf(stdout,
-					"%s: SO_ORIGINAL_DST, addr='%s', port=%u, fd=%d\n",
-					__FUNCTION__, inet_ntoa(originDst.sin_addr),
-					ntohs(originDst.sin_port), connfd);
-		}
-		else
-			fprintf(stderr, "%s/%d: getsockopt failed for '%s', , errno=%d, error='%s'\n"
-					, __FUNCTION__, gpid, "SO_ORIGINAL_DST", errno, strerror(errno));
-
-	}
-	{
-
-	}
 	if(sock_cli_add(cli) != 0){
-		fprintf(stderr, "%s/%d: TOO many clients, forking child ...\n", __FUNCTION__, gpid);
-
-		pid_t cpid = fork();
-		if(cpid > 0){ /* parent process */
-			_exit(0);
-		}
-		else if(cpid < 0){
-			fprintf(stderr, "%s/%d: fork child process failed, errno=%d, error='%s', closing client ...\n"
-					, __FUNCTION__, gpid, errno, strerror(errno));
-			close(connfd);
-			return -2;
-		}
-		gpid = getpid();
+		fprintf(stderr, "%s/%d: TOO many clients, closing ...\n", __FUNCTION__, gpid);
+		close(confd);
+		return 0;
 	}
 
-	FD_SET(connfd, &sctx.rfds);
-	FD_SET(connfd, &sctx.wfds);
-	sctx.maxfd = connfd > sctx.maxfd? connfd : sctx.maxfd;
+	FD_SET(confd, &ctx->rfds);
+	FD_SET(confd, &ctx->wfds);
+	ctx->maxfd = confd > ctx->maxfd? confd : ctx->maxfd;
 
 	return 0;
 }
 
-static int protocol_echo_read(SelectContext & sctx, struct sock_cli * cli)
+static int protocol_echo_read(struct evtctx * ctx, struct sock_cli * cli)
 {
 	if(SOCK_BUF - cli->len < 10)
 		return 0; /* write op too slow */
 
-	fd_set * rfds = &sctx.rfds;
-	fd_set * wfds = &sctx.wfds;
 	int fd = cli->fd;
 
-	ssize_t ret = read(fd, cli->buf + cli->len, 10);
-	if(ret <= 0){
-		if(ret < 0 && (errno == EAGAIN || errno == EINTR))
-			return 0;
-
+	ssize_t n = read(fd, cli->buf + cli->len, 10);
+	if(n <= 0){
 		fprintf(stdout, "%s/%d: read failed, errno=%d, error='%s'\n"
 				, __FUNCTION__, gpid, errno, strerror(errno));
+
+		if(n < 0 && (errno == EAGAIN || errno == EINTR))
+			return 0;
+
 		close(fd);
-		FD_CLR(fd, rfds);
-		FD_CLR(fd, wfds);
 
 		sock_cli_remove(cli);
 
@@ -180,14 +172,14 @@ static int protocol_echo_read(SelectContext & sctx, struct sock_cli * cli)
 		fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, len=%ld, buff='%s'\n"
 			, __FUNCTION__, gpid, fd, cli->r, bufr
 			, cli->w, bufw
-			, cli->r - cli->w, ret, dumpstr(cli->buf, ret, 32));
+			, cli->r - cli->w, n, dumpstr(cli->buf, n, 32));
 
 		return 0;
 	}
 
-	cli->len += ret;
+	cli->len += n;
 
-	cli->r += ret;
+	cli->r += n;
 
 	if(cli->stat != cli->r / (1024 * 1024 * 10)  ){
 		char bufr[64], bufw[64];
@@ -197,32 +189,29 @@ static int protocol_echo_read(SelectContext & sctx, struct sock_cli * cli)
 		fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, len=%ld, buff='%s'\n"
 			, __FUNCTION__, gpid, fd, cli->r, bufr
 			, cli->w, bufw
-			, cli->r - cli->w, ret, dumpstr(cli->buf, ret, 32));
+			, cli->r - cli->w, n, dumpstr(cli->buf, n, 32));
 
 		cli->stat = cli->r / (1024 * 1024 * 10);
 	}
-	return ret;
+	return n;
 }
 
-static int protocol_echo_write(SelectContext & sctx, struct sock_cli * cli)
+static int protocol_echo_write(struct evtctx * ctx, struct sock_cli * cli)
 {
 	if(cli->len <= 0)
 		return 0; /* nothing to write */
 
-	fd_set * rfds = &sctx.rfds;
-	fd_set * wfds = &sctx.wfds;
 	int fd = cli->fd;
 
-	ssize_t ret = write(fd, cli->buf, cli->len);
-	if(ret <= 0){
-		if(ret < 0 && (errno == EAGAIN || errno == EINTR))
-			return 0;
-
+	ssize_t n = write(fd, cli->buf, cli->len);
+	if(n <= 0){
 		fprintf(stdout, "%s/%d: write failed, errno=%d, error='%s'\n"
 						, __FUNCTION__, gpid, errno, strerror(errno));
+
+		if(n < 0 && (errno == EAGAIN || errno == EINTR))
+			return 0;
+
 		close(fd);
-		FD_CLR(fd, rfds);
-		FD_CLR(fd, wfds);
 
 		sock_cli_remove(cli);
 
@@ -233,28 +222,28 @@ static int protocol_echo_write(SelectContext & sctx, struct sock_cli * cli)
 		fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, len=%ld, buff='%s'\n"
 			, __FUNCTION__, gpid, fd, cli->r, bufr
 			, cli->w, bufw
-			, cli->r - cli->w, ret, dumpstr(cli->buf, ret, 32));
+			, cli->r - cli->w, n, dumpstr(cli->buf, n, 32));
 
 		return 0;
 	}
 
 
-	if(ret < cli->len){
+	if(n < cli->len){
 		fprintf(stdout, "%s/%d: memmove, towrite=%d, written=%ld, left=%d\n"
-				, __FUNCTION__, gpid, cli->len, ret, cli->len - (int)ret);
-		memmove(cli->buf, cli->buf + ret, cli->len - ret);
+				, __FUNCTION__, gpid, cli->len, n, cli->len - (int)n);
+		memmove(cli->buf, cli->buf + n, cli->len - n);
 	}
 
-	cli->len -= ret;
-	cli->w += ret;
+	cli->len -= n;
+	cli->w += n;
 
-	return ret;
+	return n;
 }
 
-static int select_on_socket_rw(SelectContext & sctx)
+static int select_on_socket_rw(struct evtctx * ctx)
 {
-	fd_set * rfds = &sctx.rfds;
-	fd_set * wfds = &sctx.rfds;
+	fd_set * rfds = &ctx->rfds;
+	fd_set * wfds = &ctx->wfds;
 
 	for(int i = 0; i < SOCK_CLI_MAX; ++i){
 		int fd = gfds[i].fd;
@@ -262,10 +251,10 @@ static int select_on_socket_rw(SelectContext & sctx)
 			continue;
 
 		if(FD_ISSET(fd, rfds)){ /* readable */
-			protocol_echo_read(sctx, &gfds[i]);
+			protocol_echo_read(ctx, &gfds[i]);
 		}
 		if(FD_ISSET(fd, wfds)){ /* writable */
-			protocol_echo_write(sctx, &gfds[i]);
+			protocol_echo_write(ctx, &gfds[i]);
 		}
 	}
 	return 0;
@@ -273,6 +262,11 @@ static int select_on_socket_rw(SelectContext & sctx)
 
 int test_fork_call_main(int argc, char ** argv)
 {
+	setvbuf(stdout, 0, _IONBF, 0);
+	/* see redis/server.c/initServer */
+    signal(SIGHUP, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
+
 	gpid = getpid();
 
 	fprintf(stdout, "%s/%d: build at %s %s\n", __FUNCTION__, gpid, __DATE__, __TIME__);
@@ -293,7 +287,11 @@ int test_fork_call_main(int argc, char ** argv)
 	servaddr.sin_port = htons(port);
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    int yes = 1;
+	unsigned long sockopt = 1;
+	if(ioctl(listenfd, FIONBIO, &sockopt) < 0)
+		fprintf(stdout, "%s/%d: ioctl(FIONBIO) failed for fd=%d\n", __FUNCTION__, gpid, listenfd);
+
+	int yes = 1;
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
         fprintf(stderr, "%s: setsockopt SO_REUSEADDR: %s", __FUNCTION__, strerror(errno));
         close(listenfd);
@@ -313,33 +311,52 @@ int test_fork_call_main(int argc, char ** argv)
 
 	fprintf(stdout, "%s/%d: listening on port=%d...\n", __FUNCTION__, gpid, port);
 
-	SelectContext sctx;
+	struct evtctx sctx, * ctx = &sctx;
 
-	FD_ZERO(&sctx.rfds);
-	FD_ZERO(&sctx.wfds);
-
-	sctx.maxfd = listenfd;
-
+	time_t startt = time(0);
 	for(;;){
-		FD_SET(listenfd, &sctx.rfds);
-		FD_SET(listenfd, &sctx.wfds);
+		evtctx_init(ctx);
 
-		int ret = select(sctx.maxfd + 1, &sctx.rfds, &sctx.wfds, (fd_set *)0, 0);
+		FD_SET(listenfd, &ctx->rfds);
+		FD_SET(listenfd, &ctx->wfds);
+		ctx->maxfd = listenfd;
+
+		for(int i = 0; i < SOCK_CLI_MAX; ++i){
+			int fd = gfds[i].fd;
+			if(fd > 0){
+				FD_SET(fd, &ctx->rfds);
+				FD_SET(fd, &ctx->wfds);
+
+				if(fd > ctx->maxfd)
+					ctx->maxfd = fd;
+			}
+		}
+
+		time_t now = time(0);
+		if(now - startt > 5){
+			fprintf(stdout, "%s/%d: select ...\n", __FUNCTION__, gpid);
+			startt = now;
+		}
+
+		int ret = select(ctx->maxfd + 1, &ctx->rfds, &ctx->wfds, (fd_set *)0, 0);
 		if(ret == -1){
 			fprintf(stderr, "%s/%d: select failed, errno=%d, error='%s'\n"
 					, __FUNCTION__, gpid, errno, strerror(errno));
 			break;
 		}
 
-		if (FD_ISSET(listenfd, &sctx.rfds)) {	/* connect */
+		if (FD_ISSET(listenfd, &ctx->rfds)) {	/* connect */
 			sock_cli cli = { listenfd };
-			if(select_on_socket_connect(sctx, cli) != 0){
+			if(select_on_socket_connect(ctx, cli) != 0){
 				close(listenfd);
 				break;
 			}
+			/* add new client to event system first,
+			 * do I/O later */
+			continue;
 		}
 
-		select_on_socket_rw(sctx);/* socket I/O */
+		select_on_socket_rw(ctx);/* socket I/O */
 	}
 
 	return 0;

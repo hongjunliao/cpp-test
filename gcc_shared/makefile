@@ -18,6 +18,7 @@ RM := rm -rf
 -include src/chess/src/subdir.mk
 -include src/algs/subdir.mk
 -include src/subdir.mk
+-include Release/src/xh_vircam/subdir.mk
 -include subdir.mk
 -include objects.mk
 
