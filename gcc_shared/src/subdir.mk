@@ -6,6 +6,7 @@
 CPP_SRCS += \
 ../src/chksum.cpp \
 ../src/hexdump.cpp \
+../src/hp_sig.cpp \
 ../src/net_util.cpp \
 ../src/plcdn_cpp_test.cpp \
 ../src/string_dump.cpp \
@@ -20,6 +21,7 @@ CPP_SRCS += \
 OBJS += \
 ./src/chksum.o \
 ./src/hexdump.o \
+./src/hp_sig.o \
 ./src/net_util.o \
 ./src/plcdn_cpp_test.o \
 ./src/string_dump.o \
@@ -34,6 +36,7 @@ OBJS += \
 CPP_DEPS += \
 ./src/chksum.d \
 ./src/hexdump.d \
+./src/hp_sig.d \
 ./src/net_util.d \
 ./src/plcdn_cpp_test.d \
 ./src/string_dump.d \
