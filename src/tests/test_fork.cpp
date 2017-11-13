@@ -10,28 +10,32 @@
  * $cat file1  | nc localhost 9000 | md5sum
  *
  * server:
- * $./cpp-test-main fork 9000
+ * $./cpp-test-main fork -p9000 -b1
  *
  */
+
 #ifdef __GNUC__
 
-#include <stdio.h>  /* setvbuf */
-#include <signal.h> /* signal */
-#include <string.h> 	/* strlen */
-#include <stdlib.h> 	/* atoi */
-#include <unistd.h>     /* fork */
-#include <sys/socket.h>	/* basic socket definitions */
-#include <sys/ioctl.h>  /* ioctl */
-#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
-#include <arpa/inet.h>	/* inet_ntop */
+#include <stdio.h>       /* setvbuf */
+#include <signal.h>      /* signal */
+#include <string.h> 	 /* strlen */
+#include <stdlib.h> 	 /* atoi */
+#include <unistd.h>      /* fork */
+#include <sys/socket.h>	 /* basic socket definitions */
+#include <sys/ioctl.h>   /* ioctl */
+#include <netinet/in.h>	 /* sockaddr_in{} and other Internet defns */
+#include <arpa/inet.h>	 /* inet_ntop */
 #include <sys/select.h>
 #include <time.h>
 #include <errno.h>       /* errno */
 #include <assert.h>      /* assert */
 #include "string_util.h" /* byte_to_mb_kb_str_r */
 
+#include <semaphore.h>   /* sem_t */
+#include <fcntl.h>       /* O_CREAT */
+
 #ifdef __linux__
-#include <linux/netfilter_ipv4.h>   /* SO_ORIGINAL_DST */
+#include <linux/netfilter_ipv4.h>        /* SO_ORIGINAL_DST */
 #else
 #warning "SO_ORIGINAL_DST needed but __linux__ NOT defined, will NOT work correctly on this platform"
 #define SO_ORIGINAL_DST 0
@@ -40,10 +44,11 @@
 /* hp_sig.cpp */
 extern void setupSignalHandlers(void);
 
-#define LISTENQ            128		     /* for socket/listen */
+#define LISTENQ            128		    /* for socket/listen */
 #define SOCK_CLI_MAX       2            /**/
 #define SOCK_BUF           (1024 * 10)
 #define PID_FILE           "/run/xhhp.pid"
+#define SEM_LISTENFD       "/.xhhp"
 
 struct sock_cli {
 	int fd;
@@ -64,6 +69,8 @@ struct evtctx {
 };
 
 static pid_t gpid = 0;
+static int gverbose = 0;
+static int gechobytes = 10;
 /* MAX for client, 0 for NOT use */
 static sock_cli gfds[SOCK_CLI_MAX] = { 0 };
 static int verbose = 0;
@@ -73,6 +80,7 @@ static void evtctx_init(struct evtctx* ctx)
 {
 	if(!ctx) return;
 
+	ctx->maxfd = 0;
 	FD_ZERO(&ctx->rfds);
 	FD_ZERO(&ctx->wfds);
 }
@@ -95,7 +103,8 @@ static int sock_cli_add(sock_cli const & cli)
 	for(int i = 0; i < SOCK_CLI_MAX; ++i){
 		if(gfds[i].fd == 0){
 			gfds[i] = cli;
-			fprintf(stdout, "%s/%d: client added, fd=%d, left=%d\n", __FUNCTION__, gpid, cli.fd, sock_cli_size());
+			if(gverbose > 6)
+				fprintf(stdout, "%s/%d: client added, fd=%d, left=%d\n", __FUNCTION__, gpid, cli.fd, sock_cli_size());
 			return 0;
 		}
 	}
@@ -107,7 +116,8 @@ static void sock_cli_remove(struct sock_cli * cli)
 	for(int i = 0; i < SOCK_CLI_MAX; ++i){
 		if(gfds[i].fd > 0 && gfds[i].fd == cli->fd){
 			gfds[i].fd = 0;
-			fprintf(stdout, "%s/%d: client removed, fd=%d, left=%d\n", __FUNCTION__, gpid, cli->fd, sock_cli_size());
+			if(gverbose > 6)
+				fprintf(stdout, "%s/%d: client removed, fd=%d, left=%d\n", __FUNCTION__, gpid, cli->fd, sock_cli_size());
 			return;
 		}
 	}
@@ -154,7 +164,7 @@ static int select_on_socket_connect(struct evtctx * ctx, sock_cli & cli)
 
 static int protocol_echo_read(struct evtctx * ctx, struct sock_cli * cli)
 {
-	int RAEDN = 1024;
+	int RAEDN = gechobytes;
 
 	if(SOCK_BUF - cli->len < RAEDN)
 		return 0; /* write op too slow */
@@ -163,7 +173,8 @@ static int protocol_echo_read(struct evtctx * ctx, struct sock_cli * cli)
 
 	ssize_t n = read(fd, cli->buf + cli->len, RAEDN);
 	if(n <= 0){
-		fprintf(stdout, "%s/%d: read failed, errno=%d, error='%s'\n"
+		if(gverbose > 3)
+			fprintf(stdout, "%s/%d: read failed, errno=%d, error='%s'\n"
 				, __FUNCTION__, gpid, errno, strerror(errno));
 
 		if(n < 0 && (errno == EAGAIN || errno == EINTR))
@@ -215,7 +226,8 @@ static int protocol_echo_write(struct evtctx * ctx, struct sock_cli * cli)
 
 	ssize_t n = write(fd, cli->buf, cli->len);
 	if(n <= 0){
-		fprintf(stdout, "%s/%d: write failed, errno=%d, error='%s'\n"
+		if(gverbose > 3)
+			fprintf(stdout, "%s/%d: write failed, errno=%d, error='%s'\n"
 						, __FUNCTION__, gpid, errno, strerror(errno));
 
 		if(n < 0 && (errno == EAGAIN || errno == EINTR))
@@ -281,6 +293,8 @@ static int save_pidfile(FILE * f)
 				, __FUNCTION__, gpid, PID_FILE, gpid, errno, strerror(errno));
 		return -1;
 	}
+	fflush(f);
+	fclose(f);
 	return 0;
 }
 
@@ -337,7 +351,11 @@ int test_fork_call_main(int argc, char ** argv)
 	for(int i = 0; i < argc; ++i){
 		if(strncmp(argv[i], "-p", 2) == 0)
 			port = atoi(argv[i] + 2);
-		if(strncmp(argv[i], "-s", 2) == 0) {
+		else if(strncmp(argv[i], "-v", 2) == 0)
+			gverbose = atoi(argv[i] + 2);
+		else if(strncmp(argv[i], "-b", 2) == 0)
+			gechobytes = atoi(argv[i] + 2);
+		else if(strncmp(argv[i], "-s", 2) == 0) {
 			if(strncmp(argv[i] + 2, "stop", 4) == 0) sig_stop = 1;
 			else if(strncmp(argv[i] + 2, "reload", 5) == 0) sig_reload = 1;
 			else
@@ -345,6 +363,11 @@ int test_fork_call_main(int argc, char ** argv)
 								, __FUNCTION__, gpid, argv[i] + 2);
 		}
 	}
+
+#ifndef NDEBUG
+		fprintf(stdout, "%s/%d: -p/port=%d, -b/echo_bytes=%d, -sstop/stop=%d, -sreload/reload=%d, -v/verbose=%d\n"
+				, __FUNCTION__, gpid, port, gechobytes, sig_stop, sig_reload, gverbose);
+#endif /* NDEBUG */
 
 	if(sig_stop){
 		fprintf(stdout, "%s/%d: stopping\n", __FUNCTION__, gpid);
@@ -398,6 +421,8 @@ int test_fork_call_main(int argc, char ** argv)
 		return -1;
 	}
 
+	sem_unlink(SEM_LISTENFD);
+
 	pid_t cpid = fork();
 	if(cpid < 0){
 		fprintf(stdout, "%s/%d: fork failed, exit, errno=%d, error='%s'\n"
@@ -405,25 +430,32 @@ int test_fork_call_main(int argc, char ** argv)
 		return -1;
 	}
 	else if (cpid == 0) /* child process */
-			gpid = getpid();
+		gpid = getpid();
 
 	save_pidfile(pidfile);
-	fflush(pidfile);
-	fclose(pidfile);
+
+	sem_t * semfd = sem_open(SEM_LISTENFD, O_CREAT, S_IRWXU, 1);
+	if(semfd == SEM_FAILED){
+		fprintf(stderr, "%s/%d: sem_open('%s') failed, sem=%p, errno=%d, error='%s'\n"
+				, __FUNCTION__, gpid, SEM_LISTENFD, semfd, errno, strerror(errno));
+		return -1;
+	}
 
 	fprintf(stdout, "%s/%d: listening on port=%d...\n", __FUNCTION__, gpid, port);
 
 	struct evtctx sctx, * ctx = &sctx;
-
-#ifndef NDEBUG
-	time_t startt = time(0);
-#endif /* NDEBUG */
 	for(;;){
 		evtctx_init(ctx);
 
-		FD_SET(listenfd, &ctx->rfds);
-		FD_SET(listenfd, &ctx->wfds);
-		ctx->maxfd = listenfd;
+		int gotfd = 0;
+		int result = sem_trywait(semfd);
+		if(result == 0){
+			gotfd = 1;
+
+			FD_SET(listenfd, &ctx->rfds);
+			FD_SET(listenfd, &ctx->wfds);
+			ctx->maxfd = listenfd;
+		}
 
 		for(int i = 0; i < SOCK_CLI_MAX; ++i){
 			int fd = gfds[i].fd;
@@ -436,15 +468,15 @@ int test_fork_call_main(int argc, char ** argv)
 			}
 		}
 
-#ifndef NDEBUG
-		time_t now = time(0);
-		if(now - startt > 5){
-			fprintf(stdout, "%s/%d: select ...\n", __FUNCTION__, gpid);
-			startt = now;
-		}
-#endif /* NDEBUG */
+		if(ctx->maxfd == 0)
+			continue;
 
 		int ret = select(ctx->maxfd + 1, &ctx->rfds, &ctx->wfds, (fd_set *)0, 0);
+		if(gotfd){
+			gotfd = 0;
+			sem_post(semfd);
+		}
+
 		if(ret == -1){
 			fprintf(stderr, "%s/%d: select failed, errno=%d, error='%s'\n"
 					, __FUNCTION__, gpid, errno, strerror(errno));

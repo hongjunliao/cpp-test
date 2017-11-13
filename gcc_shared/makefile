@@ -54,7 +54,7 @@ all: libcpp-test.so
 libcpp-test.so: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -pthread -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build

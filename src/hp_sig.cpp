@@ -10,11 +10,12 @@
  * All rights reserved.
  */
 #include <unistd.h>   /* getpid */
-#include <signal.h>  /* sigaction, ... */
-#include <stdlib.h>  /* exit */
-#include <stdio.h>   /* */
-#include <string.h>  /* */
-#include <time.h>    /* */
+#include <sys/wait.h> /* wait */
+#include <signal.h>   /* sigaction, ... */
+#include <stdlib.h>   /* exit */
+#include <stdio.h>    /* */
+#include <string.h>   /* */
+#include <time.h>     /* */
 /* Log a fixed message without printf-alike capabilities, in a way that is
  * safe to call from a signal handler.
  *
@@ -52,7 +53,7 @@ static void sigShutdownHandler(int sig) {
     case SIGCHLD:
     	msg = "Received SIGCHLD, call wait";
     	is_chld = 1;
-    	wait();
+    	wait(0);
     	break;
     default:
         msg = "Received shutdown signal, scheduling shutdown...";
