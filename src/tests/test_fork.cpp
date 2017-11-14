@@ -49,6 +49,7 @@ extern void setupSignalHandlers(void);
 #define SOCK_BUF           (1024 * 10)
 #define PID_FILE           "/run/xhhp.pid"
 #define SEM_LISTENFD       "/.xhhp"
+#define MWMSG_SZE          64
 
 struct sock_cli {
 	int fd;
@@ -63,12 +64,15 @@ struct sock_cli {
 };
 
 struct evtctx {
-	fd_set rfds;
-	fd_set wfds;
-	int maxfd;
+	fd_set   rfds;
+	fd_set   wfds;
+	int      maxfd;
 };
 
-static pid_t gpid = 0;
+/* process ids of master and workers
+ * if it's a worker gcpid ignored */
+static pid_t gpid = 0, gcpid = 0;
+
 static int gverbose = 0;
 static int gechobytes = 10;
 /* MAX for client, 0 for NOT use */
@@ -263,7 +267,7 @@ static int protocol_echo_write(struct evtctx * ctx, struct sock_cli * cli)
 	return n;
 }
 
-static int select_on_socket_rw(struct evtctx * ctx)
+static int select_on_cli_rw(struct evtctx * ctx)
 {
 	fd_set * rfds = &ctx->rfds;
 	fd_set * wfds = &ctx->wfds;
@@ -280,6 +284,62 @@ static int select_on_socket_rw(struct evtctx * ctx)
 			protocol_echo_write(ctx, &gfds[i]);
 		}
 	}
+	return 0;
+}
+
+static int select_on_mw_w(struct evtctx * ctx, int fd)
+{
+	if(!(ctx && fd > 0)) return -1;
+
+	char buf[MWMSG_SZE];
+	int m = sprintf(buf, "%d,%d", gpid, sock_cli_size());
+	assert(m > 0);
+
+	int n = write(fd, buf, strlen(buf));
+
+	if(n <= 0){
+		if(n < 0 && (errno == EAGAIN || errno == EINTR))
+			return 0;
+		return -1;
+	}
+
+	if(!(n == m))
+		return -1;
+
+	return 0;
+}
+
+static int select_on_mw_r(struct evtctx * ctx, int fd)
+{
+	static size_t count = 0;
+
+	if(!(ctx && fd > 0)) return -1;
+
+	char buf[MWMSG_SZE];
+	int n = read(fd, buf, sizeof(buf));
+
+	if(n <= 0){
+		if(n < 0 && (errno == EAGAIN || errno == EINTR))
+			return 0;
+		return -1;
+	}
+
+	pid_t pid = 0;
+	int clisz = 0;
+	n = sscanf(buf, "%d,%d", &pid, &clisz);
+
+	if(n != 2){
+		fprintf(stderr, "%s/%d: sscanf failed, errno=%d, error='%s'\n"
+			, __FUNCTION__, gpid, errno, strerror(errno));
+
+		return -1;
+	}
+
+	++count;
+
+	if(count % 200000 == 0)
+		fprintf(stderr, "%s/%d: report from worker: pid=%d, client_size=%d, max=%d, report=%zu\n"
+				, __FUNCTION__, gpid, pid, clisz, SOCK_CLI_MAX, count);
 	return 0;
 }
 
@@ -333,8 +393,23 @@ static int hdl_sig_stop()
 	return 0;
 }
 
+static int test_fork_call_test_main()
+{
+	char buf[MWMSG_SZE]="235,1";
+	pid_t pid = 0;
+	int clisz = 0;
+	int n = sscanf(buf, "%d,%d", &pid, &clisz);
+
+	fprintf(stderr, "%s/%d: sscanf buf='%s', return=%d, pid=%d, client_size=%d, max=%d\n"
+				, __FUNCTION__, gpid, buf, n, pid, clisz, SOCK_CLI_MAX);
+	assert(n == 2 && clisz == 1 && pid == 235);
+	return 0;
+}
+
 int test_fork_call_main(int argc, char ** argv)
 {
+	test_fork_call_test_main();
+
 	setvbuf(stdout, 0, _IONBF, 0);
 
 	/* see redis/server.c/initServer */
@@ -405,13 +480,14 @@ int test_fork_call_main(int argc, char ** argv)
 
 	int yes = 1;
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
-        fprintf(stderr, "%s: setsockopt SO_REUSEADDR: %s", __FUNCTION__, strerror(errno));
+        fprintf(stderr, "%s: setsockopt SO_REUSEADDR failed: errno=%d, error='%s'\n"
+        		, __FUNCTION__, errno, strerror(errno));
         close(listenfd);
         return -1;
     }
 
 	if(bind(listenfd, (sockaddr *) &servaddr, sizeof(servaddr)) < 0){
-		fprintf(stderr, "%s/%d: bind error, port=%d, errno=%d, error='%s'\n"
+		fprintf(stderr, "%s/%d: bind failed, port=%d, errno=%d, error='%s'\n"
 				, __FUNCTION__, gpid, port, errno, strerror(errno));
 		return -1;
 	}
@@ -423,14 +499,27 @@ int test_fork_call_main(int argc, char ** argv)
 
 	sem_unlink(SEM_LISTENFD);
 
-	pid_t cpid = fork();
-	if(cpid < 0){
+	int mwfd[2];
+	if(socketpair(AF_LOCAL, SOCK_DGRAM, 0, mwfd) < 0){
+		fprintf(stderr, "%s/%d: socketpair failed, errno=%d, error='%s'\n"
+				, __FUNCTION__, gpid, errno, strerror(errno));
+		return -1;
+	}
+	/* 0 for read, 1 for write */
+	int mwrfd = mwfd[0], mwwfd = mwfd[1];
+
+	pid_t pid = fork();
+	if(pid < 0){
 		fprintf(stdout, "%s/%d: fork failed, exit, errno=%d, error='%s'\n"
 				, __FUNCTION__, getpid(), errno, strerror(errno));
 		return -1;
 	}
-	else if (cpid == 0) /* child process */
+	else if (pid == 0) { /* child process */
 		gpid = getpid();
+		gcpid = 0;
+	}
+	else
+		gcpid = pid;
 
 	save_pidfile(pidfile);
 
@@ -441,15 +530,24 @@ int test_fork_call_main(int argc, char ** argv)
 		return -1;
 	}
 
-	fprintf(stdout, "%s/%d: listening on port=%d...\n", __FUNCTION__, gpid, port);
+	fprintf(stdout, "%s/%d(%d): listening on port=%d...\n", __FUNCTION__, gpid, gcpid, port);
 
 	struct evtctx sctx, * ctx = &sctx;
 	for(;;){
 		evtctx_init(ctx);
 
-		int gotfd = 0;
+		if(gcpid != 0) { /* master process, always readable */
+			FD_SET(mwrfd, &ctx->rfds);
+			if(mwrfd > ctx->maxfd)
+				ctx->maxfd = mwrfd;
+		}
 
+		int gotfd = 0;
 		int clisz = sock_cli_size();
+
+		/* if too much clients stop adding to select
+		 * NOTE: new connect requests dosen't refused by listenfd immediately
+		 * instead they are put to 'backlog', see listen() and LISTENQ */
 		if(clisz < SOCK_CLI_MAX * 0.8){
 			int result = sem_trywait(semfd);
 			if(result == 0){
@@ -460,8 +558,17 @@ int test_fork_call_main(int argc, char ** argv)
 				ctx->maxfd = listenfd;
 			}
 		}
-//		else fprintf(stdout, "%s/%d: clients almost full, stop receive clients, clients=%d, max=%d\n"
+		else {
+//			fprintf(stdout, "%s/%d: clients almost full, stop receive clients, clients=%d, max=%d\n"
 //				, __FUNCTION__, gpid, clisz, SOCK_CLI_MAX);
+
+			/* report to master process that we need more worker process */
+			if(gcpid == 0){
+				FD_SET(mwwfd, &ctx->wfds);
+				if(mwwfd > ctx->maxfd)
+					ctx->maxfd = mwwfd;
+			}
+		}
 
 		for(int i = 0; i < SOCK_CLI_MAX; ++i){
 			int fd = gfds[i].fd;
@@ -504,7 +611,18 @@ int test_fork_call_main(int argc, char ** argv)
 			continue;
 		}
 
-		select_on_socket_rw(ctx);/* socket I/O */
+		select_on_cli_rw(ctx);/* clients socket I/O */
+
+		/* worker process report to master */
+		if (gcpid == 0 && FD_ISSET(mwwfd, &ctx->wfds)){
+			int r = select_on_mw_w(ctx, mwwfd);
+//			fprintf(stdout, "%s/%d(%d): select_on_mw_w, return=%d\n"
+//					, __FUNCTION__, gpid, gcpid, r);
+		}
+
+		/* master process receive reports from worker */
+		if (gcpid != 0 && FD_ISSET(mwrfd, &ctx->rfds))
+			select_on_mw_r(ctx, mwrfd);
 	}
 
 	return 0;
