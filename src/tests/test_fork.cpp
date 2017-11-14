@@ -43,6 +43,7 @@
 
 /* hp_sig.cpp */
 extern void setupSignalHandlers(void);
+extern void set_on_sigchld(void (*fn)());
 
 #define LISTENQ            128		    /* for socket/listen */
 #define SOCK_CLI_MAX       2            /**/
@@ -72,7 +73,7 @@ struct evtctx {
 /* process ids of master and workers
  * if it's a worker gcpid ignored */
 static pid_t gpid = 0, gcpid = 0;
-
+static sem_t * gsemfd = 0;
 static int gverbose = 0;
 static int gechobytes = 10;
 /* MAX for client, 0 for NOT use */
@@ -406,6 +407,11 @@ static int test_fork_call_test_main()
 	return 0;
 }
 
+static void on_sigchld()
+{
+	sem_post(gsemfd);
+}
+
 int test_fork_call_main(int argc, char ** argv)
 {
 	test_fork_call_test_main();
@@ -416,6 +422,7 @@ int test_fork_call_main(int argc, char ** argv)
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
 	setupSignalHandlers();
+	set_on_sigchld(on_sigchld);
 
 	gpid = getpid();
 
@@ -474,9 +481,11 @@ int test_fork_call_main(int argc, char ** argv)
 	servaddr.sin_port = htons(port);
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	unsigned long sockopt = 1;
-	if(ioctl(listenfd, FIONBIO, &sockopt) < 0)
-		fprintf(stdout, "%s/%d: ioctl(FIONBIO) failed for fd=%d\n", __FUNCTION__, gpid, listenfd);
+	{
+		unsigned long sockopt = 1;
+		if(ioctl(listenfd, FIONBIO, &sockopt) < 0)
+			fprintf(stdout, "%s/%d: ioctl(FIONBIO) failed for fd=%d\n", __FUNCTION__, gpid, listenfd);
+	}
 
 	int yes = 1;
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
@@ -507,6 +516,15 @@ int test_fork_call_main(int argc, char ** argv)
 	}
 	/* 0 for read, 1 for write */
 	int mwrfd = mwfd[0], mwwfd = mwfd[1];
+	{
+		unsigned long sockopt = 1;
+		if(ioctl(mwrfd, FIONBIO, &sockopt) < 0)
+			fprintf(stdout, "%s/%d: ioctl(FIONBIO) failed for fd=%d\n", __FUNCTION__, gpid, mwrfd);
+	}{
+		unsigned long sockopt = 1;
+		if(ioctl(mwwfd, FIONBIO, &sockopt) < 0)
+			fprintf(stdout, "%s/%d: ioctl(FIONBIO) failed for fd=%d\n", __FUNCTION__, gpid, mwwfd);
+	}
 
 	pid_t pid = fork();
 	if(pid < 0){
@@ -523,10 +541,10 @@ int test_fork_call_main(int argc, char ** argv)
 
 	save_pidfile(pidfile);
 
-	sem_t * semfd = sem_open(SEM_LISTENFD, O_CREAT, S_IRWXU, 1);
-	if(semfd == SEM_FAILED){
+	gsemfd = sem_open(SEM_LISTENFD, O_CREAT, S_IRWXU, 1);
+	if(gsemfd == SEM_FAILED){
 		fprintf(stderr, "%s/%d: sem_open('%s') failed, sem=%p, errno=%d, error='%s'\n"
-				, __FUNCTION__, gpid, SEM_LISTENFD, semfd, errno, strerror(errno));
+				, __FUNCTION__, gpid, SEM_LISTENFD, gsemfd, errno, strerror(errno));
 		return -1;
 	}
 
@@ -549,8 +567,11 @@ int test_fork_call_main(int argc, char ** argv)
 		 * NOTE: new connect requests dosen't refused by listenfd immediately
 		 * instead they are put to 'backlog', see listen() and LISTENQ */
 		if(clisz < SOCK_CLI_MAX * 0.8){
-			int result = sem_trywait(semfd);
+			int result = sem_trywait(gsemfd);
 			if(result == 0){
+				fprintf(stdout, "%s/%d(%d): got lock!________________________________\n"
+						, __FUNCTION__, gpid, gcpid);
+
 				gotfd = 1;
 
 				FD_SET(listenfd, &ctx->rfds);
@@ -581,14 +602,23 @@ int test_fork_call_main(int argc, char ** argv)
 			}
 		}
 
-		if(ctx->maxfd == 0)
+		if(ctx->maxfd == 0){
+			sleep(1);
 			continue;
-
-		int ret = select(ctx->maxfd + 1, &ctx->rfds, &ctx->wfds, (fd_set *)0, 0);
-		if(gotfd){
-			gotfd = 0;
-			sem_post(semfd);
 		}
+
+		struct timeval timeout = { 1, 0 };
+		int ret = select(ctx->maxfd + 1, &ctx->rfds, &ctx->wfds, (fd_set *)0, &timeout);
+
+		if(gotfd){
+			fprintf(stdout, "%s/%d(%d): release lock________________________________\n"
+								, __FUNCTION__, gpid, gcpid);
+			gotfd = 0;
+			sem_post(gsemfd);
+
+		}
+		for(size_t i = 0; i < 1000000000; ++i)
+			;
 
 		if(ret == -1){
 			fprintf(stderr, "%s/%d: select failed, errno=%d, error='%s'\n"

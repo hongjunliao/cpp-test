@@ -16,6 +16,10 @@
 #include <stdio.h>    /* */
 #include <string.h>   /* */
 #include <time.h>     /* */
+
+/* this callback is call when receive SIGCHLD */
+static void (*on_sigchld)() = 0;
+
 /* Log a fixed message without printf-alike capabilities, in a way that is
  * safe to call from a signal handler.
  *
@@ -51,8 +55,11 @@ static void sigShutdownHandler(int sig) {
         msg = "Received SIGTERM scheduling shutdown...";
         break;
     case SIGCHLD:
+    	if(on_sigchld)
+    		on_sigchld();
     	msg = "Received SIGCHLD, call wait";
     	is_chld = 1;
+
     	wait(0);
     	break;
     default:
@@ -66,6 +73,11 @@ static void sigShutdownHandler(int sig) {
     serverLogFromHandler(msg);
     if(!is_chld)
     	exit(0);
+}
+
+void set_on_sigchld(void (*fn)())
+{
+	on_sigchld = fn;
 }
 
 void setupSignalHandlers(void) {
