@@ -188,10 +188,10 @@ static int protocol_echo_read(struct evtctx * ctx, struct sock_cli * cli)
 		byte_to_mb_kb_str_r(cli->r, "%-.2f %cB", bufr);
 		byte_to_mb_kb_str_r(cli->w, "%-.2f %cB", bufw);
 
-		fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, len=%ld, buff='%s'\n"
+		fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, read=%ld, buff='%s'\n"
 			, __FUNCTION__, gpid, fd, cli->r, bufr
 			, cli->w, bufw
-			, cli->r - cli->w, n, dumpstr(cli->buf, n, 32));
+			, cli->r - cli->w, n, dumpstr(cli->buf, cli->len, 32));
 
 		return 0;
 	}
@@ -206,10 +206,10 @@ static int protocol_echo_read(struct evtctx * ctx, struct sock_cli * cli)
 			byte_to_mb_kb_str_r(cli->r, "%-.2f %cB", bufr);
 			byte_to_mb_kb_str_r(cli->w, "%-.2f %cB", bufw);
 
-			fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, len=%ld, buff='%s'\n"
+			fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, read=%ld, buff='%s'\n"
 				, __FUNCTION__, gpid, fd, cli->r, bufr
 				, cli->w, bufw
-				, cli->r - cli->w, n, dumpstr(cli->buf, n, 32));
+				, cli->r - cli->w, n, dumpstr(cli->buf, cli->len, 32));
 
 			cli->stat = cli->r / (1024 * 1024 * 10);
 		}
@@ -241,10 +241,10 @@ static int protocol_echo_write(struct evtctx * ctx, struct sock_cli * cli)
 		byte_to_mb_kb_str_r(cli->r, "%-.2f %cB", bufr);
 		byte_to_mb_kb_str_r(cli->w, "%-.2f %cB", bufw);
 
-		fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, len=%ld, buff='%s'\n"
+		fprintf(stdout, "%s/%d: fd=%d, totalr=%d/%s, totalw=%d/%s, left=%d, write=%ld, buff='%s'\n"
 			, __FUNCTION__, gpid, fd, cli->r, bufr
 			, cli->w, bufw
-			, cli->r - cli->w, n, dumpstr(cli->buf, n, 32));
+			, cli->r - cli->w, n, dumpstr(cli->buf, cli->len, 32));
 
 		return 0;
 	}
@@ -448,14 +448,20 @@ int test_fork_call_main(int argc, char ** argv)
 		evtctx_init(ctx);
 
 		int gotfd = 0;
-		int result = sem_trywait(semfd);
-		if(result == 0){
-			gotfd = 1;
 
-			FD_SET(listenfd, &ctx->rfds);
-			FD_SET(listenfd, &ctx->wfds);
-			ctx->maxfd = listenfd;
+		int clisz = sock_cli_size();
+		if(clisz < SOCK_CLI_MAX * 0.8){
+			int result = sem_trywait(semfd);
+			if(result == 0){
+				gotfd = 1;
+
+				FD_SET(listenfd, &ctx->rfds);
+				FD_SET(listenfd, &ctx->wfds);
+				ctx->maxfd = listenfd;
+			}
 		}
+//		else fprintf(stdout, "%s/%d: clients almost full, stop receive clients, clients=%d, max=%d\n"
+//				, __FUNCTION__, gpid, clisz, SOCK_CLI_MAX);
 
 		for(int i = 0; i < SOCK_CLI_MAX; ++i){
 			int fd = gfds[i].fd;
