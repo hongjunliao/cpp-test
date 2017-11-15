@@ -50,7 +50,7 @@ extern void set_on_sigchld(void (*fn)());
 #define SOCK_BUF           (1024 * 10)
 #define PID_FILE           "/run/xhhp.pid"
 #define SEM_LISTENFD       "/.xhhp"
-#define MWMSG_SZE          64
+#define MWMSG_SZ          64
 
 struct sock_cli {
 	int fd;
@@ -292,7 +292,7 @@ static int select_on_mw_w(struct evtctx * ctx, int fd)
 {
 	if(!(ctx && fd > 0)) return -1;
 
-	char buf[MWMSG_SZE];
+	char buf[MWMSG_SZ];
 	int m = sprintf(buf, "%d,%d", gpid, sock_cli_size());
 	assert(m > 0);
 
@@ -316,7 +316,7 @@ static int select_on_mw_r(struct evtctx * ctx, int fd)
 
 	if(!(ctx && fd > 0)) return -1;
 
-	char buf[MWMSG_SZE];
+	char buf[MWMSG_SZ];
 	int n = read(fd, buf, sizeof(buf));
 
 	if(n <= 0){
@@ -396,7 +396,7 @@ static int hdl_sig_stop()
 
 static int test_fork_call_test_main()
 {
-	char buf[MWMSG_SZE]="235,1";
+	char buf[MWMSG_SZ]="235,1";
 	pid_t pid = 0;
 	int clisz = 0;
 	int n = sscanf(buf, "%d,%d", &pid, &clisz);

@@ -10,7 +10,6 @@
  * All rights reserved.
  */
 #include <unistd.h>   /* getpid */
-#include <sys/wait.h> /* wait */
 #include <signal.h>   /* sigaction, ... */
 #include <stdlib.h>   /* exit */
 #include <stdio.h>    /* */
@@ -18,7 +17,8 @@
 #include <time.h>     /* */
 
 /* this callback is call when receive SIGCHLD */
-static void (*on_sigchld)() = 0;
+static void (*hp_on_sigchld)() = 0;
+static void (*hp_on_exit)() = 0;
 
 /* Log a fixed message without printf-alike capabilities, in a way that is
  * safe to call from a signal handler.
@@ -55,12 +55,8 @@ static void sigShutdownHandler(int sig) {
         msg = "Received SIGTERM scheduling shutdown...";
         break;
     case SIGCHLD:
-    	if(on_sigchld)
-    		on_sigchld();
     	msg = "Received SIGCHLD, call wait";
     	is_chld = 1;
-
-    	wait(0);
     	break;
     default:
         msg = "Received shutdown signal, scheduling shutdown...";
@@ -71,13 +67,21 @@ static void sigShutdownHandler(int sig) {
      * the user really wanting to quit ASAP without waiting to persist
      * on disk. */
     serverLogFromHandler(msg);
-    if(!is_chld)
-    	exit(0);
+
+	if(is_chld && hp_on_sigchld)
+		hp_on_sigchld();
+
+	if(!is_chld){
+		if(hp_on_exit)
+			hp_on_exit();
+		else exit(0);
+	}
 }
 
-void set_on_sigchld(void (*fn)())
+void set_on_sig(void (*sigchld)(), void (*on_exit)())
 {
-	on_sigchld = fn;
+	hp_on_sigchld = sigchld;
+	hp_on_exit = on_exit;
 }
 
 void setupSignalHandlers(void) {
