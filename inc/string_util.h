@@ -8,10 +8,10 @@
 
 //////////////////////////////////////////////////////////////////////////////////
 /* a string [beg, end) */
-struct str_t {
+typedef struct {
 	char * beg;
 	char * end;
-};
+}str_t;
 
 #define str_t_is_null(str) (!s.beg && !s.end)
 #define str_t_printable(str) (std::string(str.beg, str.end).c_str())
@@ -19,13 +19,6 @@ struct str_t {
 int str_t_fprint(str_t const * s, FILE * f);
 
 //////////////////////////////////////////////////////////////////////////////////
-/* get domain from url,
- * sample get '127.0.0.1' from 'rtmp://127.0.0.1:1359/'
- * return 0 on success
- * @notes: @param domain big enough
- */
-int parse_domain_from_url(char const * url, char * domain);
-int parse_domain_from_url(char const * url, str_t * domain);
 
 #if !(defined __GNUC__)
 /*to lower string*/
@@ -52,14 +45,7 @@ char * byte_to_mb_kb_str_r(size_t bytes, char const * fmt, char * buff);
 
 /* like strrchr except that @param buf endwith '\0' NOT requried */
 char const * strnrchr(char const * buf, int sz, char ch);
-/* like printf except print \n as '\n', \0 as '\0' */
-void fdump_str(FILE * f, char const * buf, size_t len, char const * beg = 0, char const * end = 0);
-char * sdump_str(char * out, char const * buf, size_t len, char const * beg = 0, char const * end = 0);
-/* format: <beg>chr<end> */
-void fdump_chr(FILE * f, char chr, char const * beg = 0, char const * end = 0);
-int sdump_chr(char * buf, char chr, char const * beg = 0, char const * end = 0);
-/* usually for debug */
-char const * dumpstr(char const * buf, size_t len, size_t dumplen);
+
 /* just like std::atoi */
 int myatoi(char const * str, size_t len);
 

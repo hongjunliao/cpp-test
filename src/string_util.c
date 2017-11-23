@@ -45,22 +45,24 @@ char *strupr(char *s)
 #endif	/*(defined __GNUC__) && !(defined __CYGWIN__)*/
 
 /*@param unit 'K': KB, 'M':MB, 'G':GB, ' ':B*/
-static double byte_to_mb_kb(size_t bytes, char & unit)
+static double byte_to_mb_kb(size_t bytes, char * unit)
 {
+	if(!unit) return 0;
+
 	if(bytes >= 1024 * 1024 && bytes < 1024 * 1024 * 1024){
-		unit = 'M';
+		*unit = 'M';
 		return bytes / (1024.0 * 1024);
 	}
 	else if(bytes >= 1024 * 1024 * 1024){
-		unit = 'G';
+		*unit = 'G';
 		return bytes / (1024.0 * 1024 * 1024);
 	}
 	else if(bytes >= 1024){
-		unit = 'K';
+		*unit = 'K';
 		return bytes / 1024.0;
 	}
 	else{
-		unit = ' ';
+		*unit = ' ';
 		return bytes / 1.0;
 	}
 }
@@ -69,7 +71,7 @@ char * byte_to_mb_kb_str_r(size_t bytes, char const * fmt, char * buff)
 {
 	if(!fmt) return buff;
 	char c;
-	double b = byte_to_mb_kb(bytes, c);
+	double b = byte_to_mb_kb(bytes, &c);
 	snprintf(buff, 64, fmt, b, c);
 	return buff;
 }
@@ -96,10 +98,10 @@ int myatoi(char const * str, size_t len)
 	if(!(str && str[0] != '\0' && len > 0))
 		return 0;
 
-	bool f = false;
+	int f = 0;
 	if(str[0] == '+' || str[0] == '-'){
 		if(str[0] == '-')
-			f = true;
+			f = 1;
 		++str;
 		--len;
 	}

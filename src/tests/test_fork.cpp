@@ -30,6 +30,7 @@
 #include <errno.h>       /* errno */
 #include <assert.h>      /* assert */
 #include "string_util.h" /* byte_to_mb_kb_str_r */
+#include "str_dump.h"    /**/
 
 #include <semaphore.h>   /* sem_t */
 #include <fcntl.h>       /* O_CREAT */

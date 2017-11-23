@@ -11,7 +11,7 @@ extern "C"{
 #endif
 
 /*net_util.cpp*/
-extern int get_if_addrs(char *ips, int & count, int sz);
+extern int get_if_addrs(char *ips, int * count, int sz);
 extern uint32_t netutil_get_ip_from_str(char const * ipstr);
 extern char const * netutil_get_ip_str(uint32_t ip, char * buff, size_t len);
 extern int netutil_get_ipv4_cstr(char * buf);

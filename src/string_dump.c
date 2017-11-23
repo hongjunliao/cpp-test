@@ -4,7 +4,8 @@
  *
  * dump a buffer to FILE or to another buffer, escape some special chars, e.g. \n -> \\n, \0 -> \\0
  */
-#include "string_util.h"
+#include "str_dump.h"   /* */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,7 +60,7 @@ void fdump_str(FILE * f, char const * buf, size_t len
 	if(beg)
 		fprintf(f, "%s", beg);
 	for(size_t i = 0; i < len; ++i){
-		fdump_chr(f, buf[i]);
+		fdump_chr(f, buf[i], 0, 0);
 	}
 	if(end)
 		fprintf(f, "%s", end);
@@ -83,7 +84,7 @@ char * sdump_str(char * out, char const * buf, size_t len
 	}
 
 	for(size_t i = 0; i < len; ++i)
-		n += sdump_chr(out + n, buf[i]);
+		n += sdump_chr(out + n, buf[i], 0, 0);
 
 	if(end){
 		strcpy(out + n, end);

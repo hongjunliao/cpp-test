@@ -1,4 +1,5 @@
 #include "string_util.h"
+#include "str_dump.h"    /**/
 #include <stdlib.h>      /* atoi */
 #include <string.h>      /* strlen */
 
@@ -7,10 +8,10 @@ int test_string_util_main(int argc, char ** argv)
 	char out[1024] = "<error>";
 	char s[] = "hello\r\ngo\tthis\nis\0a test\n";
 
-	fprintf(stdout, "%s: str='hello',sdump_str='%s'\n", __FUNCTION__, sdump_str(out, "hello", 5));
-	fprintf(stdout, "%s: str='hello\\n',sdump_str='%s'\n", __FUNCTION__, sdump_str(out, "hello\n", 6));
-	fprintf(stdout, "%s: str='hello\\r\\n',sdump_str='%s'\n", __FUNCTION__, sdump_str(out, "hello\r\n", 7));
-	fprintf(stdout, "%s: sdump_str='%s'\n", __FUNCTION__, sdump_str(out, s, sizeof(s) - 1));
+	fprintf(stdout, "%s: str='hello',sdump_str='%s'\n", __FUNCTION__, sdump_str(out, "hello", 5, 0, 0));
+	fprintf(stdout, "%s: str='hello\\n',sdump_str='%s'\n", __FUNCTION__, sdump_str(out, "hello\n", 6, 0, 0));
+	fprintf(stdout, "%s: str='hello\\r\\n',sdump_str='%s'\n", __FUNCTION__, sdump_str(out, "hello\r\n", 7, 0, 0));
+	fprintf(stdout, "%s: sdump_str='%s'\n", __FUNCTION__, sdump_str(out, s, sizeof(s) - 1, 0, 0));
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
 	fprintf(stdout, "%s: using myatoi:\n'1'=%d, '1d'=%d, 'd1'=%d\n"

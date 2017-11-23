@@ -12,17 +12,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include <netdb.h>	    /* NI_MAXHOST */
 #include <string.h>
 /*implementation from shell: man getifaddrs, @param count rows, @param sz cows*/
-int get_if_addrs(char *ips, int & count, int sz)
+int get_if_addrs(char *ips, int * count, int sz)
 {
     struct ifaddrs *ifaddr;
     if (getifaddrs(&ifaddr) == -1) {
         return -1;
     }
     int i = 0;
-    for (ifaddrs * ifa = ifaddr; ifa ; ifa = ifa->ifa_next) {
+    for (struct ifaddrs * ifa = ifaddr; ifa ; ifa = ifa->ifa_next) {
         if (!ifa->ifa_addr)
             continue;
         int family = ifa->ifa_addr->sa_family;
@@ -40,10 +40,10 @@ int get_if_addrs(char *ips, int & count, int sz)
         }
         strncpy((ips + i * sz), host, sz);
         ++i;
-        if(i == count)
+        if(i == *count)
         	break;
     }
-    count = i;
+    *count = i;
     freeifaddrs(ifaddr);
     return 0;
 }
@@ -70,7 +70,7 @@ int netutil_get_ipv4_cstr(char * buf)
 {
 	char ips[64][64];
 	int count = 64;
-	int result  = get_if_addrs(ips[0], count, 64);
+	int result  = get_if_addrs(ips[0], &count, 64);
 	if(result != 0)
 		return -1;
 
@@ -89,7 +89,7 @@ int test_net_util_main(int argc, char ** argv)
 {
 	char ips[64][64];
 	int count = 64;
-	int result  = get_if_addrs(ips[0], count, 64);
+	int result  = get_if_addrs(ips[0], &count, 64);
 	if(result != 0)
 		return -1;
 	for(int i = 0; i < count; ++i){
