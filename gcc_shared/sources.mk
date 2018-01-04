@@ -33,6 +33,7 @@ src/jzoffer \
 src/mem_pool \
 src/mmpool \
 src/nghhtp2 \
+src/springboot-sidecar \
 src/test_libwx \
 src/tests \
 src/usb \

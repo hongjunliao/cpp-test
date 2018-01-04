@@ -159,11 +159,13 @@ static std::map<std::string, test_main_fn> testmap = {
 extern struct test_entry hello_libusb;
 extern struct test_entry libusb_1_0;
 extern struct test_entry hello_libnghttp2;
+extern struct test_entry sidecar_select;
 
 static test_entry const * testmap2[512] = {
 		&hello_libusb,
 		&libusb_1_0,
 		&hello_libnghttp2
+		, &sidecar_select
 };
 
 char const * bd_test_get_test_list()

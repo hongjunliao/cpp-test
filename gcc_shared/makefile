@@ -13,6 +13,7 @@ RM := rm -rf
 -include src/usb/subdir.mk
 -include src/tests/subdir.mk
 -include src/test_libwx/subdir.mk
+-include src/springboot-sidecar/subdir.mk
 -include src/nghhtp2/subdir.mk
 -include src/mmpool/subdir.mk
 -include src/mem_pool/subdir.mk
