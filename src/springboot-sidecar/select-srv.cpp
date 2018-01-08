@@ -3,7 +3,7 @@
  * @author hongjun.liao <docici@126.com>, @date 2018/1/4
  */
 #include "cpp_test.h"
-
+#include "str_dump.h"
 #include <stdio.h>
 #include <string.h> 	/* strlen */
 #include <stdlib.h> 	/* atoi */
@@ -108,7 +108,7 @@ static int sidecar_select_on_read(selectctx & sctx, int fd)
 		return -1;
 	}
 	fprintf(stdout, "%s: read done, fd=%d, buf='%s', len=%zd\n"
-			, __FUNCTION__, fd, buf, r);
+			, __FUNCTION__, fd, dumpstr(buf, r, 256), r);
 	return r;
 }
 
@@ -122,7 +122,7 @@ static int sidecar_select_on_write(selectctx & sctx, int fd)
 		return -1;
 	}
 	fprintf(stdout, "%s: write done, fd=%d, buf='%s', len=%zd\n"
-		, __FUNCTION__, fd, buf, r);
+		, __FUNCTION__, fd, dumpstr(buf, r, 256), r);
 	return r;
 }
 
