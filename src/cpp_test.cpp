@@ -160,12 +160,14 @@ extern struct test_entry hello_libusb;
 extern struct test_entry libusb_1_0;
 extern struct test_entry hello_libnghttp2;
 extern struct test_entry sidecar_select;
+extern struct test_entry hello_epoll;
 
 static test_entry const * testmap2[512] = {
 		&hello_libusb,
 		&libusb_1_0,
 		&hello_libnghttp2
 		, &sidecar_select
+		, &hello_epoll
 };
 
 char const * bd_test_get_test_list()
