@@ -77,6 +77,10 @@ int rfcomm_client_main(int argc, char *argv[]);
 int rfcomm_server_main(int argc, char * argv[]);
 /* alsa_pcm_play_file.c */
 int test_alsa_pcm_main(int argc, char * argv[]);
+
+/* test_libprotobuf_libev.c */
+int test_libprotobuf_libev_main(int argc, char ** argv);
+char const * help_test_libprotobuf_libev();
 }
 
 #ifdef __GNUC__
@@ -162,12 +166,16 @@ extern struct test_entry hello_libnghttp2;
 extern struct test_entry sidecar_select;
 extern struct test_entry hello_epoll;
 
+static struct test_entry libprotobuf_libev =
+	{ "libprotobuf_libev", test_libprotobuf_libev_main, help_test_libprotobuf_libev };
+
 static test_entry const * testmap2[512] = {
 		&hello_libusb,
 		&libusb_1_0,
 		&hello_libnghttp2
 		, &sidecar_select
 		, &hello_epoll
+		, &libprotobuf_libev
 };
 
 char const * bd_test_get_test_list()

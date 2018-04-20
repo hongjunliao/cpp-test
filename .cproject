@@ -220,6 +220,7 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.2127048661" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+									<listOptionValue builtIn="false" value="WITH_LIBPROTOBUF_LIBEV=1"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.optimization.level.1277822508" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.debugging.level.654061043" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
@@ -244,12 +245,15 @@
 								<option defaultValue="true" id="gnu.c.link.option.shared.2051417928" name="Shared (-shared)" superClass="gnu.c.link.option.shared" valueType="boolean"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.1099138819" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base">
-								<option defaultValue="true" id="gnu.cpp.link.option.shared.475945331" name="Shared (-shared)" superClass="gnu.cpp.link.option.shared" valueType="boolean"/>
+								<option defaultValue="true" id="gnu.cpp.link.option.shared.475945331" name="Shared (-shared)" superClass="gnu.cpp.link.option.shared" useByScannerDiscovery="false" valueType="boolean"/>
 								<option id="gnu.cpp.link.option.paths.676855992" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths">
 									<listOptionValue builtIn="false" value="../lib/"/>
 								</option>
 								<option id="gnu.cpp.link.option.libs.390470096" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="bluetooth"/>
+									<listOptionValue builtIn="false" value="asound"/>
+									<listOptionValue builtIn="false" value="protobuf-c"/>
+									<listOptionValue builtIn="false" value="ev"/>
 									<listOptionValue builtIn="false" value="event"/>
 									<listOptionValue builtIn="false" value="nghttp2"/>
 									<listOptionValue builtIn="false" value="event_openssl"/>
@@ -354,7 +358,7 @@
 									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
 									<listOptionValue builtIn="false" value="WITH_LIBNGHTTP2"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.dialect.std.1938189550" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.1938189550" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.157686624" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.152054895" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base.395247699">
@@ -419,9 +423,6 @@
 			<resource resourceType="PROJECT" workspacePath="/cpp-test"/>
 		</configuration>
 		<configuration configurationName="mingw_release"/>
-		<configuration configurationName="gcc_bluez">
-			<resource resourceType="PROJECT" workspacePath="/cpp-test"/>
-		</configuration>
 		<configuration configurationName="gcc_static"/>
 		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/cpp-test"/>
