@@ -81,7 +81,11 @@ int test_alsa_pcm_main(int argc, char * argv[]);
 /* test_libprotobuf_libev.c */
 int test_libprotobuf_libev_main(int argc, char ** argv);
 char const * help_test_libprotobuf_libev();
+
 }
+/* test_liblog4cplus.cpp */
+int test_liblog4cplus_main(int argc, char ** argv);
+char const * help_test_liblog4cplus();
 
 #ifdef __GNUC__
 /* test_fork.cpp */
@@ -166,8 +170,11 @@ extern struct test_entry hello_libnghttp2;
 extern struct test_entry sidecar_select;
 extern struct test_entry hello_epoll;
 
-static struct test_entry libprotobuf_libev =
-	{ "libprotobuf_libev", test_libprotobuf_libev_main, help_test_libprotobuf_libev };
+static struct test_entry
+	libprotobuf_libev = { "libprotobuf_libev", test_libprotobuf_libev_main, help_test_libprotobuf_libev }
+	, liblog4cplus = { "liblog4cplus", test_liblog4cplus_main, help_test_liblog4cplus }
+;
+
 
 static test_entry const * testmap2[512] = {
 		&hello_libusb,
@@ -176,6 +183,7 @@ static test_entry const * testmap2[512] = {
 		, &sidecar_select
 		, &hello_epoll
 		, &libprotobuf_libev
+		, &liblog4cplus
 };
 
 char const * bd_test_get_test_list()

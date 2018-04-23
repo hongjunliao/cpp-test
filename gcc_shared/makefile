@@ -16,7 +16,9 @@ RM := rm -rf
 -include src/springboot-sidecar/subdir.mk
 -include src/protobuf_libev/subdir.mk
 -include src/nghhtp2/subdir.mk
+-include src/mmpool/subdir.mk
 -include src/mem_pool/subdir.mk
+-include src/liblog4cplus/subdir.mk
 -include src/jzoffer/subdir.mk
 -include src/cti/subdir.mk
 -include src/chess/src/subdir.mk
@@ -25,16 +27,6 @@ RM := rm -rf
 -include src/alsa_pcm/subdir.mk
 -include src/algs/subdir.mk
 -include src/subdir.mk
--include Release/src/xh_vircam/subdir.mk
--include Debug/src/xh_vircam/subdir.mk
--include Debug/src/win32/subdir.mk
--include Debug/src/tests/subdir.mk
--include Debug/src/mem_pool/subdir.mk
--include Debug/src/jzoffer/subdir.mk
--include Debug/src/cti/subdir.mk
--include Debug/src/chess/src/subdir.mk
--include Debug/src/algs/subdir.mk
--include Debug/src/subdir.mk
 -include subdir.mk
 -include objects.mk
 
