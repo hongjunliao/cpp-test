@@ -19,6 +19,7 @@ int sdump_chr(char * buf, char chr, char const * beg, char const * end);
 
 /* usually for debug */
 char const * dumpstr(char const * buf, size_t len, size_t dumplen);
+char const * dumpstr_r(char * out, char const * buf, size_t len, size_t dumplen);
 #endif /*_URL_UTIL_H_*/
 
 #ifdef __cplusplus

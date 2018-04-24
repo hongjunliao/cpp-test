@@ -59,7 +59,8 @@ void fdump_str(FILE * f, char const * buf, size_t len
 
 	if(beg)
 		fprintf(f, "%s", beg);
-	for(size_t i = 0; i < len; ++i){
+	size_t i = 0;
+	for(; i < len; ++i){
 		fdump_chr(f, buf[i], 0, 0);
 	}
 	if(end)
@@ -83,7 +84,8 @@ char * sdump_str(char * out, char const * buf, size_t len
 		n += strlen(beg);
 	}
 
-	for(size_t i = 0; i < len; ++i)
+	size_t i = 0;
+	for(; i < len; ++i)
 		n += sdump_chr(out + n, buf[i], 0, 0);
 
 	if(end){
@@ -103,3 +105,10 @@ char const * dumpstr(char const * buf, size_t len, size_t dumplen)
     size_t alen = dumplen <= (int)sizeof(dumpbuf) - 1? (dumplen < len? dumplen : len):  sizeof(dumpbuf) - 1;
 	return sdump_str(dumpbuf, buf, alen, 0, dumplen < len? "..." : 0);
 }
+
+char const * dumpstr_r(char * out, char const * buf, size_t len, size_t dumplen)
+{
+    size_t alen = (dumplen < len? dumplen : len);
+	return sdump_str(out, buf, alen, 0, dumplen < len? "..." : 0);
+}
+
