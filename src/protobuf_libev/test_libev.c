@@ -18,8 +18,8 @@
 
 // every watcher type has its own typedef'd struct
 // with the name ev_TYPE
-ev_io    ev_stdin_watcher;
-ev_timer ev_timeout_watcher;
+static ev_io    ev_stdin_watcher;
+static ev_timer ev_timeout_watcher;
 
 // all watcher callbacks have a similar signature
 // this callback is called when data is readable on stdin
@@ -73,7 +73,7 @@ int test_libev_main(int argc, char ** argv)
 #else
 int test_libev_main(int argc, char ** argv)
 {
-	fprintf(stderr, "%s: undefine WITHOUT_LIBPROTOBUF_LIBEV and install libprotobuf, libev to enable this test\n"
+	fprintf(stderr, "%s: undefine WITHOUT_LIBPROTOBUF_LIBEV and install libev to enable this test\n"
 			, __FUNCTION__);
 	return -1;
 }

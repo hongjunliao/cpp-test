@@ -13,6 +13,7 @@
  * */
 #include <stdio.h>
 #ifndef WITHOUT_LIBPROTOBUF_LIBEV
+#include <unistd.h>     /* read, ... */
 #include "http.pb-c.h"
 #include "ev.h"
 #include <string.h> 	/* strlen */
@@ -21,12 +22,62 @@
 #include <string.h>     /* memset, ... */
 #include <errno.h>      /* errno */
 #include <assert.h>     /* define NDEBUG to disable assertion */
+#include "sds/sds.h"    /* sds */
+#include "ev.h"         /* libev */
+
+static ev_io    ev_stdin_watcher;
+static ev_timer ev_timeout_watcher;
+
+static sds ev_stdin_buf = 0;
+
+#define PB_URL      "http://127.0.0.1/index.html"
+#define PB_OUTFILE  "/tmp/test_libprotobuf_libev_main"
+
+static void ev_stdin_cb (EV_P_ ev_io *w, int revents)
+{
+	char buf[2048];
+	ssize_t n = read(w->fd, buf, sizeof(buf));
+	if(n > 0){
+		if(!ev_stdin_buf)
+			ev_stdin_buf = sdsnewlen(buf, n);
+		else
+			ev_stdin_buf = sdscatlen(ev_stdin_buf, buf, n);
+	}
+	else if(n == 0){
+		HttpMsg * msg2  = 0;
+		uint8_t const * pbbuf = (uint8_t const *)ev_stdin_buf;
+
+		msg2 = http_msg__unpack(0, sdslen(ev_stdin_buf), pbbuf);
+
+		if(!(msg2 && strcmp(PB_URL, msg2->url) == 0)){
+			fprintf(stderr, "%s: pb unpack failed from file '%s'\n", __FUNCTION__, PB_OUTFILE);
+		}
+		else{
+			fprintf(stdout, "%s: pb unpack from file '%s', msg=%p, url='%s'\n", __FUNCTION__
+					,PB_OUTFILE, msg2, msg2->url);
+		}
+
+		http_msg__free_unpacked(msg2, 0);
+		sdsfree(ev_stdin_buf);
+		ev_stdin_buf = 0;
+
+		ev_io_stop (EV_A_ w);
+//	  ev_break (EV_A_ EVBREAK_ALL);
+	}
+}
+
+// another callback, this time for a time-out
+static void ev_timeout_cb (EV_P_ ev_timer *w, int revents)
+{
+	fprintf(stdout, "%s: timeout\n", __FUNCTION__);
+//	ev_break (EV_A_ EVBREAK_ONE);
+}
 
 int test_libprotobuf_libev_main(int argc, char ** argv)
 {
-	HttpMsg msg, * msg2  = 0;
+	HttpMsg msg;
 	http_msg__init(&msg);
-	msg.url = "http://127.0.0.1/index.html";
+	msg.url = PB_URL;
 
 	size_t N = http_msg__get_packed_size(&msg);
 	uint8_t * out = malloc(N * 2);
@@ -37,8 +88,7 @@ int test_libprotobuf_libev_main(int argc, char ** argv)
 		return -1;
 	}
 
-	char const * outfile = "/tmp/test_libprotobuf_libev_main";
-	FILE * f = fopen(outfile, "w");
+	FILE * f = fopen(PB_OUTFILE, "w");
 	assert(f);
 	r = fwrite(out, sizeof(char), N, f);
 	if(r != N){
@@ -49,34 +99,20 @@ int test_libprotobuf_libev_main(int argc, char ** argv)
 		free(out);
 		return -1;
 	}
-	fprintf(stdout, "%s: msg_pack, msg=%p, url='%s'\n", __FUNCTION__
-			, &msg, msg.url);
-
-
-	memset(out, 0, N * 2);
-	f = freopen(outfile, "r", f);
-	assert(f);
-
-	r = fread(out, sizeof(char), N, f);
-	if(r != N){
-		fprintf(stderr, "%s: fread failed, size=%zu, return=%zu, errno=%d, error='%s'\n"
-				, __FUNCTION__
-				, N, r
-				, errno, strerror(errno));
-		free(out);
-		return -1;
-	}
 	fclose(f);
-
-	msg2 = http_msg__unpack(0, N, out);
-	fprintf(stdout, "%s: msg_unpack, msg=%p, url='%s'\n", __FUNCTION__
-			, msg2, msg2? msg2->url : 0);
-
-	assert(msg2 && strcmp(msg.url, msg2->url) == 0);
-
-	http_msg__free_unpacked(msg2, 0);
-
 	free(out);
+
+	fprintf(stdout, "%s: pb pack to file '%s', msg=%p, url='%s'\n", __FUNCTION__
+			, PB_OUTFILE, &msg, msg.url);
+
+	struct ev_loop *loop = EV_DEFAULT;
+	ev_io_init (&ev_stdin_watcher, ev_stdin_cb, /*STDIN_FILENO*/ 0, EV_READ);
+	ev_io_start (loop, &ev_stdin_watcher);
+
+	ev_timer_init (&ev_timeout_watcher, ev_timeout_cb, 1.2, 3);
+	ev_timer_start (loop, &ev_timeout_watcher);
+	ev_run (loop, 0);
+
 	return 0;
 }
 

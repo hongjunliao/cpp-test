@@ -82,6 +82,10 @@ int test_alsa_pcm_main(int argc, char * argv[]);
 int test_libprotobuf_libev_main(int argc, char ** argv);
 char const * help_test_libprotobuf_libev();
 
+/* test_libprotobuf.c */
+int test_libprotobuf_main(int argc, char ** argv);
+char const * help_test_libprotobuf();
+
 /* test_libev.c */
 int test_libev_main(int argc, char ** argv);
 char const * help_test_libev();
@@ -175,8 +179,9 @@ extern struct test_entry hello_epoll;
 
 static struct test_entry
 	libprotobuf_libev = { "libprotobuf_libev", test_libprotobuf_libev_main, help_test_libprotobuf_libev }
-	, libev =           { "libev", test_libev_main, help_test_libev }
-	, liblog4cplus =    { "liblog4cplus", test_liblog4cplus_main, help_test_liblog4cplus }
+	, libprotobuf =     { "libprotobuf",       test_libprotobuf_main,       help_test_libprotobuf }
+	, libev =           { "libev",             test_libev_main,             help_test_libev }
+	, liblog4cplus =    { "liblog4cplus",      test_liblog4cplus_main,      help_test_liblog4cplus }
 ;
 
 static test_entry const * testmap2[512] = {
@@ -188,6 +193,7 @@ static test_entry const * testmap2[512] = {
 		, &libprotobuf_libev
 		, &liblog4cplus
 		, &libev
+		, &libprotobuf
 };
 
 char const * bd_test_get_test_list()

@@ -36,6 +36,7 @@ src/mem_pool \
 src/mmpool \
 src/nghhtp2 \
 src/protobuf_libev \
+src/sds \
 src/springboot-sidecar \
 src/test_libwx \
 src/tests \
