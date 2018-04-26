@@ -93,6 +93,10 @@ char const * help_test_libev();
 /* test_hiredis.c */
 int test_libhiredis_main(int argc, char ** argv);
 char const * help_test_libhiredis();
+
+/* test_mysql.c */
+int test_libmysqlclient_main(int argc, char ** argv);
+char const * help_test_libmysqlclient();
 }
 /* test_liblog4cplus.cpp */
 int test_liblog4cplus_main(int argc, char ** argv);
@@ -189,17 +193,19 @@ static struct test_entry
 	, liblog4cplus =    { "liblog4cplus",      test_liblog4cplus_main,      help_test_liblog4cplus }
 ;
 
-static test_entry const * testmap2[512] = {
-		&hello_libusb,
-		&libusb_1_0,
-		&hello_libnghttp2
-		, &sidecar_select
-		, &hello_epoll
-		, &libprotobuf_libev
-		, &liblog4cplus
-		, &libev
-		, &libprotobuf
-		, &libhiredis
+static test_entry const testmap2[512] = {
+		hello_libusb,
+		libusb_1_0,
+		hello_libnghttp2
+		, sidecar_select
+		, hello_epoll
+		, libprotobuf_libev
+		, liblog4cplus
+		, libev
+		, libprotobuf
+		, libhiredis
+		, { "libmysqlclient",      test_libmysqlclient_main,      help_test_libmysqlclient }
+		, { "", 0, 0}
 };
 
 char const * bd_test_get_test_list()
@@ -213,8 +219,8 @@ char const * bd_test_get_test_list()
 	s += "]";
 
 	int i = 0;
-	for(; testmap2[i]; ++i){
-		struct test_entry const * tst = testmap2[i];
+	for(; testmap2[i].main; ++i){
+		struct test_entry const * tst = &testmap2[i];
 		s += "\n";
 		s += tst->help? tst->help() : "";
 	}
@@ -231,8 +237,8 @@ int bd_test_main(int argc, char ** argv, char const * stest)
 	auto fn = testmap[stest];
 	if(!fn){
 		int i = 0;
-		for(; testmap2[i]; ++i){
-			struct test_entry const * tst = testmap2[i];
+		for(; testmap2[i].main; ++i){
+			struct test_entry const * tst = &testmap2[i];
 			if(strcmp(tst->name, stest) == 0 && tst->main)
 				return tst->main(argc, argv);
 		}
