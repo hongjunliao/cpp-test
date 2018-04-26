@@ -253,6 +253,7 @@
 								</option>
 								<option id="gnu.cpp.link.option.libs.390470096" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="bluetooth"/>
+									<listOptionValue builtIn="false" value="hiredis"/>
 									<listOptionValue builtIn="false" value="log4cplus"/>
 									<listOptionValue builtIn="false" value="asound"/>
 									<listOptionValue builtIn="false" value="protobuf-c"/>

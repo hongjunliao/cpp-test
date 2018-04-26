@@ -21,6 +21,7 @@ RM := rm -rf
 -include src/mem_pool/subdir.mk
 -include src/liblog4cplus/subdir.mk
 -include src/jzoffer/subdir.mk
+-include src/hiredis/subdir.mk
 -include src/cti/subdir.mk
 -include src/chess/src/subdir.mk
 -include src/bluez/subdir.mk

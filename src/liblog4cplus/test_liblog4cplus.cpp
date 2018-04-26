@@ -84,6 +84,10 @@ int test_liblog4cplus_main(int argc, char ** argv)
                         LOG4CPLUS_TEXT (
                             "LOG4CPLUS_INFO_FMT.%d, %d, %d, %ls...DONE"),
                         1, 2, 3, L"testing");
+    LOG4CPLUS_TRACE_FMT(*glog4logger,
+                            LOG4CPLUS_TEXT (
+                                "LOG4CPLUS_TRACE_FMT.%d, %d, %d, %ls...DONE"),
+                            1, 2, 3, L"testing");
 
     log4inf1("log4inf1: fuck log4cplus, str='%s'", "fuck");
 

@@ -89,6 +89,10 @@ char const * help_test_libprotobuf();
 /* test_libev.c */
 int test_libev_main(int argc, char ** argv);
 char const * help_test_libev();
+
+/* test_hiredis.c */
+int test_libhiredis_main(int argc, char ** argv);
+char const * help_test_libhiredis();
 }
 /* test_liblog4cplus.cpp */
 int test_liblog4cplus_main(int argc, char ** argv);
@@ -181,6 +185,7 @@ static struct test_entry
 	libprotobuf_libev = { "libprotobuf_libev", test_libprotobuf_libev_main, help_test_libprotobuf_libev }
 	, libprotobuf =     { "libprotobuf",       test_libprotobuf_main,       help_test_libprotobuf }
 	, libev =           { "libev",             test_libev_main,             help_test_libev }
+    , libhiredis =      { "hiredis",             test_libhiredis_main,      help_test_libhiredis }
 	, liblog4cplus =    { "liblog4cplus",      test_liblog4cplus_main,      help_test_liblog4cplus }
 ;
 
@@ -194,6 +199,7 @@ static test_entry const * testmap2[512] = {
 		, &liblog4cplus
 		, &libev
 		, &libprotobuf
+		, &libhiredis
 };
 
 char const * bd_test_get_test_list()

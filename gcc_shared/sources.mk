@@ -30,6 +30,7 @@ src/bluez \
 src/chess/src \
 src \
 src/cti \
+src/hiredis \
 src/jzoffer \
 src/liblog4cplus \
 src/mem_pool \
