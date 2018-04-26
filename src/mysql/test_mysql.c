@@ -38,7 +38,7 @@ int test_libmysqlclient_main(int argc, char ** argv)
 	MYSQL mysqlobj, * mysql = 0;
 	mysql = mysql_init(&mysqlobj);
 	if(!mysql){
-		cp_loge("mysql_init failed, mysqlerr='%s'\n", mysql_error(mysql));
+		cp_loge("mysql_init failed, mysqlerr='%s'\n", 0);
 		return -1;
 	}
 
@@ -46,7 +46,7 @@ int test_libmysqlclient_main(int argc, char ** argv)
 
 	mysql = mysql_real_connect(mysql, hostname, usr, passwd, db, port, 0, 0);
 	if(!mysql){
-		cp_loge("mysql_real_connect failed, mysqlerr='%s'\n", mysql_error(mysql));
+		cp_loge("mysql_real_connect failed, mysqlerr='%s'\n",0);
 		return -1;
 	}
 

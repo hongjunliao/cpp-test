@@ -17,7 +17,7 @@ RM := rm -rf
 -include src/sds/subdir.mk
 -include src/protobuf_libev/subdir.mk
 -include src/nghhtp2/subdir.mk
--include src/msyql/subdir.mk
+-include src/mysql/subdir.mk
 -include src/mmpool/subdir.mk
 -include src/mem_pool/subdir.mk
 -include src/liblog4cplus/subdir.mk

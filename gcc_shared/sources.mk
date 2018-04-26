@@ -35,7 +35,7 @@ src/jzoffer \
 src/liblog4cplus \
 src/mem_pool \
 src/mmpool \
-src/msyql \
+src/mysql \
 src/nghhtp2 \
 src/protobuf_libev \
 src/sds \
