@@ -111,7 +111,7 @@ int test_libmysqlclient_main(int argc, char ** argv)
 #endif /* WITHOUT_LIB_MYSQLCLIENT */
 
 char const * help_test_libmysqlclient() {
-	return "libmysqlclient <host> <port> <user> <password> <database> <SQL>\n    "
-			"sample: libmysqlclient 172.29.3.76 8306 root xinghuo@pass db_im3_center "
+	return "<host> <port> <user> <password> <database> <SQL>\n    "
+			"sample: 172.29.3.76 8306 root xinghuo@pass db_im3_center "
 			"'select * from tb_nodetype;'";
 }

@@ -56,5 +56,5 @@ int test_libhiredis_main(int argc, char ** argv)
 #endif /* WITHOUT_LIBHIREDIS */
 
 char const * help_test_libhiredis() {
-	return "hiredis <host> <port>\n    sample: hiredis 172.29.3.76 7001";
+	return "<host> <port>\n    sample: 172.29.3.76 7001";
 }

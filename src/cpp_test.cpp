@@ -63,12 +63,13 @@ extern int xhsdk_select_server_main(int argc, char ** argv);
 /* tcp_echo_cli.cpp */
 extern int tcp_echo_cli_main(int argc, char ** argv);
 
-/* mem_pool.cpp */
-extern int mp_test_main(int argc, char ** argv);
-
 /* test_zlib.cpp */
 int test_zlib_main(int argc, char ** argv);
 extern "C" {
+/* mem_pool.c */
+int mp_test_main(int argc, char ** argv);
+char const * help_mp_test_main();
+
 /* hello_bluez.c */
 int test_bluez_main(int argc, char ** argv);
 /* rfcomm-client.c */
@@ -162,7 +163,6 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"trie_st", test_trie_st_main},
 			{"xhsdksrv", xhsdk_select_server_main},
 			{"tcpechocli", tcp_echo_cli_main},
-			{"mempool", mp_test_main},
 			{"zlib", test_zlib_main},
 			{"bluez", test_bluez_main},
 			{"rfcomm_client", rfcomm_client_main},
@@ -205,6 +205,7 @@ static test_entry const testmap2[512] = {
 		, libprotobuf
 		, libhiredis
 		, { "libmysqlclient",      test_libmysqlclient_main,      help_test_libmysqlclient }
+		, { "mempool",             mp_test_main,                  help_mp_test_main }
 		, { "", 0, 0}
 };
 
@@ -222,6 +223,8 @@ char const * bd_test_get_test_list()
 	for(; testmap2[i].main; ++i){
 		struct test_entry const * tst = &testmap2[i];
 		s += "\n";
+		s += tst->name;
+		s += ": ";
 		s += tst->help? tst->help() : "";
 	}
 
