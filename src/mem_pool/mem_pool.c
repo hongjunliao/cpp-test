@@ -163,7 +163,8 @@ static char const * mp_sdump_hdr(struct mem_pool * mp, int c
 	if(c > mp->NY)
 		c = mp->NY;
 
-	if(!(mp->ptr && mp->ptr[0])){
+	char ** row = ( char ** )mp->ptr[mp->x];
+	if(!row){
 		snprintf(out, len, "%s%s", beg, end);
 		return out;
 	}
@@ -174,11 +175,10 @@ static char const * mp_sdump_hdr(struct mem_pool * mp, int c
 
 	n += snprintf(out + n, len - n, "%s", beg);
 	for(i = 0; i < c; ++i){
-		if(len - (n + 4 + elen) <= 0){
+		if(len - (n + 10 + elen) <= 0){
 			n += snprintf(out + n, len - n, "%s", "...");
 			break;
 		}
-		char ** row = ( char ** )mp->ptr[mp->x];
 		n += snprintf(out + n, len - n,  "%p, ", row[i]);
 	}
 	n += snprintf(out + n, len - n, "%s", end);
