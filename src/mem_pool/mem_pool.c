@@ -117,16 +117,28 @@ void * mp_alloc(struct mem_pool * mp)
 
 void mp_free(struct mem_pool * mp, void * p)
 {
-	int x, h;
-	for(x = 0; mp->ptr + x; ++x){
-		char ** row = (char **)mp->ptr + x;
-		for(h = 0; row + h; ++h){
-			if(row + h == p){
-				row[h] = 0;
+	if(!(mp && p))
+		return;
+
+	int i, x;
+	for(x = 0; x != mp->x; ++x){
+		char ** row = ( char ** )mp->ptr[x];
+		if(!row) {
+#ifndef NDEBUG
+	cp_loge("%s: NULL in row=%d, mp=%p, addr=%p\n", __FUNCTION__, x, mp, p);
+#endif /* NDEBUG */
+			return;
+		}
+		for(i = 0; i < mp->NY; ++i){
+			if(row[i] == p){
+				row[i] = 0;
 				return;
 			}
 		}
 	}
+#ifndef NDEBUG
+	cp_loge("%s: addr NOT found in mp=%p, addr=%p\n", __FUNCTION__, mp, p);
+#endif /* NDEBUG */
 }
 
 void mp_destroy(struct mem_pool * mp)
