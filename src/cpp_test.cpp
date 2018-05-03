@@ -98,6 +98,9 @@ char const * help_test_libhiredis();
 /* test_mysql.c */
 int test_libmysqlclient_main(int argc, char ** argv);
 char const * help_test_libmysqlclient();
+
+/* merge_sort_link_list.c */
+int merge_sort_link_list_main(int argc, char ** argv);
 }
 /* test_liblog4cplus.cpp */
 int test_liblog4cplus_main(int argc, char ** argv);
@@ -206,6 +209,7 @@ static test_entry const testmap2[512] = {
 		, libhiredis
 		, { "libmysqlclient",      test_libmysqlclient_main,      help_test_libmysqlclient }
 		, { "mempool",             mp_test_main,                  help_mp_test_main }
+		, { "merge_sort_link_list", merge_sort_link_list_main,   0}
 		, { "", 0, 0}
 };
 

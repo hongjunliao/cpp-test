@@ -64,6 +64,11 @@
 									<listOptionValue builtIn="false" value="boost_regex"/>
 								</option>
 								<option id="gnu.cpp.link.option.flags.1940820095" name="Linker flags" superClass="gnu.cpp.link.option.flags" value="-static" valueType="string"/>
+								<option id="gnu.cpp.link.option.paths.1996915606" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="../lib/"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/mariadb/"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/mariadb/"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.785907445" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -133,7 +138,13 @@
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1254172088" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.1126373225" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.792245126" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.792245126" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base">
+								<option id="gnu.cpp.link.option.paths.944461623" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="../lib/"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/mariadb/"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/mariadb/"/>
+								</option>
+							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.base.1713086262" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base">
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1214684078" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -250,6 +261,8 @@
 								<option defaultValue="true" id="gnu.cpp.link.option.shared.475945331" name="Shared (-shared)" superClass="gnu.cpp.link.option.shared" useByScannerDiscovery="false" valueType="boolean"/>
 								<option id="gnu.cpp.link.option.paths.676855992" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths">
 									<listOptionValue builtIn="false" value="../lib/"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/mariadb/"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/mariadb/"/>
 								</option>
 								<option id="gnu.cpp.link.option.libs.390470096" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="bluetooth"/>

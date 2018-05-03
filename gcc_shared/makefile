@@ -65,7 +65,7 @@ all: libcpp-test.so
 libcpp-test.so: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -L../lib/ -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L../lib/ -L/usr/local/lib/mariadb/ -L/usr/local/lib/mariadb/ -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
