@@ -101,6 +101,12 @@ char const * help_test_libmysqlclient();
 
 /* merge_sort_link_list.c */
 int merge_sort_link_list_main(int argc, char ** argv);
+/* merge_sort_link_list2.c */
+int merge_sort_link_list2_main(int argc, char ** argv);
+/* merge_sort_link_list3.c */
+int merge_sort_link_list3_main(int argc, char ** argv);
+/* udp_echo_cli.c */
+int udp_echo_cli_main(int argc, char ** argv);
 }
 /* test_liblog4cplus.cpp */
 int test_liblog4cplus_main(int argc, char ** argv);
@@ -210,6 +216,9 @@ static test_entry const testmap2[512] = {
 		, { "libmysqlclient",      test_libmysqlclient_main,      help_test_libmysqlclient }
 		, { "mempool",             mp_test_main,                  help_mp_test_main }
 		, { "merge_sort_link_list", merge_sort_link_list_main,   0}
+		, { "merge_sort_link_list2", merge_sort_link_list2_main,   0}
+		, { "merge_sort_link_list3", merge_sort_link_list3_main,   0}
+		, { "udp_echo_cli", udp_echo_cli_main, 0}
 		, { "", 0, 0}
 };
 

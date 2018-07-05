@@ -16,9 +16,11 @@
  * arm-linux-gcc -o alsa_play alsa_play_test.c -L. -lasound
  * 需要交叉编译后的libasound.so库的支持
  */
+#include <alsa/asoundlib.h>    /* */
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "alsa/asoundlib.h"    /* */
+#include <time.h>
 int test_alsa_pcm_main(int argc, char ** argv)
 {
 	int i;

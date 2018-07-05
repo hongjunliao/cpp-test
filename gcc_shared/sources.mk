@@ -24,6 +24,7 @@ C_DEPS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 src/algs \
+src/algs/merge_sort_link_list \
 src/alsa_pcm \
 src/api_poll \
 src/bluez \

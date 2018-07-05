@@ -59,7 +59,7 @@ struct element {
 	int i;
 };
 
-int cmp(element *a, element *b) {
+static int cmp(element *a, element *b) {
 	return a->i - b->i;
 }
 
@@ -75,7 +75,8 @@ int cmp(element *a, element *b) {
  *
  *     list = listsort(mylist);
  */
-element *listsort(element *list, int is_circular, int is_double) {
+static element *listsort(element *list, int is_circular, int is_double)
+{
 	element *p, *q, *e, *tail, *oldhead;
 	int insize, nmerges, psize, qsize, i;
 
@@ -190,9 +191,9 @@ element *listsort(element *list, int is_circular, int is_double) {
 #include <string.h>
 
 #define nmax 13
-element k[nmax];
+static element k[nmax];
 
-int print_and_check_list(element *head, int expected_len, int is_circular,
+static int print_and_check_list(element *head, int expected_len, int is_circular,
 		int is_double, int check_ordering) {
 	unsigned long bits_used;
 	element *tail, *e;

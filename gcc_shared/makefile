@@ -28,6 +28,7 @@ RM := rm -rf
 -include src/bluez/subdir.mk
 -include src/api_poll/subdir.mk
 -include src/alsa_pcm/subdir.mk
+-include src/algs/merge_sort_link_list/subdir.mk
 -include src/algs/subdir.mk
 -include src/subdir.mk
 -include subdir.mk

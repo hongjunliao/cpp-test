@@ -35,11 +35,11 @@ int tcp_echo_cli_main(int argc, char ** argv)
 	servaddr.sin_port = htons(port);
 	inet_pton(AF_INET, ip, &servaddr.sin_addr);
 
-	if(bind(fd, (sockaddr *) &cliaddr, sizeof(cliaddr)) < 0){
+	if(bind(fd, (struct sockaddr *) &cliaddr, sizeof(cliaddr)) < 0){
 		fprintf(stderr, "%s: bind failed, errno=%d, error='%s'\n", __FUNCTION__, errno, strerror(errno));
 		return -1;
 	}
-	if(connect(fd, (sockaddr *)&servaddr, sizeof(servaddr)) < 0){
+	if(connect(fd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0){
 		fprintf(stderr, "%s: connect failed, server='%s:%d', errno=%d, error='%s'\n"
 				, __FUNCTION__, ip, port, errno, strerror(errno));
 		return -1;

@@ -22,15 +22,15 @@
 #define LISTENQ 1024		   /* for socket/listen */
 #define SOCK_CLI_MAX 1024   /**/
 
-struct XhSDKClient {
+typedef struct XhSDKClient {
 	int fd;
 	char ip[16];
-};
+} XhSDKClient;
 
-struct SelectContext {
+typedef struct SelectContext {
 	fd_set rfds;
 	int maxfd;
-};
+} SelectContext;
 
 /* MAX for client, 0 for NOT use */
 static XhSDKClient g_xhsdk_clis[SOCK_CLI_MAX] = { 0 };

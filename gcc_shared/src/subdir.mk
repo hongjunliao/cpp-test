@@ -8,17 +8,18 @@ CPP_SRCS += \
 ../src/cpp_test.cpp \
 ../src/hexdump.cpp \
 ../src/string_util_url.cpp \
-../src/tcp_echo_cli.cpp \
 ../src/termio_util.cpp \
 ../src/test_cpp11.cpp \
-../src/test_string_util.cpp \
 ../src/xhsdk_select_server.cpp 
 
 C_SRCS += \
 ../src/hp_sig.c \
 ../src/net_util.c \
 ../src/string_dump.c \
-../src/string_util.c 
+../src/string_util.c \
+../src/tcp_echo_cli.c \
+../src/test_string_util.c \
+../src/udp_echo_cli.c 
 
 OBJS += \
 ./src/chksum.o \
@@ -33,6 +34,7 @@ OBJS += \
 ./src/termio_util.o \
 ./src/test_cpp11.o \
 ./src/test_string_util.o \
+./src/udp_echo_cli.o \
 ./src/xhsdk_select_server.o 
 
 CPP_DEPS += \
@@ -40,17 +42,18 @@ CPP_DEPS += \
 ./src/cpp_test.d \
 ./src/hexdump.d \
 ./src/string_util_url.d \
-./src/tcp_echo_cli.d \
 ./src/termio_util.d \
 ./src/test_cpp11.d \
-./src/test_string_util.d \
 ./src/xhsdk_select_server.d 
 
 C_DEPS += \
 ./src/hp_sig.d \
 ./src/net_util.d \
 ./src/string_dump.d \
-./src/string_util.d 
+./src/string_util.d \
+./src/tcp_echo_cli.d \
+./src/test_string_util.d \
+./src/udp_echo_cli.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

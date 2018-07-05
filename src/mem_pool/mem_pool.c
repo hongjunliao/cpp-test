@@ -202,6 +202,7 @@ static char const * mp_sdump_hdr(struct mem_pool * mp, int c
 /////////////////////////////////////////////////////////////////////////////////////
 /* for test */
 #ifndef NDEBUG
+#include <unistd.h>
 #include <stdio.h>
 #include <limits.h>  /* INT_MAX */
 #include <time.h>
