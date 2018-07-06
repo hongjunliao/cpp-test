@@ -16,6 +16,9 @@ RM := rm -rf
 -include src/springboot-sidecar/subdir.mk
 -include src/sds/subdir.mk
 -include src/protobuf_libev/subdir.mk
+-include src/phxecho/logger_google/subdir.mk
+-include src/phxecho/subdir.mk
+-include src/paxos/subdir.mk
 -include src/nghhtp2/subdir.mk
 -include src/mysql/subdir.mk
 -include src/mmpool/subdir.mk
@@ -66,20 +69,15 @@ all: libcpp-test.so
 libcpp-test.so: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -L../lib/ -L/usr/local/lib/mariadb/ -L/usr/local/lib/mariadb/ -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L../lib/ -L"/home/jun/lib/" -L/usr/local/lib/mariadb/ -L/usr/local/lib/mariadb/ -shared -o "libcpp-test.so" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
-	$(MAKE) --no-print-directory post-build
 
 # Other Targets
 clean:
 	-$(RM) $(LIBRARIES)$(CC_DEPS)$(C++_DEPS)$(C_UPPER_DEPS)$(CXX_DEPS)$(OBJS)$(CPP_DEPS)$(C_DEPS) libcpp-test.so
 	-@echo ' '
 
-post-build:
-	-install libcpp-test.so ../bin/
-	-@echo ' '
-
-.PHONY: all clean dependents post-build
+.PHONY: all clean dependents
 
 -include ../makefile.targets

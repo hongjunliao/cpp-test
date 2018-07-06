@@ -40,8 +40,7 @@ extern int test_opengl_main(int argc, char ** argv);
 extern int test_graph_main(int argc, char ** argv);
 /* dynamic_programming.cpp */
 extern int test_dynamic_programming_main(int argc, char ** argv);
-/* test_string_util.cpp */
-extern  int test_string_util_main(int argc, char ** argv);
+
 /* ordered_2d_array_search.cpp */
 extern int test_jzoffter_main(int argc, char ** argv);
 /* test_string.cpp */
@@ -60,12 +59,14 @@ extern int chess_test_main(int argc, char ** argv);
 /* xhsdk_select_server.cpp */
 extern int xhsdk_select_server_main(int argc, char ** argv);
 
-/* tcp_echo_cli.cpp */
-extern int tcp_echo_cli_main(int argc, char ** argv);
 
 /* test_zlib.cpp */
 int test_zlib_main(int argc, char ** argv);
 extern "C" {
+/* test_string_util.cpp */
+extern  int test_string_util_main(int argc, char ** argv);
+/* tcp_echo_cli.cpp */
+extern int tcp_echo_cli_main(int argc, char ** argv);
 /* mem_pool.c */
 int mp_test_main(int argc, char ** argv);
 char const * help_mp_test_main();
@@ -107,7 +108,10 @@ int merge_sort_link_list2_main(int argc, char ** argv);
 int merge_sort_link_list3_main(int argc, char ** argv);
 /* udp_echo_cli.c */
 int udp_echo_cli_main(int argc, char ** argv);
+
+int test_phxecho_main(int argc, char ** argv);
 }
+
 /* test_liblog4cplus.cpp */
 int test_liblog4cplus_main(int argc, char ** argv);
 char const * help_test_liblog4cplus();
@@ -219,6 +223,7 @@ static test_entry const testmap2[512] = {
 		, { "merge_sort_link_list2", merge_sort_link_list2_main,   0}
 		, { "merge_sort_link_list3", merge_sort_link_list3_main,   0}
 		, { "udp_echo_cli", udp_echo_cli_main, 0}
+		, { "phxecho", test_phxecho_main, 0}
 		, { "", 0, 0}
 };
 

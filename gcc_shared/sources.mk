@@ -38,6 +38,9 @@ src/mem_pool \
 src/mmpool \
 src/mysql \
 src/nghhtp2 \
+src/paxos \
+src/phxecho \
+src/phxecho/logger_google \
 src/protobuf_libev \
 src/sds \
 src/springboot-sidecar \
