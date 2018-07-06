@@ -13,6 +13,10 @@ CPP_SRCS += \
 ../src/xhsdk_select_server.cpp 
 
 C_SRCS += \
+../src/hp_epoll.c \
+../src/hp_io.c \
+../src/hp_log.c \
+../src/hp_net.c \
 ../src/hp_sig.c \
 ../src/net_util.c \
 ../src/string_dump.c \
@@ -25,6 +29,10 @@ OBJS += \
 ./src/chksum.o \
 ./src/cpp_test.o \
 ./src/hexdump.o \
+./src/hp_epoll.o \
+./src/hp_io.o \
+./src/hp_log.o \
+./src/hp_net.o \
 ./src/hp_sig.o \
 ./src/net_util.o \
 ./src/string_dump.o \
@@ -47,6 +55,10 @@ CPP_DEPS += \
 ./src/xhsdk_select_server.d 
 
 C_DEPS += \
+./src/hp_epoll.d \
+./src/hp_io.d \
+./src/hp_log.d \
+./src/hp_net.d \
 ./src/hp_sig.d \
 ./src/net_util.d \
 ./src/string_dump.d \

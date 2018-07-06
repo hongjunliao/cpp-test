@@ -14,3 +14,5 @@
 /gcc_bluez/
 /clang_shared/
 .settings/
+*~
+*.o
