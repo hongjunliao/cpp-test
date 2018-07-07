@@ -23,6 +23,16 @@ C_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+Debug/src/algs \
+Debug/src/chess/src \
+Debug/src \
+Debug/src/cti \
+Debug/src/jzoffer \
+Debug/src/mem_pool \
+Debug/src/tests \
+Debug/src/win32 \
+Debug/src/xh_vircam \
+Release/src/xh_vircam \
 src/algs \
 src/algs/merge_sort_link_list \
 src/alsa_pcm \
@@ -35,7 +45,6 @@ src/hiredis \
 src/jzoffer \
 src/liblog4cplus \
 src/mem_pool \
-src/mmpool \
 src/mysql \
 src/nghhtp2 \
 src/paxos \

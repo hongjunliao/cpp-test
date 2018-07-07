@@ -4,7 +4,7 @@
  *
  * test libprotobuf and libev
  *
- * (1)ubuntu: apt install libprotobuf-dev protobuf-c-compiler  protobuf-compiler libprotobuf-c-dev libev-dev
+ * (1)ubuntu: apt install libprotobuf-dev protobuf-c-compiler  protobuf-compiler libprotobuf-c-dev libev-dev libprotoc-dev
 
  * (2)compile *.proto:
  * protoc http.proto --cpp_out .

@@ -26,7 +26,7 @@ struct hp_epoll;
 
 typedef int (* hp_epoll_cb_t)(struct epoll_event * ev);
 
-struct hp_epolld {
+typedef struct hp_epolld {
 	int                  fd;
 	hp_epoll_cb_t        fn;
 	void *               arg;
@@ -34,13 +34,13 @@ struct hp_epolld {
 	struct hp_eto *      eto;
 
 	int                  n;    /* index when fired */
-};
+} hp_epolld;
 
-struct hp_epoll {
+typedef struct hp_epoll {
 	int                  fd;
 	struct epoll_event * ev;
 	int                  ev_len;
-};
+} hp_epoll;
 
 int hp_epoll_init(struct hp_epoll * efds, int n);
 void hp_epoll_uninit(struct hp_epoll * efds);

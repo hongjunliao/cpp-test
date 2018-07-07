@@ -4,7 +4,7 @@
  */
 
 #ifndef CPP_TEST_H_
-#define CPP_TEST_H_
+#define CPP_TEST_LOG_H_
 #ifdef __cplusplus
 extern "C"{
 #endif

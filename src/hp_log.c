@@ -13,7 +13,8 @@
 /* log level */
 extern int gloglevel;
 
-void hp_log(void * f, char const * fmt, ...) {
+void hp_log(void * f, char const * fmt, ...)
+{
 	FILE * fp = (FILE *)f;
 
 	if(!(fp && fmt)) return;

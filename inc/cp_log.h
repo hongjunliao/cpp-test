@@ -2,9 +2,10 @@
  * This file is PART of cpp-test project
  * @author hongjun.liao <docici@126.com>, @date 2018/4/27
  *
+ *  a simple log system
  * */
-#ifndef CPP_TEST_H_
-#define CPP_TEST_H_
+#ifndef CPP_TEST_LOG_H_
+#define CPP_TEST_LOG_H_
 #include <stdio.h>      /* fprintf */
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -45,8 +46,10 @@ extern "C" {
 #define cp_logd(fmt, args...) cp_log(2, fmt, ##args)
 #define cp_logt(fmt, args...) cp_log(1, fmt, ##args)
 
+void hp_log(void * f, char const * fmt, ...);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CPP_TEST_H_ */
+#endif /* CPP_TEST_LOG_H_ */

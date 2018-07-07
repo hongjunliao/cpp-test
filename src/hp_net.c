@@ -58,6 +58,46 @@ int listen_socket_create(int port, int n)
 	return fd;
 }
 
+int udp_socket_create(int port)
+{
+	int fd;
+	struct sockaddr_in	servaddr = { 0 };
+
+	if((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+		hp_log(stderr, "%s: socket error('%s')\n", __FUNCTION__, strerror(errno));
+		return -1;
+	}
+
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_port = htons(port);
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    /* Make sure connection-intensive things like the redis benckmark
+     * will be able to close/open sockets a zillion of times */
+    int yes = 1;
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+        hp_log(stderr, "%s: setsockopt SO_REUSEADDR: %s", __FUNCTION__, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+	unsigned long sockopt = 1;
+	if(ioctl(fd, FIONBIO, &sockopt) < 0){
+		hp_log(stderr, "%s: ioctl(FIONBIO) failed for fd=%d\n", __FUNCTION__, fd);
+		close(fd);
+		return -1;
+	}
+
+	if(bind(fd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0){
+		hp_log(stderr, "%s: bind error('%s'), port=%d\n"
+				, __FUNCTION__, strerror(errno), port);
+		close(fd);
+		return -1;
+	}
+
+	return fd;
+}
+
 char * get_ipport_cstr(int sockfd, char * buf)
 {
 	struct sockaddr_in cliaddr = { 0 };

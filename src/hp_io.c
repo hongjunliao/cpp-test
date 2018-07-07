@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <limits.h>		/* IOV_MAX */
 
+#define hp_min(a, b)                              ((a) < (b)? (a):(b))
+
 extern int gloglevel;
 /////////////////////////////////////////////////////////////////////////////////////
 int hp_eto_init(struct hp_eto * eto, int n)

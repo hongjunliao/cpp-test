@@ -30,6 +30,7 @@ extern "C" {
 /* hp_net.cpp */
 int client_socket_create(int port);
 int proxy_socket_create(int port);
+int udp_socket_create(int port);
 
 int connect_socket_create(char const * ip, int port, int rcvbuf, int sndbuf);
 int client_connect_socket_create(char const * ip, int port, int * f);

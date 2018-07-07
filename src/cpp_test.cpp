@@ -110,6 +110,9 @@ int merge_sort_link_list3_main(int argc, char ** argv);
 int udp_echo_cli_main(int argc, char ** argv);
 
 int test_phxecho_main(int argc, char ** argv);
+
+int test_paxos_main(int argc, char ** argv);
+char const * help_test_paxos();
 }
 
 /* test_liblog4cplus.cpp */
@@ -222,8 +225,9 @@ static test_entry const testmap2[512] = {
 		, { "merge_sort_link_list", merge_sort_link_list_main,   0}
 		, { "merge_sort_link_list2", merge_sort_link_list2_main,   0}
 		, { "merge_sort_link_list3", merge_sort_link_list3_main,   0}
-		, { "udp_echo_cli", udp_echo_cli_main, 0}
-		, { "phxecho", test_phxecho_main, 0}
+		, { "udp_echo_cli",        udp_echo_cli_main, 0}
+		, { "phxecho",             test_phxecho_main, 0}
+		, { "paxos1",              test_paxos_main,   help_test_paxos}
 		, { "", 0, 0}
 };
 
