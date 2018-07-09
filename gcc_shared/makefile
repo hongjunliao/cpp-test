@@ -21,6 +21,7 @@ RM := rm -rf
 -include src/paxos/subdir.mk
 -include src/nghhtp2/subdir.mk
 -include src/mysql/subdir.mk
+-include src/mmpool/subdir.mk
 -include src/mem_pool/subdir.mk
 -include src/liblog4cplus/subdir.mk
 -include src/jzoffer/subdir.mk
@@ -33,16 +34,6 @@ RM := rm -rf
 -include src/algs/merge_sort_link_list/subdir.mk
 -include src/algs/subdir.mk
 -include src/subdir.mk
--include Release/src/xh_vircam/subdir.mk
--include Debug/src/xh_vircam/subdir.mk
--include Debug/src/win32/subdir.mk
--include Debug/src/tests/subdir.mk
--include Debug/src/mem_pool/subdir.mk
--include Debug/src/jzoffer/subdir.mk
--include Debug/src/cti/subdir.mk
--include Debug/src/chess/src/subdir.mk
--include Debug/src/algs/subdir.mk
--include Debug/src/subdir.mk
 -include subdir.mk
 -include objects.mk
 

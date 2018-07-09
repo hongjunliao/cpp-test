@@ -143,6 +143,10 @@ static inline void list_splice_init(struct list_head *list,
 		 &pos->member != (head); 					\
 	     pos = list_entry(pos->member.next, typeof(*pos), member))
 
+void list_sort(void *priv, struct list_head *head,
+		int (*cmp)(void *priv, struct list_head *a,
+			struct list_head *b));
+
 #ifdef __cplusplus
 #undef __new
 }

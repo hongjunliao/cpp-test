@@ -113,6 +113,9 @@ int test_phxecho_main(int argc, char ** argv);
 
 int test_paxos_main(int argc, char ** argv);
 char const * help_test_paxos();
+
+int test_kernel_list_sort_main(int argc, char ** argv);
+
 }
 
 /* test_liblog4cplus.cpp */
@@ -228,6 +231,7 @@ static test_entry const testmap2[512] = {
 		, { "udp_echo_cli",        udp_echo_cli_main, 0}
 		, { "phxecho",             test_phxecho_main, 0}
 		, { "paxos1",              test_paxos_main,   help_test_paxos}
+		, { "kernel_list_sort",    test_kernel_list_sort_main,   0}
 		, { "", 0, 0}
 };
 

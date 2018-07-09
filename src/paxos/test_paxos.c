@@ -14,20 +14,23 @@
 #include <errno.h>       /* errno */
 #include <assert.h>      /* assert */
 #include <string.h>
+#include "sds/sds.h"
 #include "cp_log.h"      /*  */
 #include "str_dump.h"    /* dumpstr */
 #include "hp_net.h"
 #include "hp_epoll.h"    /* hp_epolld */
-#include "hp_io.h"       /* ht_eto */
 #include "list.h"        /* list_head */
 
 /* generated from paxos_msg.proto */
 #include "paxos_msg.pb-c.h"
 /////////////////////////////////////////////////////////////////////////////////////////
-#define NODE_MAX 20
+#define NODE_MAX                     20
+#define PAXOS_PROPOSE_OK            (1 << 1)
+#define PAXOS_PROPOSE_SUCCESS       (1 << 2)
 /////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct paxos_config {
+	int          node_id;            /**/
 	char const * addr;               /* sample: 127.0.0.1:11111 */
 	char const * nodestr;            /* sample: 127.0.0.1:11111,127.0.0.1:11112,127.0.0.1:11113 */
 
@@ -40,25 +43,40 @@ typedef struct paxos_config {
 } paxos_config;
 
 typedef struct paxos_node {
-	int        fd;              /* fds to peer node */
-	hp_eto     eto;
-	hp_eti     eti;
+	int        fd;                    /* fds to peer node */
 	hp_epolld  ed;
+	int        flags;
 
 	struct sockaddr_in servaddr;
+	struct list_head   o_list;        /* paxos_msg */
+
 	struct list_head   list;
 } paxos_node;
 
-typedef struct paxos_ctx {
-	hp_eto     eto;
-	hp_eti     eti;
+typedef struct paxos_msg {
+	uint64_t           t;
+	sds                value;
+	Xh__PaxosMsg *     msg;
+	struct sockaddr_in addr;
+	struct list_head   list;
+} paxos_msg;
 
+typedef struct paxos_ctx {
 	uint64_t t_max;                  /* max t currently */
 	uint64_t t;
-	int      value;
+	sds      value;
 
-	struct list_head nodes;     /* paxos_node */
+	struct list_head propose_ok_list;       /* paxos_msg */
+	int              n_propose_ok;
+	struct list_head propose_success_list;  /* paxos_msg */
+	int              n_propose_success;
 
+
+	char             buf[1024 * 8];
+
+	struct list_head nodes;          /* paxos_node, peer nodes */
+	int              n_nodes;
+	struct list_head o_list;         /* paxos_msg, replies to peer nodes */
 } paxos_ctx;
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +85,8 @@ static paxos_ctx g_paxos_ctx_obj = { 0 };
  * this node
  * */
 static paxos_config g_cfg_obj = {
-		  "127.0.0.1:1111"
+		  1
+		, "127.0.0.1:1111"
 		, "127.0.0.1:11111,127.0.0.1:11112,127.0.0.1:11113"
 };
 static hp_epoll g_paxos_epoll_obj = { 0 };
@@ -85,7 +104,94 @@ static hp_epolld *    g_paxos_epoll_ed = &ghp_httpfd_ed_obj;
 static hp_epolld *    g_paxos_stdin_ed = &g_stdin_ed_obj;
 /////////////////////////////////////////////////////////////////////////////////////////
 
-static int epoll_handle_node_paxos_msg(struct epoll_event * ev)
+paxos_msg * paxos_msg_new()
+{
+	paxos_msg * ret = (paxos_msg * )calloc(1, sizeof(paxos_msg));
+	return ret;
+}
+void paxos_msg_del(paxos_msg * msg) { free(msg); }
+
+static void paxos_prepare(paxos_ctx * ctx, char const * str, int len)
+{
+	++ctx->t;
+
+	paxos_node * node;
+	list_for_each_entry(node, &ctx->nodes, list){
+		assert(node);
+
+		Xh__PaxosMsg * msg = (Xh__PaxosMsg *)malloc(sizeof(Xh__PaxosMsg));;
+		paxos_msg * req = paxos_msg_new();
+		req->msg = msg;
+		req->addr = node->servaddr;
+
+		xh__paxos_msg__init(msg);
+		msg->has_nodeid = 1;
+		msg->has_proposalid = 1;
+		msg->has_flag = 1;
+		msg->has_value = 1;
+		msg->nodeid = g_paxos_cfg->node_id;
+		msg->proposalid = g_paxos_ctx->t;
+		msg->flag = 3;
+		msg->value.data = (uint8_t	*)str;
+		msg->value.len = len;
+
+		list_add_tail(&req->list, &node->o_list);
+	}
+}
+
+static void paxos_propose(paxos_ctx * ctx)
+{
+	paxos_node * node;
+	list_for_each_entry(node, &ctx->nodes, list){
+		assert(node);
+
+		Xh__PaxosMsg * msg = (Xh__PaxosMsg *)malloc(sizeof(Xh__PaxosMsg));;
+		paxos_msg * req = paxos_msg_new();
+		req->msg = msg;
+		req->addr = node->servaddr;
+
+		xh__paxos_msg__init(msg);
+		msg->has_nodeid = 1;
+		msg->has_proposalid = 1;
+		msg->has_flag = 1;
+		msg->has_value = 1;
+		msg->nodeid = g_paxos_cfg->node_id;
+		msg->proposalid = g_paxos_ctx->t;
+		msg->flag = 3;
+		msg->value.data = (uint8_t	*)g_paxos_ctx->value;
+		msg->value.len = sdslen(g_paxos_ctx->value);
+
+		list_add_tail(&req->list, &node->o_list);
+	}
+}
+
+static void paxos_execute(paxos_ctx * ctx)
+{
+	paxos_node * node;
+	list_for_each_entry(node, &ctx->nodes, list){
+		assert(node);
+
+		Xh__PaxosMsg * msg = (Xh__PaxosMsg *)malloc(sizeof(Xh__PaxosMsg));;
+		paxos_msg * req = paxos_msg_new();
+		req->msg = msg;
+		req->addr = node->servaddr;
+
+		xh__paxos_msg__init(msg);
+		msg->has_flag = 1;
+		msg->flag = 10;
+
+		list_add_tail(&req->list, &node->o_list);
+	}
+}
+
+static int propose_ok_list_comp_by_t(void * priv, struct list_head *a, struct list_head *b)
+{
+	struct paxos_msg * na = (struct paxos_msg *)list_entry(a, struct paxos_msg, list);
+	struct paxos_msg * nb = (struct paxos_msg *)list_entry(b, struct paxos_msg, list);
+	return na->t > nb->t;
+}
+
+static int epoll_handle_paxos_node_fd_io(struct epoll_event * ev)
 {
 #ifndef NDEBUG
 	if(gloglevel > 2){
@@ -94,10 +200,100 @@ static int epoll_handle_node_paxos_msg(struct epoll_event * ev)
 				, hp_epoll_fd(ev), hp_epoll_e2str(ev->events, buf, sizeof(buf)));
 	}
 #endif /* NDEBUG */
+	if(ev->events & EPOLLIN){
+		struct paxos_node * node = hp_epoll_arg(ev);
+		assert(node);
+		int fd = node->fd;
+		socklen_t addr_len = sizeof(struct sockaddr_in);
+
+		for(;;){
+			int n = recvfrom(fd, g_paxos_ctx->buf, sizeof(g_paxos_ctx->buf), 0, &node->servaddr, &addr_len);
+			if(n > 0){
+				Xh__PaxosMsg * msg = xh__paxos_msg__unpack(0, n, (const uint8_t * )g_paxos_ctx->buf);
+				if(msg){
+					char servaddrstr[64] = "";
+					inet_ntop(AF_INET, &node->servaddr, servaddrstr, sizeof(servaddrstr));
+
+					hp_log(stdout, "%s: read paxos_msg from server='%s:%d'"
+							", msg={node_id=%zu, proposalid=%zu, flag=%u, value='%s'/%zu}\n"
+							, __FUNCTION__
+							, servaddrstr, ntohs(node->servaddr.sin_port)
+							, msg->nodeid, msg->proposalid, msg->flag
+							, dumpstr((char const *)msg->value.data, msg->value.len, msg->value.len)
+							, msg->value.len);
+
+					if(msg->has_preacceptid && (node->flags & PAXOS_PROPOSE_OK) &&
+							++g_paxos_ctx->n_propose_success > g_paxos_ctx->n_nodes / 2){
+						paxos_execute(g_paxos_ctx);
+					}
+					else{
+						node->flags |= PAXOS_PROPOSE_OK;
+
+						paxos_msg * pmnew = paxos_msg_new();
+						pmnew->t = msg->proposalid;
+						pmnew->value = sdsnewlen(msg->value.data, msg->value.len);
+
+						list_add_tail(&pmnew->list, &g_paxos_ctx->propose_ok_list);
+						++g_paxos_ctx->n_propose_ok;
+
+						if(g_paxos_ctx->n_propose_ok > g_paxos_ctx->n_nodes / 2){
+							list_sort(0, &g_paxos_ctx->propose_ok_list, propose_ok_list_comp_by_t);
+							struct paxos_msg * pmmax = list_entry(g_paxos_ctx->propose_ok_list.next, paxos_msg, list);
+							if(pmmax->t > 0){
+								sdsfree(g_paxos_ctx->value);
+								g_paxos_ctx->value = sdsdup(pmmax->value);
+							}
+							paxos_propose(g_paxos_ctx);
+						}
+						xh__paxos_msg__free_unpacked(msg, 0);
+					}
+				}
+				else hp_log(stderr, "%s: paxos_msg unpack failed, buf='%s'/%d\n", __FUNCTION__, g_paxos_ctx->buf, n);
+			}
+			else {
+				if(n < 0 && (errno == EINTR || errno == EAGAIN)){
+					/* read again later */
+				}
+				else{
+					hp_log(stderr, "%s: recvfrom failed, fd=%d, return=%d, errno=%d/'%s'\n", __FUNCTION__
+						, fd, n, errno, strerror(errno));
+				}
+				break;
+			}
+		}
+
+		if(g_paxos_ctx->n_propose_ok > g_paxos_cfg->nodes_len / 2){
+
+		}
+	}
+
 	return 0;
 }
 
-static int epoll_handle_paxos_msg(struct epoll_event * ev)
+static void paxos_ctx_write(paxos_ctx * ctx)
+{
+	int fd = g_paxos_fd;
+	struct list_head * msg_pos, * msg_next;
+	list_for_each_safe(msg_pos, msg_next, &ctx->o_list){
+		paxos_msg * req = (struct paxos_msg *)list_entry(msg_pos, paxos_msg, list);
+    	assert(req);
+
+		size_t msglen = xh__paxos_msg__get_packed_size(req->msg);
+		size_t packlen = xh__paxos_msg__pack(req->msg, (uint8_t *)ctx->buf);
+		assert(msglen == packlen);
+
+		int n = sendto(fd, ctx->buf, msglen, 0, &req->addr, sizeof(struct sockaddr_in));
+		if(n < 0 && (errno == EINTR || errno == EAGAIN))
+			continue;
+
+		list_del(&req->list);
+		xh__paxos_msg__free_unpacked(req->msg, 0);
+		paxos_msg_del(req);
+	}
+
+}
+
+static int epoll_handle_paxos_fd_io(struct epoll_event * ev)
 {
 #ifndef NDEBUG
 	if(gloglevel > 2){
@@ -110,86 +306,124 @@ static int epoll_handle_paxos_msg(struct epoll_event * ev)
 		return 0;
 	}
 
+	int fd = g_paxos_fd;
 	if((ev->events & EPOLLIN)){
-		hp_eti_read(&g_paxos_ctx->eti, g_paxos_fd, ev);
+		Xh__PaxosMsg * msg;
+		struct sockaddr_in addr;
+		socklen_t addr_len = sizeof(struct sockaddr_in);
+
+		for(;;){
+			int n = recvfrom(fd, g_paxos_ctx->buf, sizeof(g_paxos_ctx->buf), 0, &addr, &addr_len);
+			if(n > 0){
+				msg = xh__paxos_msg__unpack(0, n, (const uint8_t * )g_paxos_ctx->buf);
+				if(msg){
+					char cliaddrstr[64] = "";
+					inet_ntop(AF_INET, &addr, cliaddrstr, sizeof(cliaddrstr));
+
+					hp_log(stdout, "%s: read paxos_msg from node='%s:%d'"
+							", msg={node_id=%zu, proposalid=%zu, flag=%u, value='%s'/%zu}\n"
+							, __FUNCTION__
+							, cliaddrstr, ntohs(addr.sin_port)
+							, msg->nodeid, msg->proposalid, msg->flag
+							, dumpstr((char const *)msg->value.data, msg->value.len, msg->value.len)
+							, msg->value.len);
+
+					if(msg->flag == 10){
+						fprintf(stdout, "%s: echo data='%s'/%zu\n", __FUNCTION__, g_paxos_ctx->value, sdslen(g_paxos_ctx->value));
+						xh__paxos_msg__free_unpacked(msg, 0);
+						continue;
+					}
+
+					if(msg->proposalid > g_paxos_ctx->t_max){
+						g_paxos_ctx->t_max = msg->proposalid;
+
+						xh__paxos_msg__init(msg);
+						msg->has_nodeid = 1;
+						msg->has_proposalid = 1;
+						msg->has_flag = 1;
+						msg->has_value = 1;
+						msg->nodeid = g_paxos_cfg->node_id;
+						msg->proposalid = g_paxos_ctx->t;
+						msg->value.data = (uint8_t	*)g_paxos_ctx->value;
+						msg->value.len = sdslen(g_paxos_ctx->value);
+
+						msg->flag = 1;
+
+						size_t msglen = xh__paxos_msg__get_packed_size(msg);
+						size_t packlen = xh__paxos_msg__pack(msg, (uint8_t *)g_paxos_ctx->buf);
+						assert(msglen == packlen);
+
+						n = sendto(fd, g_paxos_ctx->buf, msglen, 0, &addr, addr_len);
+						if(n < 0 && (errno == EINTR || errno == EAGAIN)){
+							paxos_msg * reply = paxos_msg_new();
+							reply->msg = msg; reply->addr = addr;
+							list_add_tail(&reply->list, &g_paxos_ctx->o_list);
+
+							msg = 0;
+						}
+					}
+					else if(msg->proposalid == g_paxos_ctx->t_max){
+						g_paxos_ctx->t = msg->proposalid;
+						sdsclear(g_paxos_ctx->value);
+						g_paxos_ctx->value = sdscatlen(g_paxos_ctx->value, msg->value.data, msg->value.len);
+
+						xh__paxos_msg__init(msg);
+						msg->has_nodeid = 1;
+						msg->has_proposalid = 1;
+						msg->has_flag = 1;
+						msg->has_preacceptid = 1;
+						msg->nodeid = g_paxos_cfg->node_id;
+						msg->proposalid = g_paxos_ctx->t;
+						msg->flag = 2;
+
+						size_t msglen = xh__paxos_msg__get_packed_size(msg);
+						size_t packlen = xh__paxos_msg__pack(msg, (uint8_t *)g_paxos_ctx->buf);
+						assert(msglen == packlen);
+
+						n = sendto(fd, g_paxos_ctx->buf, msglen, 0, &addr, addr_len);
+						if(n < 0 && (errno == EINTR || errno == EAGAIN)){
+							paxos_msg * reply = paxos_msg_new();
+							reply->msg = msg; reply->addr = addr;
+							list_add_tail(&reply->list, &g_paxos_ctx->o_list);
+
+							msg = 0;
+						}
+					}
+					if(msg)
+						xh__paxos_msg__free_unpacked(msg, 0);
+				}
+				else
+					hp_log(stderr, "%s: paxos_msg unpack failed, buf='%s'/%d\n", __FUNCTION__
+							, dumpstr(g_paxos_ctx->buf, n, n), n);
+			}
+			else {
+				if(n < 0 && (errno == EINTR || errno == EAGAIN)){
+					/* read again later */
+				}
+				else{
+					hp_log(stderr, "%s: recvfrom failed, fd=%d, return=%d, errno=%d/'%s'\n", __FUNCTION__
+						, fd, n, errno, strerror(errno));
+				}
+				break;
+			}
+		}
 	}
 
 	if((ev->events & EPOLLOUT)){
-		hp_eto_write(&g_paxos_ctx->eto, g_paxos_fd, ev);
+		paxos_ctx_write(g_paxos_ctx);
 	}
-	return 0;
-}
-
-static int paxos_msg_pack(char * buf, size_t * len, void * arg)
-{
-	assert(buf && len && arg);
-
-	struct epoll_event * ev = (struct epoll_event *)arg;
-	assert(ev);
-	struct paxos_node *  node = (struct paxos_node *)hp_epoll_arg(ev);
-	assert(node);
-
-
-	for(;;){
-		size_t buflen = *len;
-
-		if(!(buflen > 0))
-			return EAGAIN;
-
-		Xh__PaxosMsg * msg = xh__paxos_msg__unpack(0, buflen, (const uint8_t * )buf);
-		if(!msg)
-			return EAGAIN;
-
-		hp_log(stdout, "%s: read paxos_msg, msg={flag=%d}\n", __FUNCTION__, msg->flag);
-
-		*len -= xh__paxos_msg__get_packed_size(msg);
-
-		if(msg->proposalid > g_paxos_ctx->t_max){
-			g_paxos_ctx->t_max = msg->proposalid;
-
-			xh__paxos_msg__init(msg);
-			msg->flag = 1;
-			size_t len = xh__paxos_msg__get_packed_size(msg);
-
-			void * msgbuf = malloc(len);
-			xh__paxos_msg__pack(msg, (uint8_t *)msgbuf);
-
-			hp_eto_add(&node->eto, msgbuf, len, free, 0);
-		}
-		else if(msg->proposalid == g_paxos_ctx->t_max){
-//			g_paxos_ctx->value = msg->value;
-			g_paxos_ctx->value = 10;
-
-
-			xh__paxos_msg__init(msg);
-			msg->flag = 2;
-			size_t len = xh__paxos_msg__get_packed_size(msg);
-
-			void * msgbuf = malloc(len);
-			xh__paxos_msg__pack(msg, (uint8_t *)msgbuf);
-
-			hp_eto_add(&node->eto, msgbuf, len, free, 0);
-		}
-
-		xh__paxos_msg__free_unpacked(msg, 0);
-	}
-
 	return 0;
 }
 
 paxos_node * paxos_node_new(int fd)
 {
-	paxos_node * node = (paxos_node *)malloc(sizeof(paxos_node));
+	paxos_node * node = (paxos_node *)calloc(1, sizeof(paxos_node));
 	assert(node);
 
-	hp_eti_init(&node->eti, 512);
-	hp_eto_init(&node->eto, 512);
-
-	node->eti.pack = paxos_msg_pack;
-
 	node->fd = fd;
+	INIT_LIST_HEAD(&node->o_list);
+	hp_epolld_set(&node->ed, node->fd, epoll_handle_paxos_node_fd_io, node, 0, 0);
 
-	hp_epolld_set(&node->ed, node->fd, epoll_handle_node_paxos_msg, node, &node->eti, &node->eto);
 	return node;
 }
 
@@ -198,8 +432,6 @@ void paxos_node_del(paxos_node * node)
 	if(!node)
 		return;
 
-	hp_eti_uninit(&node->eti);
-	hp_eto_uninit(&node->eto);
 	free(node);
 }
 
@@ -209,7 +441,7 @@ int paxos_config_load(paxos_config * cfg, int argc, char ** argv)
 		return -1;
 
 	int i;
-	char const * loglevelstr = 0;
+	char const * loglevelstr = 0, * nodeidstr = 0;
 	for(i = 1; i < argc; ++i){
 		char const * arg = argv[i];
 		char const ** p;
@@ -219,9 +451,10 @@ int paxos_config_load(paxos_config * cfg, int argc, char ** argv)
 				continue;
 			}
 			switch(arg[1]){
+			case 'i': p = &nodeidstr;    break;
 			case 'a': p = &cfg->addr;    break;
 			case 'n': p = &cfg->nodestr; break;
-			case 'v': p = &loglevelstr; break;
+			case 'v': p = &loglevelstr;  break;
 			default:
 				fprintf(stderr, "%s: unsupported, arg: '%s'\n", __FUNCTION__, arg);
 				continue;
@@ -244,8 +477,8 @@ int paxos_config_load(paxos_config * cfg, int argc, char ** argv)
 			fprintf(stderr, "%s: unsupported, arg: '%s'\n", __FUNCTION__, arg);
 	}
 
-	if(loglevelstr)
-		gloglevel = atoi(loglevelstr);
+	if(loglevelstr) gloglevel = atoi(loglevelstr);
+	if(nodeidstr)   g_paxos_cfg->node_id = atoi(nodeidstr);
 
 	char * p, * q;
 	char const * nodestr = cfg->nodestr;
@@ -291,9 +524,10 @@ void paxos_config_print(paxos_config * cfg)
 {
 	if(!cfg)
 		return;
-	hp_log(stdout, "%s: -a='%s'/%s:%d, -n='%s'/%d, -v=%d"
+	hp_log(stdout, "%s: -i=%d, -a='%s'/%s:%d, -n='%s'/%d, -v=%d"
 			"\nbuf='%s'\n"
 			, __FUNCTION__
+			, cfg->node_id
 			, cfg->addr, cfg->ip, cfg->port, cfg->nodestr, cfg->nodes_len
 			, gloglevel
 			, dumpstr(cfg->buf, 512, 128)
@@ -308,10 +542,22 @@ int paxos_init(paxos_ctx * ctx)
 	int i;
 	bzero(ctx, sizeof(paxos_ctx));
 	INIT_LIST_HEAD(&ctx->nodes);
+	INIT_LIST_HEAD(&ctx->o_list);
+	INIT_LIST_HEAD(&ctx->propose_ok_list);
+	INIT_LIST_HEAD(&ctx->propose_success_list);
+
+	ctx->value = sdsempty();
 
 	for(i = 0; i < g_paxos_cfg->nodes_len; ++i){
-		char const * port = strchr(g_paxos_cfg->nodes[i], ':');
+		char const * addr = g_paxos_cfg->nodes[i];
+
+		if(strcmp(addr, g_paxos_cfg->addr) == 0)
+			continue;
+
+		char const * port = strchr(addr, ':');
 		assert(port);
+		char ip[64] = "127.0.0.1";
+		strncpy(ip, g_paxos_cfg->nodes[i], port - addr);
 		++port;
 
 		int fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -332,11 +578,13 @@ int paxos_init(paxos_ctx * ctx)
 		bzero(servaddr, sizeof(struct sockaddr_in));
 		servaddr->sin_family = AF_INET;
 		servaddr->sin_port = htons(atoi(port));
-		inet_pton(AF_INET, "127.0.0.1", &(servaddr->sin_addr));
+
+		inet_pton(AF_INET, ip, &(servaddr->sin_addr));
 
 		list_add_tail(&node->list, &ctx->nodes);
+		++ctx->n_nodes;
 
-		hp_epoll_add(g_paxos_epoll, node->fd, EPOLLIN | EPOLLET, &node->ed);
+		hp_epoll_add(g_paxos_epoll, node->fd, EPOLLIN | EPOLLOUT | EPOLLET, &node->ed);
 	}
 
 	return 0;
@@ -354,29 +602,9 @@ void paxos_uninit(paxos_ctx * ctx)
 	}
 }
 
-int paxos_echo(paxos_ctx * ctx, char const * str)
+static int paxos_echo(paxos_ctx * ctx, char const * str, int len)
 {
-	if(!(ctx && str))
-		return -1;
-
-
-	paxos_node * node;
-	list_for_each_entry(node, &ctx->nodes, list){
-		assert(node);
-
-		Xh__PaxosMsg msgobj, * msg = &msgobj;
-		xh__paxos_msg__init(msg);
-		msg->flag = 3;
-
-		size_t len = xh__paxos_msg__get_packed_size(msg);
-
-		void * msgbuf = malloc(len);
-		xh__paxos_msg__pack(msg, (uint8_t *)msgbuf);
-
-		int r = hp_eto_add(&node->eto, msgbuf, len, free, 0);
-		if(r != 0) return -1;
-	}
-
+	paxos_prepare(ctx, str, len);
 	return 0;
 }
 
@@ -390,44 +618,58 @@ static int epoll_handle_stdin(struct epoll_event * ev)
 	}
 #endif /* NDEBUG */
 
-	char buf[512] = "hello";
+	static char buf[512] = "hello";
+	ssize_t ibytes = read(fileno(stdin), buf, sizeof(buf));
 
-	int r = paxos_echo(g_paxos_ctx, buf);
+	int r = paxos_echo(g_paxos_ctx, buf, (int)ibytes);
 
-	if(gloglevel > 1)
-		hp_log(stdout, "%s: echo, data='%s', length=%d\n", __FUNCTION__, buf, strlen(buf));
-
+	hp_log(r == 0? stdout : stderr, "%s: echo '%s', data='%s'/%d, return=%d\n"
+				, __FUNCTION__
+				, (r == 0? "done" : "failed")
+				, buf, strlen(buf)
+				, r);
 	return r;
 }
 
 static void epoll_before_wait(struct hp_epoll * efds)
 {
-	struct epoll_event evobj, * ev = &evobj;
+	paxos_ctx_write(g_paxos_ctx);
 
     struct list_head * pos, * next;
     list_for_each_safe(pos, next, &g_paxos_ctx->nodes){
     	paxos_node * node = (struct paxos_node *)list_entry(pos, paxos_node, list);
     	assert(node);
 
-    	hp_eto * eto = &node->eto;
-    	if(eto->o_items_len > 0){
-    		int r = connect(node->fd, (struct sockaddr *)&node->servaddr, sizeof(struct sockaddr_in));
-    		if(r != 0){
-    			char addr[64] = "";
-    			get_ipport_cstr2(&node->servaddr, ":", addr, sizeof(addr));
+    	if(list_empty(&node->o_list))
+    		continue;
 
-    			hp_log(stderr, "%s: connect error(%d/%s), peer='%s'.\n"
-    					, __FUNCTION__, errno, strerror(errno), addr);
-    		}
-    	}
+		int r = connect(node->fd, (struct sockaddr *)&node->servaddr, sizeof(struct sockaddr_in));
+		if(r != 0){
+			char addr[64] = "";
+			get_ipport_cstr2(&node->servaddr, ":", addr, sizeof(addr));
 
-		ev->events = EPOLLIN | EPOLLOUT;
-		ev->data.ptr = &node->ed;
+			hp_log(stderr, "%s: connect error(%d/%s), peer='%s'.\n"
+					, __FUNCTION__, errno, strerror(errno), addr);
+			continue;
+		}
 
-		if((ev->events & EPOLLIN))
-			hp_eti_read(&node->eti, node->fd, ev);
-		if((ev->events & EPOLLOUT))
-			hp_eto_write(&node->eto, node->fd, ev);
+		struct list_head * msg_pos, * msg_next;
+		list_for_each_safe(msg_pos, msg_next, &node->o_list){
+			paxos_msg * req = (struct paxos_msg *)list_entry(msg_pos, paxos_msg, list);
+	    	assert(req);
+
+			size_t msglen = xh__paxos_msg__get_packed_size(req->msg);
+			size_t packlen = xh__paxos_msg__pack(req->msg, (uint8_t *)g_paxos_ctx->buf);
+			assert(msglen == packlen);
+
+			int n = sendto(node->fd, g_paxos_ctx->buf, msglen, 0, &node->servaddr, sizeof(node->servaddr));
+			if(n < 0 && (errno == EINTR || errno == EAGAIN))
+				continue;
+
+			list_del(&req->list);
+			free(req->msg);
+			paxos_msg_del(req);
+		}
     }
 }
 
@@ -451,7 +693,7 @@ int test_paxos_main(int argc, char ** argv)
 
 	hp_epoll_init(g_paxos_epoll, 1024);
 
-	hp_epolld_set(g_paxos_epoll_ed, g_paxos_fd, epoll_handle_paxos_msg, 0, 0, 0);
+	hp_epolld_set(g_paxos_epoll_ed, g_paxos_fd, epoll_handle_paxos_fd_io, 0, 0, 0);
 	hp_epoll_add(g_paxos_epoll, g_paxos_fd, EPOLLIN | EPOLLET, g_paxos_epoll_ed);
 
 	hp_epolld_set(g_paxos_stdin_ed, fileno(stdin), epoll_handle_stdin, 0, 0, 0);
@@ -499,7 +741,6 @@ int test_paxos_main(int argc, char ** argv)
 				}
 				continue;
 			}
-
 #ifndef NDEBUG
 			if(gloglevel > 0){
 				char buf[64];
@@ -507,19 +748,20 @@ int test_paxos_main(int argc, char ** argv)
 						, evdata->fd, hp_epoll_e2str(ev->events, buf, sizeof(buf)));
 			}
 #endif /* NDEBUG */
-
 		} /* for each epoll-ed fd */
 	} /* end of top loop */
 
-	paxos_config_unload(g_paxos_cfg);
-	hp_epoll_uninit(g_paxos_epoll);
 	paxos_uninit(g_paxos_ctx);
+	hp_epoll_uninit(g_paxos_epoll);
+	close(g_paxos_fd);
+	paxos_config_unload(g_paxos_cfg);
 
 	return 0;
 }
 
 char const * help_test_paxos()
 {
-	return "\n    --a=STRING       address for accept connection from paxos node, sample '127.0.0.1:11111'\n"
+	return "\n"
+		   "    --a=STRING       address for accept connection from paxos node, sample '127.0.0.1:11111'\n"
 		   "    --n=STRING       nodes, sample '127.0.0.1:11111,127.0.0.1:11112,127.0.0.1:11113'\n";
 }
