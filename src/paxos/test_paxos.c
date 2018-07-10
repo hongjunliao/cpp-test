@@ -6,6 +6,7 @@
  * https://github.com/Tencent/phxpaxos
  * */
 #include <unistd.h>
+#include <sys/stat.h>	 /* fstat */
 #include <sys/ioctl.h>   /* ioctl */
 #include <arpa/inet.h>   /* inet_pton */
 #include <stdio.h>
@@ -24,9 +25,8 @@
 /* generated from paxos_msg.proto */
 #include "paxos_msg.pb-c.h"
 /////////////////////////////////////////////////////////////////////////////////////////
-#define NODE_MAX                     20
+#define NODE_MAX                     1024
 #define PAXOS_PROPOSE_OK            (1 << 1)
-#define PAXOS_PROPOSE_SUCCESS       (1 << 2)
 /////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct paxos_config {
@@ -39,6 +39,7 @@ typedef struct paxos_config {
 	char *       nodes[NODE_MAX];    /* sample: 127.0.0.1:11112 */
 	int          nodes_len;
 
+	char const * echo_file;
 	char *       buf;                 /* inernal use */
 } paxos_config;
 
@@ -71,7 +72,7 @@ typedef struct paxos_ctx {
 	struct list_head propose_success_list;  /* paxos_msg */
 	int              n_propose_success;
 
-
+	time_t           echo_file_chksum;
 	char             buf[1024 * 8];
 
 	struct list_head nodes;          /* paxos_node, peer nodes */
@@ -201,7 +202,7 @@ static int propose_ok_list_comp_by_t(void * priv, struct list_head *a, struct li
 static int epoll_handle_paxos_node_fd_io(struct epoll_event * ev)
 {
 #ifndef NDEBUG
-	if(gloglevel > 2){
+	if(gloglevel > 8){
 		char buf[64];
 		hp_log(stdout, "%s: fd=%d, events='%s'\n", __FUNCTION__
 				, hp_epoll_fd(ev), hp_epoll_e2str(ev->events, buf, sizeof(buf)));
@@ -249,8 +250,7 @@ static int epoll_handle_paxos_node_fd_io(struct epoll_event * ev)
 							list_sort(0, &g_paxos_ctx->propose_ok_list, propose_ok_list_comp_by_t);
 							struct paxos_msg * pmmax = list_entry(g_paxos_ctx->propose_ok_list.next, paxos_msg, list);
 							if(pmmax->t > 0){
-								sdsfree(g_paxos_ctx->value);
-								g_paxos_ctx->value = sdsdup(pmmax->value);
+								g_paxos_ctx->value = sdscpy(g_paxos_ctx->value, pmmax->value);
 							}
 							paxos_propose(g_paxos_ctx);
 						}
@@ -305,7 +305,7 @@ static void paxos_ctx_write(paxos_ctx * ctx)
 static int epoll_handle_paxos_fd_io(struct epoll_event * ev)
 {
 #ifndef NDEBUG
-	if(gloglevel > 2){
+	if(gloglevel > 8){
 		char buf[64];
 		hp_log(stdout, "%s: fd=%d, events='%s'\n", __FUNCTION__
 				, hp_epoll_fd(ev), hp_epoll_e2str(ev->events, buf, sizeof(buf)));
@@ -336,7 +336,7 @@ static int epoll_handle_paxos_fd_io(struct epoll_event * ev)
 							, msg->value.len);
 
 					if(msg->flag == 3){
-						fprintf(stdout, "%s: echo data='%s'/%zu\n", __FUNCTION__, g_paxos_ctx->value, sdslen(g_paxos_ctx->value));
+						hp_log(stdout, "%s: echo_end, data='%s'/%zu\n", __FUNCTION__, g_paxos_ctx->value, sdslen(g_paxos_ctx->value));
 						xh__paxos_msg__free_unpacked(msg, 0);
 						continue;
 					}
@@ -372,8 +372,7 @@ static int epoll_handle_paxos_fd_io(struct epoll_event * ev)
 					}
 					else if(msg->proposalid == g_paxos_ctx->t_max){
 						g_paxos_ctx->t = msg->proposalid;
-						sdsclear(g_paxos_ctx->value);
-						g_paxos_ctx->value = sdscatlen(g_paxos_ctx->value, msg->value.data, msg->value.len);
+						g_paxos_ctx->value = sdscpylen(g_paxos_ctx->value, (const char *)msg->value.data, msg->value.len);
 						xh__paxos_msg__free_unpacked(msg, 0);
 
 						msg = (Xh__PaxosMsg *)malloc(sizeof(Xh__PaxosMsg));
@@ -466,6 +465,7 @@ int paxos_config_load(paxos_config * cfg, int argc, char ** argv)
 			case 'a': p = &cfg->addr;    break;
 			case 'n': p = &cfg->nodestr; break;
 			case 'v': p = &loglevelstr;  break;
+			case 'f': p = &cfg->echo_file;  break;
 			default:
 				fprintf(stderr, "%s: unsupported, arg: '%s'\n", __FUNCTION__, arg);
 				continue;
@@ -535,13 +535,14 @@ void paxos_config_print(paxos_config * cfg)
 {
 	if(!cfg)
 		return;
-	hp_log(stdout, "%s: -i=%d, -a='%s'/%s:%d, -n='%s'/%d, -v=%d"
+	hp_log(stdout, "%s: -i=%d, -a='%s'/%s:%d, -n='%s'/%d, -f='%s', -v=%d"
 			"\nbuf='%s'\n"
 			, __FUNCTION__
 			, cfg->node_id
 			, cfg->addr, cfg->ip, cfg->port, cfg->nodestr, cfg->nodes_len
+			, cfg->echo_file
 			, gloglevel
-			, dumpstr(cfg->buf, 512, 128)
+			, dumpstr(cfg->buf, 512, 64)
 		);
 
 }
@@ -558,6 +559,18 @@ int paxos_init(paxos_ctx * ctx)
 	INIT_LIST_HEAD(&ctx->propose_success_list);
 
 	ctx->value = sdsempty();
+
+	struct stat fs;
+	char const * path = g_paxos_cfg->echo_file;
+	if(path){
+		if(stat(path, &fs) < 0){
+			hp_log(stderr, "%s: stat('%s') failed, errno=%d, error='%s'\n"
+					, __FUNCTION__, path, errno, strerror(errno));
+			return -1;
+		}
+		g_paxos_ctx->echo_file_chksum = fs.st_mtim.tv_sec;
+	}
+
 
 	for(i = 0; i < g_paxos_cfg->nodes_len; ++i){
 		char const * addr = g_paxos_cfg->nodes[i];
@@ -617,7 +630,11 @@ void paxos_uninit(paxos_ctx * ctx)
 
 static int paxos_echo(paxos_ctx * ctx, char const * str, int len)
 {
-	ctx->value = sdscatlen(ctx->value, str, len);
+	ctx->value = sdscpylen(ctx->value, str, len);
+
+	hp_log(stdout, "%s: echo_begin, data='%s'/%d\n"
+				, __FUNCTION__, str, strlen(str));
+
 	paxos_prepare(ctx);
 	return 0;
 }
@@ -638,13 +655,48 @@ static int epoll_handle_stdin(struct epoll_event * ev)
 		buf[ibytes - 1] = '\0';
 
 	int r = paxos_echo(g_paxos_ctx, buf, (int)ibytes);
-
-	hp_log(r == 0? stdout : stderr, "%s: echo '%s', data='%s'/%d, return=%d\n"
-				, __FUNCTION__
-				, (r == 0? "done" : "failed")
-				, buf, strlen(buf)
-				, r);
 	return r;
+}
+
+static void paxos_try_echo()
+{
+	struct stat fs;
+
+	char const * path = g_paxos_cfg->echo_file;
+	if(!path) return;
+
+	if(stat(path, &fs) < 0){
+		hp_log(stderr, "%s: stat('%s') failed, errno=%d, error='%s'\n"
+				, __FUNCTION__, path, errno, strerror(errno));
+		return;
+	}
+	if(fs.st_mtim.tv_sec != g_paxos_ctx->echo_file_chksum){
+		g_paxos_ctx->echo_file_chksum = fs.st_mtim.tv_sec;
+
+		FILE * f = fopen(path, "r");
+		if(!f){
+			hp_log(stderr, "%s: fopen('%s') failed, errno=%d, error='%s'\n"
+					, __FUNCTION__, path, errno, strerror(errno));
+			return;
+		}
+
+		char line[512] = "hello";
+		while(fgets(line, sizeof(line), f)){
+			char * nline = strrchr(line, '\n');
+			if(nline) *nline = '\0';
+
+			char * p = strchr(line, ' ');
+			if(!p) continue;
+			*p = '\0';
+
+			if(atoi(line) != g_paxos_cfg->node_id)
+				continue;
+
+			char const * str = p + 1;
+			paxos_echo(g_paxos_ctx, str, strlen(str));
+			break;
+		}
+	}
 }
 
 static void epoll_before_wait(struct hp_epoll * efds)
@@ -699,7 +751,6 @@ int test_paxos_main(int argc, char ** argv)
 	if(r != 0)
 		return -1;
 #ifndef NDEBUG
-	assert(g_paxos_cfg->nodes_len == 3);
 	paxos_config_print(g_paxos_cfg);
 #endif /* NDEBUG */
 
@@ -765,6 +816,8 @@ int test_paxos_main(int argc, char ** argv)
 			}
 #endif /* NDEBUG */
 		} /* for each epoll-ed fd */
+
+		paxos_try_echo();
 	} /* end of top loop */
 
 	paxos_uninit(g_paxos_ctx);
