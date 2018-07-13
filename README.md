@@ -11,6 +11,7 @@
 	5.tests/: 库及系统调用的测试  
 	6.win32/: 实现了一个基于管道的win32进程IO重定向(实时捕获另一个进程的输出) 
 	7.mem_pool: 一个小型对象(sizeof返回1024以下)分配池实现
+	8.paxos/: the paxos protocol test, see paxos.jpg
 	
 ## 如何阅读代码及使用
 
@@ -26,3 +27,6 @@
 这是为了可以使用如下方式运行测试:
 $ ./mytest rbtree_insert arg1 arg2 ...
 
+## build
+
+cd gcc_shared; make all;
