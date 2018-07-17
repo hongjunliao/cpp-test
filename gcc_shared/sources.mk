@@ -47,6 +47,7 @@ src/springboot-sidecar \
 src/test_libwx \
 src/tests \
 src/usb \
+src/vonmenw-pbft/bft-simple \
 src/win32 \
 src/xh_vircam \
 
