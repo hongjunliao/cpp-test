@@ -10,6 +10,7 @@ RM := rm -rf
 -include sources.mk
 -include src/xh_vircam/subdir.mk
 -include src/win32/subdir.mk
+-include src/vonmenw-pbft/libbyz/subdir.mk
 -include src/vonmenw-pbft/bft-simple/subdir.mk
 -include src/usb/subdir.mk
 -include src/tests/subdir.mk

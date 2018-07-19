@@ -48,6 +48,7 @@ src/test_libwx \
 src/tests \
 src/usb \
 src/vonmenw-pbft/bft-simple \
+src/vonmenw-pbft/libbyz \
 src/win32 \
 src/xh_vircam \
 

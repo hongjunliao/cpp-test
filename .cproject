@@ -128,6 +128,28 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.562633949" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.1869027605"/>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205.1421726071.899736677" name="/" resourcePath="src/vonmenw-pbft/libbyz">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.base.251139703" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.base" unusedChildren="">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.PE" id="cdt.managedbuild.target.gnu.platform.mingw.base" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.mingw.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.base.727772437" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.base.176764585">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.483085189" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.mingw.base.1994006298" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.mingw.base.427373455"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.892365901" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.2042915966">
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1119826166" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+									<listOptionValue builtIn="false" value="RECOVERY"/>
+									<listOptionValue builtIn="false" value="WITH_LIBPROTOBUF_LIBEV=0"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1650124036" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.1220521542" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.760346155">
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1407384280" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.base.322409844" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.base.2095018649"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.2109210054" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.562633949"/>
+						</toolChain>
+					</folderInfo>
 					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205.1421726071.1167489834" name="/" resourcePath="src/phxecho">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.base.877279907" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.base" unusedChildren="">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.PE" id="cdt.managedbuild.target.gnu.platform.mingw.base" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.mingw.base"/>
@@ -333,6 +355,28 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.43828074" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base.792245126"/>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.base.702224721" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base.1713086262">
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1476972716" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.771809740.1397701286" name="/" resourcePath="src/vonmenw-pbft/libbyz">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.1912496332" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base" unusedChildren="">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.GNU_ELF" id="cdt.managedbuild.target.gnu.platform.base" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.331080731" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.621531371"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.75333878" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base.1452762250">
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1788009659" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+									<listOptionValue builtIn="false" value="RECOVERY"/>
+									<listOptionValue builtIn="false" value="WITH_LIBPROTOBUF_LIBEV=0"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1397091842" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.1418028479" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base.1112561006">
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.2067086360" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.1568662202" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base.1920376115"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.126307655" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base.43828074"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.base.669954484" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base.702224721">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.340413376" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
@@ -619,6 +663,29 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.944008223" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base.1099138819"/>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.base.693537504" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base.429715370">
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.615198187" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.debug.1453163901.771809740.1819158180.239548644" name="/" resourcePath="src/vonmenw-pbft/libbyz">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.1917651080" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base" unusedChildren="">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.GNU_ELF" id="cdt.managedbuild.target.gnu.platform.base" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.860515307" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.1502125448"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1954099012" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base.1699484067">
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1068643275" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+									<listOptionValue builtIn="false" value="RECOVERY"/>
+									<listOptionValue builtIn="false" value="WITH_LIBPROTOBUF_LIBEV=0"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1680914139" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.1475068862" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base.694613085">
+								<option id="gnu.c.compiler.option.dialect.std.1075578400" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.c11" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1881626908" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.735327272" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base.1359629548"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.1549926490" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base.944008223"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.base.498387648" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base.693537504">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1380646750" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
