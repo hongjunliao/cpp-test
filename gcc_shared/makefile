@@ -16,6 +16,7 @@ RM := rm -rf
 -include src/tests/subdir.mk
 -include src/test_libwx/subdir.mk
 -include src/springboot-sidecar/subdir.mk
+-include src/spdlog/subdir.mk
 -include src/sds/subdir.mk
 -include src/protobuf_libev/subdir.mk
 -include src/phxecho/logger_google/subdir.mk

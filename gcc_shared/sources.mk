@@ -43,6 +43,7 @@ src/phxecho \
 src/phxecho/logger_google \
 src/protobuf_libev \
 src/sds \
+src/spdlog \
 src/springboot-sidecar \
 src/test_libwx \
 src/tests \

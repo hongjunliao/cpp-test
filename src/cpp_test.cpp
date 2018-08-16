@@ -115,6 +115,8 @@ int test_paxos_main(int argc, char ** argv);
 char const * help_test_paxos();
 
 int test_kernel_list_sort_main(int argc, char ** argv);
+
+int test_socketpair_fork_main(int argc, char ** argv);
 }
 
 int test_vonmenw_pbft_simple_client_main(int argc, char **argv);
@@ -236,6 +238,7 @@ static test_entry const testmap2[512] = {
 		, { "kernel_list_sort",    test_kernel_list_sort_main,   0}
 		, { "test_vonmenw_pbft_simple_client", test_vonmenw_pbft_simple_client_main, 0}
 		, { "test_vonmenw_pbft_simple_server", test_vonmenw_pbft_simple_server_main, 0}
+		, { "socketpair_fork", test_socketpair_fork_main, 0 }
 		, { "", 0, 0}
 };
 

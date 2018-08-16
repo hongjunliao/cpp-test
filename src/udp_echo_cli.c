@@ -23,7 +23,6 @@ int udp_echo_cli_main(int argc, char ** argv)
 		return -1;
 	}
 
-
 	char const * ip = "127.0.0.1";
 	int port = 9000;
 	struct sockaddr_in servaddr = { 0 }, peer = { 0 };
@@ -31,6 +30,13 @@ int udp_echo_cli_main(int argc, char ** argv)
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(port);
 	inet_pton(AF_INET, ip, &servaddr.sin_addr);
+
+	if(bind(fd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0){
+		fprintf(stderr, "%s: bind error('%s'), port=%d\n"
+				, __FUNCTION__, strerror(errno), port);
+		close(fd);
+		return -1;
+	}
 
 	size_t t = 0;
 	char buf[512];
