@@ -25,6 +25,7 @@ C_SRCS += \
 ../src/tcp_echo_cli.c \
 ../src/test_socketpair_fork.c \
 ../src/test_string_util.c \
+../src/test_zlib_2.c \
 ../src/udp_echo_cli.c 
 
 OBJS += \
@@ -46,6 +47,7 @@ OBJS += \
 ./src/test_cpp11.o \
 ./src/test_socketpair_fork.o \
 ./src/test_string_util.o \
+./src/test_zlib_2.o \
 ./src/udp_echo_cli.o \
 ./src/xhsdk_select_server.o 
 
@@ -71,6 +73,7 @@ C_DEPS += \
 ./src/tcp_echo_cli.d \
 ./src/test_socketpair_fork.d \
 ./src/test_string_util.d \
+./src/test_zlib_2.d \
 ./src/udp_echo_cli.d 
 
 
