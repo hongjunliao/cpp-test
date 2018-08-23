@@ -1,3 +1,4 @@
+#ifdef CP_WITH_PBFT
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -129,4 +130,10 @@ int test_vonmenw_pbft_simple_client_main(int argc, char **argv) {
 
   Byz_free_request(&req);
 }
-  
+#else
+#include <stdio.h>
+int test_vonmenw_pbft_simple_client_main(int argc, char **argv) {
+	fprintf(stderr, "%s: define CP_WITH_PBFT to enable\n", __FUNCTION__);
+	return 0;
+}
+#endif

@@ -119,6 +119,8 @@ int test_kernel_list_sort_main(int argc, char ** argv);
 int test_socketpair_fork_main(int argc, char ** argv);
 
 int test_zlib2_main(int argc, char* argv[]);
+int test_nat_main(int argc, char ** argv);
+char const * help_test_nat();
 }
 
 int test_vonmenw_pbft_simple_client_main(int argc, char **argv);
@@ -238,10 +240,13 @@ static test_entry const testmap2[512] = {
 		, { "phxecho",             test_phxecho_main, 0}
 		, { "paxos1",              test_paxos_main,   help_test_paxos}
 		, { "kernel_list_sort",    test_kernel_list_sort_main,   0}
+#ifdef CP_WITH_PBFT
 		, { "test_vonmenw_pbft_simple_client", test_vonmenw_pbft_simple_client_main, 0}
 		, { "test_vonmenw_pbft_simple_server", test_vonmenw_pbft_simple_server_main, 0}
+#endif
 		, { "socketpair_fork", test_socketpair_fork_main, 0 }
 		, { "test_zlib2", test_zlib2_main, 0 }
+		, { "nat",        test_nat_main,             help_test_nat }
 		, { "", 0, 0}
 };
 
