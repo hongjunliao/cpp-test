@@ -4,13 +4,13 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <unistd.h>
-#include <vonmenw-pbft/bft-simple/simple.h>
+#include "vonmenw-pbft/bft-simple/simple.h"
 #include <iostream>
 
-#include "th_assert.h"
-#include "libbyz.h"
-#include "Statistics.h"
-#include "Timer.h"
+#include "libbyz/th_assert.h"
+#include "libbyz/libbyz.h"
+#include "libbyz/Statistics.h"
+#include "libbyz/Timer.h"
 
 
 using std::cerr;

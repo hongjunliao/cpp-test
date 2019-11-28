@@ -24,7 +24,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "cpp_test.h"
 #include <stdio.h>
 
 #ifdef WITH_LIBUSB
@@ -120,4 +119,3 @@ static char const * help_libusb()
 	return "libusb_1_0";
 }
 
-struct test_entry libusb_1_0 = { "libusb_1_0", test_libusb_main, help_libusb };

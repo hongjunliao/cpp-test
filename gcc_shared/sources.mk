@@ -28,7 +28,7 @@ src/algs/merge_sort_link_list \
 src/alsa_pcm \
 src/api_poll \
 src/bluez \
-src/chess/src \
+src/chess \
 src \
 src/cti \
 src/hiredis \

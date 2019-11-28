@@ -19,7 +19,7 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors. 
 */
 
-#include "phxpaxos_plugin/logger_google.h"
+#include "phxpaxos/phxpaxos_plugin/logger_google.h"
 #include <assert.h>
 #include <stdarg.h>
 

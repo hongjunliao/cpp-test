@@ -2,11 +2,11 @@
 
 #include <stdlib.h>
 #include <strings.h>
-#include "crypt.h"
+#include "sfslite-1.2/crypt.h"
 
 #include "../libbyz/Node.h"
 #include "../libbyz/Reply.h"
-#include "rabin.h"
+#include "sfslite-1.2/rabin.h"
 
 Principal::Principal(int i, Addr a, char *p) {
   id = i;

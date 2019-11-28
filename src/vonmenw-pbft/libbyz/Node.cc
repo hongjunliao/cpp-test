@@ -11,7 +11,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#include "crypt.h"
+#include "sfslite-1.2/crypt.h"
 
 #include "../libbyz/ITimer.h"
 #include "../libbyz/Message.h"
@@ -20,7 +20,7 @@
 #include "../libbyz/Principal.h"
 #include "../libbyz/th_assert.h"
 #include "../libbyz/Time.h"
-#include "rabin.h"
+#include "sfslite-1.2/rabin.h"
 
 
 #define NO_IP_MULTICAST

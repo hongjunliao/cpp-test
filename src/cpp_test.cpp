@@ -3,11 +3,12 @@
  * @author hongjun.liao <docici@126.com>
  * */
 
-#include "cpp_test.h"
+#include <dlfcn.h>
 #include <string.h>	       /* strncmp */
 #include <algorithm>
 #include <string>
 #include <map>
+#include "cpp_test.h"
 
 //!
 typedef int(*test_main_fn)(int argc, char * argv[]);
@@ -288,6 +289,13 @@ int bd_test_main(int argc, char ** argv, char const * stest)
 			if(strcmp(tst->name, stest) == 0 && tst->main)
 				return tst->main(argc, argv);
 		}
+
+		fn = (test_main_fn)dlsym(0, stest);
+		if(fn){
+			fn(argc, argv);
+			return 0;
+		}
+
 		fprintf(stderr, "%s: no such test: %s\n", __FUNCTION__, stest);
 		return BD_TEST_NO_SUCH_TEST;
 	}

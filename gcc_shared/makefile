@@ -32,7 +32,7 @@ RM := rm -rf
 -include src/jzoffer/subdir.mk
 -include src/hiredis/subdir.mk
 -include src/cti/subdir.mk
--include src/chess/src/subdir.mk
+-include src/chess/subdir.mk
 -include src/bluez/subdir.mk
 -include src/api_poll/subdir.mk
 -include src/alsa_pcm/subdir.mk

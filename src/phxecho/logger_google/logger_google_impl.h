@@ -22,7 +22,7 @@
 #pragma once
 
 #include "phxpaxos/log.h"
-#include "phxpaxos_plugin/logger_google.h"
+#include "phxpaxos/phxpaxos_plugin/logger_google.h"
 #include <string>
 
 namespace phxpaxos

@@ -28,6 +28,11 @@
 #include "bigint.h"
 #include "sha1.h"
 #include "blowfish.h"
+#include "wmstr.h"
+
+#include "prng.h"
+extern prng rnd;
+
 
 bigint pre_encrypt (str msg, size_t nbits);
 str post_decrypt (const bigint &m, size_t msglen, size_t nbits);

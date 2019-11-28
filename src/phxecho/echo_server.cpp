@@ -26,7 +26,7 @@ See the AUTHORS file for names of contributors.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "phxpaxos_plugin/logger_google.h"
+#include "phxpaxos/phxpaxos_plugin/logger_google.h"
 using namespace phxpaxos;
 using namespace std;
 
