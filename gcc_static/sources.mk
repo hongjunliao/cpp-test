@@ -39,12 +39,20 @@ src/mem_pool \
 src/mmpool \
 src/mysql \
 src/nghhtp2 \
+src/paxos \
+src/phxecho \
+src/phxecho/logger_google \
+src/protobuf-c \
 src/protobuf_libev \
 src/sds \
+src/sm \
+src/spdlog \
 src/springboot-sidecar \
 src/test_libwx \
 src/tests \
 src/usb \
+src/vonmenw-pbft/bft-simple \
+src/vonmenw-pbft/libbyz \
 src/win32 \
 src/xh_vircam \
 

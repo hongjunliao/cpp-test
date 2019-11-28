@@ -41,8 +41,10 @@ src/nghhtp2 \
 src/paxos \
 src/phxecho \
 src/phxecho/logger_google \
+src/protobuf-c \
 src/protobuf_libev \
 src/sds \
+src/sm \
 src/spdlog \
 src/springboot-sidecar \
 src/test_libwx \

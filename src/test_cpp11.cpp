@@ -132,3 +132,4 @@ int test_cpp11_main(int argc, char ** argv)
 	std::initializer_list<int> i {3, 4, 5};
 	return 0;
 }
+

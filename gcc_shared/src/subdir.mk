@@ -10,12 +10,14 @@ CPP_SRCS += \
 ../src/string_util_url.cpp \
 ../src/termio_util.cpp \
 ../src/test_cpp11.cpp \
+../src/test_libocurs.cpp \
 ../src/xhsdk_select_server.cpp 
 
 C_SRCS += \
 ../src/hp_epoll.c \
 ../src/hp_io.c \
 ../src/hp_log.c \
+../src/hp_nat.c \
 ../src/hp_net.c \
 ../src/hp_sig.c \
 ../src/list_sort.c \
@@ -35,6 +37,7 @@ OBJS += \
 ./src/hp_epoll.o \
 ./src/hp_io.o \
 ./src/hp_log.o \
+./src/hp_nat.o \
 ./src/hp_net.o \
 ./src/hp_sig.o \
 ./src/list_sort.o \
@@ -45,6 +48,7 @@ OBJS += \
 ./src/tcp_echo_cli.o \
 ./src/termio_util.o \
 ./src/test_cpp11.o \
+./src/test_libocurs.o \
 ./src/test_socketpair_fork.o \
 ./src/test_string_util.o \
 ./src/test_zlib_2.o \
@@ -58,12 +62,14 @@ CPP_DEPS += \
 ./src/string_util_url.d \
 ./src/termio_util.d \
 ./src/test_cpp11.d \
+./src/test_libocurs.d \
 ./src/xhsdk_select_server.d 
 
 C_DEPS += \
 ./src/hp_epoll.d \
 ./src/hp_io.d \
 ./src/hp_log.d \
+./src/hp_nat.d \
 ./src/hp_net.d \
 ./src/hp_sig.d \
 ./src/list_sort.d \
