@@ -105,6 +105,16 @@
 							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.173983018" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 						</tool>
 					</fileInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205.1421726071.1086133831" name="/" resourcePath="src/test_bison_flex">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.base.1860697984" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.base" unusedChildren="">
+							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.base.33118212" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.base.1611698399"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.mingw.base.251417624" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.mingw.base.1840312319"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.1407751538" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.799283233"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.369827382" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.95652808"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.base.1831884550" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.base.1006949538"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.48215745" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.1869027605"/>
+						</toolChain>
+					</folderInfo>
 					<folderInfo id="cdt.managedbuild.config.gnu.cygwin.so.release.163633205.1421726071.818387072" name="/" resourcePath="src/vonmenw-pbft">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.base.594143289" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.base" unusedChildren="">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.PE" id="cdt.managedbuild.target.gnu.platform.mingw.base" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.mingw.base"/>
@@ -172,7 +182,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="src/nginx_log_analysis|src/SecondPaxos|src/tests|src/test_bison_flex|src/net_util.cpp|src/test_plcdn_log_analysis|src/nginx_log_split|src/plcdn_log_split|src/plcdn_log_analysis|src/srs_log_analysis" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/nginx_log_analysis|src/net_util.cpp|src/test_plcdn_log_analysis|src/nginx_log_split|src/plcdn_log_split|src/plcdn_log_analysis|src/srs_log_analysis" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -371,7 +381,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="src/SecondPaxos" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -639,7 +649,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="src/SecondPaxos|src/llvm" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/llvm" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
