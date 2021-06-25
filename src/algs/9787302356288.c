@@ -4,8 +4,12 @@
  * 算法竞赛入门经典（第2版） by 刘汝佳 (z-lib.org)
  *
  * */
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
 #include <assert.h> /* assert */
 #include <stdio.h>
+#include <string.h>
 
 #define max(a, b) ((a) > (b)? (a) : (b))
 
@@ -75,6 +79,48 @@ int test_max_subarray_main(int argc, char ** argv)
 		int D[maxN][maxN];
 		r = solve3(rec, D, 4);
 		assert(r == 24);
+	}
+
+	return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+/* 6.3
+ * 树和二叉树
+ * */
+#define s_maxD (1 << 20)
+static int s_s[s_maxD];
+/**
+ * 有一二叉树, 结点从左至右,从上至下, 依次编号为1,2,3,...
+ */
+static int dropping_balls(int  D, int I)
+{
+	if(!(D > 0 && I > 0)) { return -1; }
+	int i, k;
+	int n = (1 << D) - 1;
+
+	memset(s_s, 0, sizeof(s_s));
+	for(i = 1; i <= I; ++i){
+
+		k = 1;
+		for(;;){
+			s_s[k] = !s_s[k];
+			k = (s_s[k]? 2 * k : 2 * k + 1);
+
+			if( k > n) { break; }
+		}
+
+	}
+	return k / 2;
+}
+int test_9787302356288_tree_main(int argc, char ** argv)
+{
+	int i, r;
+	int balls[][2] = { {4, 2}, {3, 4}, {10, 1}, {2, 2}, {8, 128}, {16, 12345}, {0, 0}};
+	int result[] = { 12, 7, 512, 3, 255, 36358 };
+	for(i = 0; i < 6; ++i){
+		r = dropping_balls(balls[i][0], balls[i][1]);
+		assert(r == result[i]);
 	}
 
 	return 0;
