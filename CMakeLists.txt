@@ -8,10 +8,12 @@ project(cpp-test)
 add_executable(cpp-test src/main.c
 	src/algs/9787302356288/9787302356288.c
 	src/algs/algorithms4th/1.5.c
+	src/hp_poll.c
 )
 target_compile_options(cpp-test PUBLIC
     -DHAVE_CONFIG_H -D_GNU_SOURCE -DCMAKE_EXPORT_COMPILE_COMMANDS
 )
+target_include_directories(cpp-test PRIVATE deps/)
 if(NOT WIN32)
 	target_compile_options(cpp-test PUBLIC  -O0 -g3  -Wall)
 else()
