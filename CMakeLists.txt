@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 2.8)
 
 # cpp-test 
 project(cpp-test)
+add_subdirectory(deps/libhp) 
 add_executable(cpp-test src/main.c
 	src/algs/9787302356288/9787302356288.c
 	src/algs/algorithms4th/1.5.c
@@ -13,9 +14,10 @@ add_executable(cpp-test src/main.c
 target_compile_options(cpp-test PUBLIC
     -DHAVE_CONFIG_H -D_GNU_SOURCE -DCMAKE_EXPORT_COMPILE_COMMANDS
 )
-target_include_directories(cpp-test PRIVATE deps/)
+target_include_directories(cpp-test PRIVATE . deps/ deps/libhp/include/)
 if(NOT WIN32)
 	target_compile_options(cpp-test PUBLIC  -O0 -g3  -Wall)
 else()
 	target_compile_options(cpp-test PUBLIC -D_CRT_SECURE_NO_WARNINGS  /MTd)
 endif()
+target_link_libraries(cpp-test libhp)
