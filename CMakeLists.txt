@@ -9,6 +9,7 @@ add_subdirectory(deps/libhp)
 add_executable(cpp-test src/main.c
 	src/algs/9787302356288/9787302356288.c
 	src/algs/algorithms4th/1.5.c
+	src/algs/algorithms4th/sort.c
 	src/hp_poll.c
 )
 target_compile_options(cpp-test PUBLIC

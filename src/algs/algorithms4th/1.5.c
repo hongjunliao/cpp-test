@@ -12,7 +12,9 @@
 #include <stdio.h>
 #include "c-vector/cvector.h"
 #include  "hp/string_util.h" /* hp_fread */
+#ifndef max
 #define max(a,b) ((a) > (b) ? a : b)
+#endif
 /*
  * Weighted Quick Union, 带权重的
  * */
@@ -197,6 +199,28 @@ int test_algorithms4th_1_5_main(int argc, char ** argv)
 		assert(wqu_is_connected(pu, 2, 3));
 		//
 		assert(pu->sz[2] == 5);
+		wqu_uninit(pu);
+	}
+	//3个连通分量
+	{
+		wqu_s uobj, * pu =&uobj;
+		rc = wqu_init(pu); assert(rc == 0);
+		assert(!wqu_is_connected(pu, 2, 1));
+		assert(!wqu_is_connected(pu, 3, 5));
+		assert(!wqu_is_connected(pu, 4, 8));
+		assert(!wqu_is_connected(pu, 1, 4));
+		rc = wqu_union(pu, 2, 1); assert(rc == 0);
+		rc = wqu_union(pu, 3, 5); assert(rc == 0);
+		rc = wqu_union(pu, 4, 8); assert(rc == 0);
+		rc = wqu_union(pu, 1, 4); assert(rc == 0);
+		assert(wqu_is_connected(pu, 2, 1));
+		assert(wqu_is_connected(pu, 3, 5));
+		assert(wqu_is_connected(pu, 4, 8));
+		assert(wqu_is_connected(pu, 1, 4));
+
+		assert(wqu_is_connected(pu, 1, 4));
+		assert(wqu_is_connected(pu, 2, 8));
+		assert(!wqu_is_connected(pu, 2, 3));
 		wqu_uninit(pu);
 	}
 	//文件数据源1
