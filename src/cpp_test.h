@@ -35,6 +35,8 @@ int mykeys_regex_search(char const * key_file, char const * password, char const
 /*call test, no @param stest then return @see BD_TEST_NO_SUCH_TEST*/
 int bd_test_main(int argc, char ** argv, char const * stest);
 char const * bd_test_get_test_list();
+
+int test_algs4th_sort_main(int argc, char ** argv);
 #ifdef __cplusplus
 }
 #endif	//__cplusplus

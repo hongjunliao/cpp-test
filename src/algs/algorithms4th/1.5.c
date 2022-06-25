@@ -11,7 +11,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include "c-vector/cvector.h"
-#include  "hp/string_util.h" /* hp_fread */
 #ifndef max
 #define max(a,b) ((a) > (b) ? a : b)
 #endif
