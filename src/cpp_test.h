@@ -37,6 +37,15 @@ int bd_test_main(int argc, char ** argv, char const * stest);
 char const * bd_test_get_test_list();
 
 int test_algs4th_sort_main(int argc, char ** argv);
+
+int test_boost_asio_main(int argc, char **argv);
+int test_max_subarray_main(int argc, char ** argv);
+int test_9787302356288_tree_main(int argc, char ** argv);
+int test_hp_poll_main(int argc, char ** argv);
+int test_algorithms4th_1_5_main(int argc, char ** argv);
+int test_algs4th_sort_main(int argc, char ** argv);
+int test_greedy_main(int argc, char ** argv);
+int test_dbus_main(int argc, char **argv);
 #ifdef __cplusplus
 }
 #endif	//__cplusplus
