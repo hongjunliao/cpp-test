@@ -46,6 +46,7 @@ int test_algorithms4th_1_5_main(int argc, char ** argv);
 int test_algs4th_sort_main(int argc, char ** argv);
 int test_greedy_main(int argc, char ** argv);
 int test_dbus_main(int argc, char **argv);
+int test_libwx_main(int argc, char ** argv);
 #ifdef __cplusplus
 }
 #endif	//__cplusplus
