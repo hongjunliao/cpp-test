@@ -26,7 +26,7 @@ target_link_libraries(cpp-test )
 endif()
 
 # dbus
-if(NOT CPP_TEST_NO_DBUS)
+if(WITH_DBUS)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(dbus REQUIRED dbus-1)
 target_link_libraries(cpp-test ${dbus_LIBRARIES})

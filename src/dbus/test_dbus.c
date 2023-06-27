@@ -2,6 +2,7 @@
  * This file is Part of cpp-test
  * @author: hongjun.liao<docici@126.com>
  */
+#ifdef WITH_DBUS
 #include "cpp_test.h"
 #include "hp/hp_log.h"
 #include <stdio.h>
@@ -380,3 +381,4 @@ int test_dbus_main(int argc, char **argv) {
 	return 0;
 }
 
+#endif //#ifdef WITH_DBUS
