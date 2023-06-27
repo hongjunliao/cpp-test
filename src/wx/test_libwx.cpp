@@ -19,6 +19,7 @@ public:
 };
 
 wxIMPLEMENT_APP(MyApp);
+DECLARE_APP(MyApp)
 
 class MyFrame : public wxFrame
 {
@@ -87,6 +88,7 @@ void MyFrame::OnHello(wxCommandEvent& event)
 
 int test_libwx_main(int argc, char ** argv)
 {
+	MyApp & app = wxGetApp();
 	printf("%s:\n", __FUNCTION__);
 	return 0;
 }

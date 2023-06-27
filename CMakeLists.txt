@@ -9,6 +9,13 @@ configure_file(
 # cpp-test 
 project(cpp-test)
 add_subdirectory(deps/libhp) 
+find_package(PkgConfig REQUIRED)
+
+#WITH_LIBUV
+if(WITH_LIBUV)
+pkg_check_modules(libuv REQUIRED libuv)
+file(GLOB SRCS ${SRCS} src/uv/uv.c )
+endif()
 
 #WITH_LIBWX
 if(WITH_LIBWX)
@@ -16,6 +23,14 @@ find_package(wxWidgets REQUIRED COMPONENTS core base)
 file(GLOB SRCS ${SRCS} src/wx/test_libwx.cpp )
 include(${wxWidgets_USE_FILE})
 endif()
+
+#WITH_openssl
+if(WITH_OPENSSL)
+find_package(OpenSSL REQUIRED)
+file(GLOB SRCS ${SRCS} src/openssl/bignum.cpp )
+include_directories(${OPENSSL_INCLUDE_DIR})
+endif()
+
 add_executable(cpp-test ${SRCS} src/main.c
 	src/algs/9787302356288/9787302356288.c
 	src/algs/algorithms4th/1.5.c
@@ -31,18 +46,26 @@ if(WITH_LIBWX)
 target_link_libraries(cpp-test ${wxWidgets_LIBRARIES})
 endif()
 
+if(WITH_LIBUV)
+target_include_directories(cpp-test PUBLIC ${libuv_INCLUDE_DIRS})
+target_link_libraries(cpp-test ${libuv_LIBRARIES})
+endif()
+
+if(WITH_OPENSSL)
+target_include_directories(cpp-test PUBLIC ${openssl_INCLUDE_DIRS})
+target_link_libraries(cpp-test ${openssl_LIBRARIES})
+endif()
+
 target_compile_options(cpp-test PUBLIC
     -DHAVE_CONFIG_H -D_GNU_SOURCE -DCMAKE_EXPORT_COMPILE_COMMANDS
 )
 
 #boost
 if(NOT CPP_TEST_NO_BOOST)
-target_link_libraries(cpp-test )
 endif()
 
 # dbus
 if(WITH_DBUS)
-find_package(PkgConfig REQUIRED)
 pkg_check_modules(dbus REQUIRED dbus-1)
 target_link_libraries(cpp-test ${dbus_LIBRARIES})
 target_include_directories(cpp-test PUBLIC ${dbus_INCLUDE_DIRS})
@@ -56,4 +79,4 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 else()
 	target_compile_options(cpp-test PUBLIC -D_CRT_SECURE_NO_WARNINGS  /MTd)
 endif()
-target_link_libraries(cpp-test libhp pthread)
+target_link_libraries(cpp-test libhp pthread crypto)

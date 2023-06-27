@@ -1,1 +1,3 @@
 #cmakedefine WITH_LIBWX
+#cmakedefine WITH_LIBUV
+#cmakedefine WITH_OPENSSL
