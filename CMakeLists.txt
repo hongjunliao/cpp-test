@@ -3,8 +3,8 @@
 cmake_minimum_required(VERSION 3.0)
 
 configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/config.h.in"
-  "${CMAKE_CURRENT_SOURCE_DIR}/config.h"
+  "config.h.in"
+  "config.h"
 )
 # cpp-test 
 project(cpp-test)
@@ -41,6 +41,7 @@ add_executable(cpp-test ${SRCS} src/main.c
 	src/dbus/test_dbus.c
 	src/boost/test_boost_asio.cc
 )
+target_include_directories(cpp-test PUBLIC "${PROJECT_BINARY_DIR}")
 
 if(WITH_LIBWX)
 target_link_libraries(cpp-test ${wxWidgets_LIBRARIES})
