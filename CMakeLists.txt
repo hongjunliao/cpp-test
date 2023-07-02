@@ -31,6 +31,16 @@ file(GLOB SRCS ${SRCS} src/openssl/bignum.cpp )
 include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
+if(WITH_LIBDB)
+find_path(db_cxx db_cxx.h PATHS /usr/include /usr/local/include)
+	if(NOT db_cxx)
+		message(WARNING "db_cxx.h NOT found, using deps/db_cxx instead")
+		add_subdirectory(deps/db_cxx) 
+	endif()
+
+file(GLOB SRCS ${SRCS} src/libdb/* )
+endif()
+
 add_executable(cpp-test ${SRCS} src/main.c
 	src/algs/9787302356288/9787302356288.c
 	src/algs/algorithms4th/1.5.c
@@ -55,6 +65,11 @@ endif()
 if(WITH_OPENSSL)
 target_include_directories(cpp-test PUBLIC ${openssl_INCLUDE_DIRS})
 target_link_libraries(cpp-test ${openssl_LIBRARIES})
+endif()
+
+if(WITH_LIBDB)
+target_include_directories(cpp-test PUBLIC ${db_cxx_INCLUDE_DIRS})
+target_link_libraries(cpp-test db_cxx)
 endif()
 
 target_compile_options(cpp-test PUBLIC

@@ -65,7 +65,7 @@ extern int xhsdk_select_server_main(int argc, char ** argv);
 int test_zlib_main(int argc, char ** argv);
 extern "C" {
 /* test_string_util.cpp */
-extern  int test_string_util_main(int argc, char ** argv);
+extern  int test_hp_str_main(int argc, char ** argv);
 /* tcp_echo_cli.cpp */
 extern int tcp_echo_cli_main(int argc, char ** argv);
 /* mem_pool.c */
@@ -186,7 +186,7 @@ static std::map<std::string, test_main_fn> testmap = {
 			{"rbtree", test_rbtree_main},
 			{"graph", test_graph_main},
 			{"dyn_p", test_dynamic_programming_main},
-			{"string_util", test_string_util_main},
+			{"string_util", test_hp_str_main},
 			{"jzoffer", test_jzoffter_main},
 			{"string", test_string_main},
 			{"trie_st", test_trie_st_main},

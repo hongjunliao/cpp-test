@@ -49,6 +49,10 @@ int test_dbus_main(int argc, char **argv);
 int test_libwx_main(int argc, char ** argv);
 int test_uv_main(int argc, char ** argv);
 int test_openssl_main(int argc, char ** argv);
+int test_libdb_main(int argc, char ** argv);
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifdef __cplusplus
 }
 #endif	//__cplusplus

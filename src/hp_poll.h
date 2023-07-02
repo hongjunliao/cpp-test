@@ -13,7 +13,7 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-#if !defined(__linux__) && !defined(_MSC_VER)
+#if !defined(__WIN32) && !defined(_MSC_VER)
 #include <poll.h>  /* poll */
 
 #ifdef __cplusplus
@@ -32,8 +32,10 @@ struct hp_polld {
 };
 
 struct hp_poll {
+	/* do NOT use cvector_size, use nfd instead */
 	struct pollfd* fds;
-	hp_polld * 	  ctx;
+	hp_polld * 	  ed;
+
 	int           nfd;
 	hp_bwait **   bwaits;
 	int           stop; /* stop loop? */
@@ -48,7 +50,7 @@ int hp_poll_del(struct hp_poll * po, int fd);
 int hp_poll_add_before_wait(struct hp_poll * po
 		, int (* before_wait)(struct hp_poll * po, void * arg), void * arg);
 
-int hp_poll_run(hp_poll * po, int timeout, int (* before_wait)(struct hp_poll * po));
+int hp_poll_run(hp_poll * po, int timeout, int (* before_wait)(hp_poll * po));
 char * hp_poll_e2str(int events, char * buf, int len);
 
 #ifndef NDEBUG

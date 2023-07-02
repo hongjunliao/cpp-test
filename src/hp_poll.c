@@ -9,7 +9,7 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-#if !defined(__linux__) && !defined(_MSC_VER)
+#if !defined(__WIN32) && !defined(_MSC_VER)
 
 #include "hp_poll.h"   /*  */
 #include "stdio.h"     /* fprintf */
@@ -33,7 +33,7 @@ struct hp_bwait{
 
 
 int hp_poll_run(hp_poll * po, int timeout
-		, int (* before_wait)(struct hp_poll * po))
+		, int (* before_wait)(hp_poll * po))
 {
 	int i, n;
 
@@ -69,10 +69,12 @@ int hp_poll_run(hp_poll * po, int timeout
 
 		for (i = 0; i < po->nfd; ++i) {
 			if(po->fds[i].fd < 0) { continue; }
-			hp_polld * ev = &po->ctx[i];
-			if(ev->fn)
-				ev->fn(ev->arg, i);
+			if(po->fds[i].revents != 0){
+				hp_polld * ed = &po->ed[i];
+				if(ed->fn)
+					ed->fn(ed->arg, i);
 			}
+		}
 	} /* */
 
 	return 0;
@@ -86,7 +88,7 @@ int hp_poll_init(struct hp_poll * po, int n)
 	memset(po, 0, sizeof(hp_poll));
 
 	cvector_init(po->fds, 2);
-	cvector_init(po->ctx, 2);
+	cvector_init(po->ed, 2);
 	cvector_init(po->bwaits, 1);
 
 	size_t i;
@@ -106,32 +108,41 @@ void hp_poll_uninit(struct hp_poll * po)
 		free(po->bwaits[i]);
 	}
 	cvector_free(po->fds);
-	cvector_free(po->ctx);
+	cvector_free(po->ed);
 	cvector_free(po->bwaits);
 }
 
 /*
- * NOTE: use the same @param ed when you add and modify the same fd
  * */
 int hp_poll_add(struct hp_poll * po, int fd, int events, hp_polld const * ed)
 {
-	if(!(po && ed)) return -1;
+	if(!(po && fd >= 0 && ed)) return -1;
 
 	if(!ed->fn)
 		fprintf(stderr, "%s: warning: callback NULL, fd=%d\n", __FUNCTION__, fd);
 
 	int ret = 0;
-
 	size_t i;
+	struct pollfd* pfd = 0, newfd = {fd, events, 0};
 	for(i = 0; i < cvector_capacity(po->fds); ++i){
 		if(po->fds[i].fd < 0){
-			po->fds[i].fd = fd;
-			po->fds[i].events = events;
-			po->ctx[i] = *ed;
-
+			pfd = po->fds + i;
 			break;
 		}
 	}
+	if(!pfd){
+		/* i == po->nfd */
+		assert(po->nfd == cvector_capacity(po->fds));
+		cvector_set_size(po->fds, po->nfd);
+		cvector_push_back(po->fds, newfd);
+
+		cvector_push_back(po->ed, *ed);
+	}
+	else{
+		*pfd = newfd;
+		po->ed[i] = *ed;
+	}
+	++po->nfd;
 
 	return ret;
 }
@@ -141,20 +152,14 @@ int hp_poll_del(struct hp_poll * po, int fd)
 	if(!(po && fd >= 0)) return -1;
 
 	int ret = 0;
-
-//	struct epoll_event evobj;
-//	evobj.events = events;
-//	evobj.data.ptr = ed;
-//
-//	if (epoll_ctl(po->fds, POLL_CTL_DEL, fd, &evobj) != 0){
-//		fprintf(stderr, "%s: epoll_ctl failed, fd=%d, errno=%d, error='%s'\n"
-//				, __FUNCTION__, fd, errno, strerror(errno));
-//		ret = -1;
-//	}
-//
-//	if(ed->n > 0){
-//		ed->n = 0;
-//	}
+	size_t i;
+	for(i = 0; i < cvector_capacity(po->fds); ++i){
+		if(po->fds[i].fd == fd){
+			po->fds[i].fd = -1;
+			--po->nfd;
+			break;
+		}
+	}
 
 	return ret;
 }
@@ -165,10 +170,10 @@ int hp_poll_add_before_wait(struct hp_poll * po
 	if(!(po && before_wait))
 		return -1;
 
-//	hp_bwait * bwait = calloc(1, sizeof(hp_bwait));
-//	bwait->fn = before_wait;
-//	bwait->arg = arg;
-//	cvector_push_back(po->bwaits, bwait);
+	hp_bwait * bwait = calloc(1, sizeof(hp_bwait));
+	bwait->fn = before_wait;
+	bwait->arg = arg;
+	cvector_push_back(po->bwaits, bwait);
 
 	return 0;
 }
@@ -200,15 +205,38 @@ char * hp_poll_e2str(int events, char * buf, int len)
 static int test_cb(struct pollfd * fd, int index)
 {
 	assert(fd);
+	static int n = 0;
+	++n;
+	if(n == 2){
+	}
 
 	char buf[128];
-	fprintf(stdout, "%s:%s", __FUNCTION__, hp_poll_e2str(fd->events, buf, sizeof(buf)));
+	fprintf(stdout, "%s:%s\n", __FUNCTION__, hp_poll_e2str(fd->events, buf, sizeof(buf)));
+
+	if(fd->revents & POLLERR){
+		return 0;
+	}
+	if(fd->revents & POLLRDNORM){
+		fprintf(stdout, "%s:%s\n", __FUNCTION__, "hello");
+	}
+
+	return 0;
+}
+
+static int before_wait(hp_poll * po)
+{
+	assert(po);
+	static int n = 0;
+	++n;
+	if(n == 2){
+		po->stop = 1;
+	}
 	return 0;
 }
 
 int test_hp_poll_main(int argc, char ** argv)
 {
-	int rc = 0;
+	int i, rc = 0;
 
 	{ char buf[128] = ""; assert(strcmp(hp_poll_e2str(0, buf, sizeof(buf)), "") == 0); }
 	{ char buf[128] = ""; assert(strcmp(hp_poll_e2str(POLLERR, buf, sizeof(buf)), "POLLERR") == 0); }
@@ -217,16 +245,117 @@ int test_hp_poll_main(int argc, char ** argv)
 	{ char buf[128] = ""; assert(strcmp(hp_poll_e2str(POLLERR  | POLLIN, buf, sizeof(buf)), "POLLERR | POLLIN") == 0); }
 	{ char buf[128] = ""; assert(strcmp(hp_poll_e2str(POLLERR  | POLLIN | POLLOUT, buf, sizeof(buf)), "POLLERR | POLLIN | POLLOUT") == 0); }
 
-	hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
-	hp_poll_init(po, 100);
+	/* Add/Del: 1 */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
 
-	hp_polld ed = {test_cb, test_cb};
-	rc = hp_poll_add(po, 2, POLLIN, &ed); assert(rc == 0);
-	hp_poll_run(po, 200, 0);
-	hp_poll_uninit(po);
+		hp_polld ed = {test_cb, test_cb};
+		rc = hp_poll_add(po, 2, POLLIN, &ed); assert(rc == 0);
+		assert(po->nfd == 1);
+		rc = hp_poll_del(po, 2); assert(rc == 0);
+		assert(po->nfd == 0);
 
-	hp_poll_init(po, 4000);
-	hp_poll_uninit(po);
+		hp_poll_uninit(po);
+	}
+
+	/* Add/Del: 2 */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
+
+		hp_polld ed = {test_cb, test_cb};
+		rc = hp_poll_add(po, 0, POLLIN, &ed); assert(rc == 0);
+		assert(po->nfd == 1);
+		rc = hp_poll_add(po, 1, POLLIN, &ed); assert(rc == 0);
+		assert(po->nfd == 2);
+		rc = hp_poll_del(po, 0); assert(rc == 0);
+		assert(po->nfd == 1);
+		rc = hp_poll_del(po, 1); assert(rc == 0);
+		assert(po->nfd == 0);
+
+		hp_poll_uninit(po);
+	}
+
+	/* Add/Del: 3 */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
+
+		hp_polld ed = {test_cb, test_cb};
+		rc = hp_poll_add(po, 0, POLLIN, &ed); assert(rc == 0);
+		rc = hp_poll_add(po, 1, POLLIN, &ed); assert(rc == 0);
+		rc = hp_poll_add(po, 2, POLLIN, &ed); assert(rc == 0);
+		assert(po->nfd == 3);
+		rc = hp_poll_del(po, 0); assert(rc == 0);
+		rc = hp_poll_del(po, 1); assert(rc == 0);
+		rc = hp_poll_del(po, 2); assert(rc == 0);
+		assert(po->nfd == 0);
+
+		hp_poll_uninit(po);
+	}
+	/* Add/Del: 4 */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
+
+		hp_polld ed = {test_cb, test_cb};
+		rc = hp_poll_add(po, 0, POLLIN, &ed); assert(rc == 0);
+		rc = hp_poll_add(po, 1, POLLIN, &ed); assert(rc == 0);
+		rc = hp_poll_add(po, 2, POLLIN, &ed); assert(rc == 0);
+		rc = hp_poll_add(po, 3, POLLIN, &ed); assert(rc == 0);
+		assert(po->nfd == 4);
+		rc = hp_poll_del(po, 0); assert(rc == 0);
+		rc = hp_poll_del(po, 1); assert(rc == 0);
+		rc = hp_poll_del(po, 2); assert(rc == 0);
+		rc = hp_poll_del(po, 3); assert(rc == 0);
+		assert(po->nfd == 0);
+
+		hp_poll_uninit(po);
+	}
+
+	/* running: empty */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
+
+		hp_poll_run(po, 200, before_wait);
+		hp_poll_uninit(po);
+	}
+	/* running: outer loop */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
+
+		for(i = 0; i < 3; ++i){
+			hp_poll_run(po, 200, (void *)-1);
+		}
+		hp_poll_uninit(po);
+	}
+
+	/* running: 1 */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
+
+		hp_polld ed = {test_cb, "running 1"};
+		rc = hp_poll_add(po, STDOUT_FILENO, POLLOUT, &ed); assert(rc == 0);
+		hp_poll_run(po, 200, 0);
+		hp_poll_uninit(po);
+	}
+
+	/* running: 2 */
+	{
+		hp_poll ghp_poobj = { 0 }, * po = &ghp_poobj;
+		hp_poll_init(po, 100);
+
+		hp_polld ed = {test_cb, test_cb};
+		rc = hp_poll_add(po, 0, POLLIN, &ed); assert(rc == 0);
+		rc = hp_poll_add(po, 1, POLLIN, &ed); assert(rc == 0);
+		hp_poll_run(po, 200, 0);
+		hp_poll_uninit(po);
+	}
+
 
 	return 0;
 }

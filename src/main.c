@@ -6,10 +6,13 @@
 #include <assert.h> /* assert */
 #include <stdio.h>
 #include "cpp_test.h"
+#include "hp/string_util.h"
 
 int do_main(int argc, char ** argv)
 {
 	int rc;
+	rc = test_libdb_main(argc, argv);assert(rc == 0);
+	rc = test_hp_str_main(argc, argv);assert(rc == 0);
 #ifdef WITH_OPENSSL
 	rc = test_openssl_main(argc, argv);assert(rc == 0);
 #endif //
