@@ -18,7 +18,7 @@ permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors. 
 */
-
+#ifdef CPP_TEST_WITH_PHXPAXOS
 #include "echo_sm.h"
 
 using namespace phxpaxos;
@@ -49,3 +49,4 @@ bool PhxEchoSM :: Execute(const int iGroupIdx, const uint64_t llInstanceID,
 
 }
 
+#endif

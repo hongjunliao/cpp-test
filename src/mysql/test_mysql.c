@@ -8,6 +8,7 @@
  *
  * (1)ubuntu: apt install libmysqlclient-dev
  * */
+#ifdef CPP_TEST_WITH_MYSQL
 #include <stdio.h>
 #ifndef WITHOUT_LIB_MYSQLCLIENT
 #include <string.h> 	/* strlen */
@@ -115,3 +116,4 @@ char const * help_test_libmysqlclient() {
 			"sample: 172.29.3.76 8306 root xinghuo@pass db_im3_center "
 			"'select * from tb_nodetype;'";
 }
+#endif

@@ -1,3 +1,5 @@
+#include <cwchar>
+
 /*!
  * This file is PART of cpp-test project
  * @author hongjun.liao <docici@126.com>, @date 2018/4/23
@@ -8,8 +10,8 @@
  * (2)gcc link: -llog4cplus
 
  * */
-#ifndef WITHOUT_LIBLOG4CPLUS
 #include <stdio.h>
+#ifdef CPP_TEST_WITH_LIBLOG4CPLUS
 #include <string.h> 	/* strlen */
 #include <stdio.h>
 #include <stdlib.h> 	/* calloc */
@@ -107,7 +109,7 @@ int test_liblog4cplus_main(int argc, char ** argv)
 #else
 int test_liblog4cplus_main(int argc, char ** argv)
 {
-	fprintf(stderr, "%s: undefine WITHOUT_LIBLOG4CPLUS and install liblog4cplus to enable this test\n"
+	fprintf(stdout, "%s: undefine WITHOUT_LIBLOG4CPLUS and install liblog4cplus to enable this test\n"
 			, __FUNCTION__);
 	return -1;
 }

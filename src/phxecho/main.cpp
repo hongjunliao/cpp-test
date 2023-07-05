@@ -18,7 +18,7 @@ permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors. 
 */
-
+#ifdef CPP_TEST_WITH_PHXPAXOS
 #include "echo_server.h"
 #include <stdio.h>
 #include <iostream>
@@ -135,4 +135,4 @@ extern "C" int test_phxecho_main(int argc, char ** argv)
 
     return 0;
 }
-
+#endif

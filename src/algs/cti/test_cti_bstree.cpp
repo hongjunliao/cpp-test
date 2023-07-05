@@ -4,7 +4,7 @@
  * binary_search_tree
  * */
 //////////////////////////////////////////////////////////////////////////
-#ifdef WITH_BSTREE
+#ifdef CPP_TEST_WITH_BSTREE
 #include "test_bstree.h"
 #include <stdlib.h>
 #include <algorithm>
@@ -202,4 +202,4 @@ int test_cti_bstree_main(int argc, char* argv[])
 	std::cout << "是否平衡is_balanced:" << is_balanced(ibtree, ibtree.root()) << std::endl;
 }
 
-#endif /* WITH_BSTREE */
+#endif /* CPP_TEST_WITH_BSTREE */

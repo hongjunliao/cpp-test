@@ -11,7 +11,7 @@
 #include <stack>               /* std::stack */
 #include <map> /* std::map */
 
-#ifdef WITH_BOOST
+#ifdef CPP_TEST_WITH_BOOST
 #include <boost/random.hpp>
 #include <boost/algorithm/string.hpp>  /* boost::split */
 #include <boost/foreach.hpp>   /* BOOST_FOREACH */
@@ -598,4 +598,4 @@ int test_cti_main(int argc, char* argv[]){
 	return EXIT_SUCCESS;
 }	//test_main()
 
-#endif /* WITH_BOOST */
+#endif /* CPP_TEST_WITH_BOOST */

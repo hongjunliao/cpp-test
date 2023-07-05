@@ -18,7 +18,7 @@
 	Boston, MA  02110-1301, USA.
 	
 */
-
+#ifdef CPP_TEST_WITH_PHXPAXOS
 #include "logger_google_impl.h"
 #include <stdarg.h>
 
@@ -108,4 +108,4 @@ void LoggerGoogleImpl :: LogVerbose(const char * pcFormat, ...)
 
 }
 
-
+#endif

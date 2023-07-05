@@ -3,7 +3,7 @@
  * @author hongjun.liao <docici@126.com>
  * */
 #include "config.h"
-#ifdef WITH_OPENSSL
+#ifdef CPP_TEST_WITH_OPENSSL
 
 #include <string>
 #include <openssl/bn.h>

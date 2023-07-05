@@ -34,7 +34,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef WITH_LIBNGHTTP2
+#ifdef CPP_TEST_WITH_LIBNGHTTP2
 #include "cpp_test.h"
 
 #ifdef __sgi

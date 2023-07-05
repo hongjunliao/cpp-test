@@ -4,6 +4,8 @@
  *
  * https://github.com/berkeleydb/libdb/blob/master/examples/cxx/AccessExample.cpp
  * */
+
+#ifdef CPP_TEST_WITH_DB_CXX
 /////////////////////////////////////////////////////////////////////////////////////////////
 #include "cpp_test.h"
 #include <db_cxx.h>
@@ -49,3 +51,4 @@ int test_libdb_main(int argc, char ** argv)
 	}
 	return 0;
 }
+#endif

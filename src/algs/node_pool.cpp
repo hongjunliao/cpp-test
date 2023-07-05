@@ -2,7 +2,7 @@
  * @author hongjun.liao <docici@126.com>
  */
 #include "node_pool.h"
-#include "rb_tree.h"	/* rbtree_node */
+#include "intro_to_algs3th/rb_tree.h"	/* rbtree_node */
 #include <stdio.h>
 #include <math.h>       /* log2 */
 

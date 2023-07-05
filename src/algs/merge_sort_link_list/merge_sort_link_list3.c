@@ -6,7 +6,7 @@
  * code from https://stackoverflow.com/questions/7685/merge-sort-a-linked-list
  * */
 
-#include "list.h"
+#include "klist.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>

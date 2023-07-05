@@ -14,7 +14,7 @@
  * @notes:
  * 1.original from file-sync project/rsync-wrapper-module
  */
-#include "string_util.h" /* str_dump */
+#include "hp/string_util.h" /* str_dump */
 #if  (defined __CYGWIN__ || defined WIN32)
 
 #include "process_util.h"

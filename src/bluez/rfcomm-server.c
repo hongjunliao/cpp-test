@@ -9,7 +9,7 @@
   Compile with gcc -lbluetooth <executable> <source>
 */
 #include <stdio.h>
-#ifdef WITH_LIBBLUEZ
+#ifdef CPP_TEST_WITH_LIBBLUEZ
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/types.h>

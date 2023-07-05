@@ -6,7 +6,7 @@
  * https://github.com/balle/bluetooth-snippets
  */
 #include <stdio.h>
-#ifdef WITH_LIBBLUEZ
+#ifdef CPP_TEST_WITH_LIBBLUEZ
 
 #include <stdlib.h>
 #include <unistd.h>

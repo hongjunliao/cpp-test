@@ -13,7 +13,7 @@
  */
 #ifdef __linux__
 #include "cpp_test.h"
-#include "str_dump.h"
+#include "hp/str_dump.h"
 #include <sys/epoll.h>  /* epoll* */
 #include <stdio.h>
 #include <string.h> 	/* strlen */

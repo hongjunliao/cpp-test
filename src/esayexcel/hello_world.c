@@ -2,6 +2,7 @@
  * easyexcel: https://codeload.github.com/alibaba/easyexcel/tar.gz/v2.2.3
  * JDK: apt install openjdk-8-jdk-headless
  * */
+#ifdef CPP_TEST_WITH_JNI
 #include<stdio.h>
 #include "jni.h"
  
@@ -55,3 +56,4 @@ int main(int argc,char **argv)
     invoke_class(env);
     return 0;
 }
+#endif //

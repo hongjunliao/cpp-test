@@ -18,6 +18,7 @@
 	Boston, MA  02110-1301, USA.
 	
 */
+#ifdef CPP_TEST_WITH_PHXPAXOS
 
 #pragma once
 
@@ -44,3 +45,4 @@ public:
 };
 	
 }
+#endif

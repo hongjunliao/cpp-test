@@ -5,7 +5,7 @@
  *      Author: jun
  */
 #include "config.h"
-#ifdef WITH_LIBUV
+#ifdef CPP_TEST_WITH_LIBUV
 #include "cpp_test.h"
 //#if 1
 #include <stdio.h>

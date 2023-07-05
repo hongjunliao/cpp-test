@@ -18,7 +18,7 @@ permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors. 
 */
-
+#ifdef CPP_TEST_WITH_PHXPAXOS
 #include "echo_server.h"
 #include <assert.h>
 #include <string>
@@ -137,3 +137,4 @@ int PhxEchoServer :: Echo(const std::string & sEchoReqValue, std::string & sEcho
     
 }
 
+#endif

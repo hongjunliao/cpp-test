@@ -1,4 +1,3 @@
-#include <cpp_test.h>
 #include <stdio.h>      /*  */
 #include <thread>		/*std::thread*/
 #include <atomic>		/*std::atomic*/

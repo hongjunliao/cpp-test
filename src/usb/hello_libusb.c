@@ -8,7 +8,7 @@
 #include "cpp_test.h"
 #include <stdio.h>
 
-#ifdef WITH_LIBUSB
+#ifdef CPP_TEST_WITH_LIBUSB
 #include "usb.h"
 int hello_libusb_main(int argc, char * argv[])
 {

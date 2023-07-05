@@ -7,7 +7,7 @@
 
 // Start of wxWidgets "Hello World" Program
 #include "config.h"
-#ifdef WITH_LIBWX
+#ifdef CPP_TEST_WITH_LIBWX
 //#if 1
 
 #include <wx/wx.h>
@@ -93,4 +93,4 @@ int test_libwx_main(int argc, char ** argv)
 	return 0;
 }
 
-#endif // WITH_LIBWX
+#endif // CPP_TEST_WITH_LIBWX

@@ -18,7 +18,7 @@ permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors. 
 */
-
+#ifdef CPP_TEST_WITH_PHXPAXOS
 #include "phxpaxos/phxpaxos_plugin/logger_google.h"
 #include <assert.h>
 #include <stdarg.h>
@@ -114,4 +114,4 @@ void LoggerGoogle :: Log(const int iLogLevel, const char * pcFormat, va_list arg
     
 }
 
-
+#endif

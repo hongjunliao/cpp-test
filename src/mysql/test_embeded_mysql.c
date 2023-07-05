@@ -3,6 +3,7 @@
  * @author hongjun.liao <docici@126.com>, @date 2019/11/28
  *
  * */
+#ifdef CPP_TEST_WITH_MYSQL
 #include <stdio.h>
 #include <string.h> 	/* strlen */
 #include <stdio.h>
@@ -79,3 +80,4 @@ int test_embeded_mysql_main(int argc, char ** argv)
 
 	return 0;
 }
+#endif

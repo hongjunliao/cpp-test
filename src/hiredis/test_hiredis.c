@@ -8,8 +8,8 @@
  *
  * (1)ubuntu: apt install libhiredis-dev for github: https://github.com/redis/hiredis
  * */
+#ifdef CPP_TEST_WITH_HIREDIS
 #include <stdio.h>
-#ifndef WITHOUT_LIBHIREDIS
 #include <string.h> 	/* strlen */
 #include <stdio.h>
 #include <stdlib.h> 	/* calloc */
@@ -46,15 +46,7 @@ int test_libhiredis_main(int argc, char ** argv)
 	freeReplyObject(reply);
 }
 
-#else
-int test_libhiredis_main(int argc, char ** argv)
-{
-	fprintf(stderr, "%s: undefine WITHOUT_LIBHIREDIS and install libhiredis to enable this test\n"
-			, __FUNCTION__);
-	return -1;
-}
-#endif /* WITHOUT_LIBHIREDIS */
-
 char const * help_test_libhiredis() {
 	return "<host> <port>\n    sample: 172.29.3.76 7001";
 }
+#endif

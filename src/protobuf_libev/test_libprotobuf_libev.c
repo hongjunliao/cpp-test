@@ -12,7 +12,7 @@
  * protoc-c http.proto --c_out .
  * */
 #include <stdio.h>
-#ifndef WITHOUT_LIBPROTOBUF_LIBEV
+#ifdef CPP_TEST_WITH_LIBPROTOBUF_LIBEV
 #include <unistd.h>     /* read, ... */
 #include "http.pb-c.h"
 #include "ev.h"

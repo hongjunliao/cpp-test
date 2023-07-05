@@ -5,6 +5,7 @@
  * test paxos protocol
  * https://github.com/Tencent/phxpaxos
  * */
+#ifdef CPP_TEST_WITH_PHXPAXOS
 #include <unistd.h>
 #include <sys/stat.h>	 /* fstat */
 #include <sys/ioctl.h>   /* ioctl */
@@ -16,11 +17,11 @@
 #include <assert.h>      /* assert */
 #include <string.h>
 #include "sds/sds.h"
-#include "cp_log.h"      /*  */
-#include "str_dump.h"    /* dumpstr */
-#include "hp_net.h"
-#include "hp_epoll.h"    /* hp_epolld */
-#include "list.h"        /* list_head */
+//#include "cp_log.h"      /*  */
+#include "hp/str_dump.h"    /* dumpstr */
+#include "hp/hp_net.h"
+#include "hp/hp_epoll.h"    /* hp_epolld */
+#include "klist.h"        /* list_head */
 
 /* generated from paxos_msg.proto */
 #include "paxos_msg.pb-c.h"
@@ -492,7 +493,7 @@ paxos_node * paxos_node_new(int fd)
 
 	node->fd = fd;
 	INIT_LIST_HEAD(&node->o_list);
-	hp_epolld_set(&node->ed, node->fd, epoll_handle_paxos_node_fd_io, node, 0, 0);
+//	hp_epolld_set(&node->ed, node->fd, epoll_handle_paxos_node_fd_io, node, 0, 0);
 
 	return node;
 }
@@ -822,11 +823,11 @@ int test_paxos_main(int argc, char ** argv)
 
 	hp_epoll_init(g_paxos_epoll, 1024);
 
-	hp_epolld_set(g_paxos_epoll_ed, g_paxos_fd, epoll_handle_paxos_fd_io, 0, 0, 0);
-	hp_epoll_add(g_paxos_epoll, g_paxos_fd, EPOLLIN | EPOLLET, g_paxos_epoll_ed);
-
-	hp_epolld_set(g_paxos_stdin_ed, fileno(stdin), epoll_handle_stdin, 0, 0, 0);
-	hp_epoll_add(g_paxos_epoll, fileno(stdin), EPOLLIN | EPOLLET, g_paxos_stdin_ed);
+//	hp_epolld_set(g_paxos_epoll_ed, g_paxos_fd, epoll_handle_paxos_fd_io, 0, 0, 0);
+//	hp_epoll_add(g_paxos_epoll, g_paxos_fd, EPOLLIN | EPOLLET, g_paxos_epoll_ed);
+//
+//	hp_epolld_set(g_paxos_stdin_ed, fileno(stdin), epoll_handle_stdin, 0, 0, 0);
+//	hp_epoll_add(g_paxos_epoll, fileno(stdin), EPOLLIN | EPOLLET, g_paxos_stdin_ed);
 
 	paxos_init(g_paxos_ctx);
 
@@ -899,3 +900,4 @@ char const * help_test_paxos()
 		   "    -v=INT          log level\n"
 		   "    -f=STRING       file path for echo test, see .echo_file\n";
 }
+#endif

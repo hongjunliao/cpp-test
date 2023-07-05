@@ -23,7 +23,7 @@
  * gcc hello_llvm.S -o hello_llvm.native
  * */
 #include <stdio.h>
-int main(int argc, char ** argv)
+int test_llvm_main(int argc, char ** argv)
 {
 	printf("%s: hello, llvm!\n", __FUNCTION__);
 	return 0;

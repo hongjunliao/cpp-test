@@ -26,7 +26,7 @@
  */
 #include <stdio.h>
 
-#ifdef WITH_LIBUSB
+#ifdef CPP_TEST_WITH_LIBUSB
 
 #include "libusb.h"
 

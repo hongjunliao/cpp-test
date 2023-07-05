@@ -6,13 +6,13 @@
  * cmd sample:
  * cat /etc/passwd | cpp-test-main libev
  * */
-#ifndef WITHOUT_LIBPROTOBUF_LIBEV
+#include <stdio.h>
+#ifdef CPP_TEST_WITH_LIBPROTOBUF_LIBEV
 #include <unistd.h>
 #include <sys/socket.h>	/* basic socket definitions */
 #include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
 #include <arpa/inet.h>	/* inet_ntop */
 
-#include <stdio.h>
 #include <stdlib.h> 	/* calloc */
 #include <errno.h>      /* errno */
 #include <assert.h>     /* define NDEBUG to disable assertion */

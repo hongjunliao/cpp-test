@@ -3,7 +3,7 @@
  * @author hongjun.liao <docici@126.com>, @date 2018/1/4
  */
 #include "cpp_test.h"
-#include "str_dump.h"
+#include "hp/str_dump.h"
 #include <stdio.h>
 #include <string.h> 	/* strlen */
 #include <stdlib.h> 	/* atoi */

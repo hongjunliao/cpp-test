@@ -6,7 +6,7 @@
 #ifndef HONGJUN_LIAO_RB_TREE_H_
 #define HONGJUN_LIAO_RB_TREE_H_
 
-#include "node_pool.h"	/* node_pool */
+#include "../node_pool.h"	/* node_pool */
 
 struct rbtree_node {
 	rbtree_node * left;     /* left child */

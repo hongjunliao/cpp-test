@@ -13,7 +13,7 @@
  * (4)每行首部小段空间记录该行上已删除结点, 如果该行上所有结点均标记为删除,则删除该行
  */
 #include "mem_pool.h"
-#include "cp_log.h"    /* cp_logf,... */
+//#include "cp_log.h"    /* cp_logf,... */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>    /* memset */
