@@ -8,10 +8,12 @@
 #include "cpp_test.h"
 #include "hp/string_util.h"
 #include "hp/libhp.h"
-
 int do_main(int argc, char ** argv)
 {
 	int rc;
+#ifdef CPP_TEST_WITH_UV
+	rc = test_uv_main(argc, argv);assert(rc == 0);
+#endif //WITH_LIBUV
 	rc = libhp_all_tests_main(argc, argv);
 //	rc = test_libdb_main(argc, argv);assert(rc == 0);
 #ifndef NDEBUG
@@ -20,9 +22,6 @@ int do_main(int argc, char ** argv)
 #ifdef CPP_TEST_WITH_OPENSSL
 	rc = test_openssl_main(argc, argv);assert(rc == 0);
 #endif //
-#ifdef CPP_TEST_WITH_LIBUV
-	rc = test_uv_main(argc, argv);assert(rc == 0);
-#endif //WITH_LIBUV
 #ifdef CPP_TEST_WITH_DBUS
 	rc = test_dbus_main(argc, argv);assert(rc == 0);
 #endif //WITH_DBUS

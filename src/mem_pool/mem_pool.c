@@ -20,6 +20,7 @@
 #include <unistd.h>    /* usleep, sysconf */
 #include <math.h>      /* log2 */
 #include <assert.h>    /* assert */
+#include "hp/hp_log.h"
 
 #ifndef NDEBUG
 static char const * mp_sdump_hdr(struct mem_pool * mp, int c
@@ -125,7 +126,7 @@ void mp_free(struct mem_pool * mp, void * p)
 		char ** row = ( char ** )mp->ptr[x];
 		if(!row) {
 #ifndef NDEBUG
-	cp_loge("%s: NULL in row=%d, mp=%p, addr=%p\n", __FUNCTION__, x, mp, p);
+	hp_log(stderr, "%s: NULL in row=%d, mp=%p, addr=%p\n", __FUNCTION__, x, mp, p);
 #endif /* NDEBUG */
 			return;
 		}
@@ -137,7 +138,7 @@ void mp_free(struct mem_pool * mp, void * p)
 		}
 	}
 #ifndef NDEBUG
-	cp_loge("%s: addr NOT found in mp=%p, addr=%p\n", __FUNCTION__, mp, p);
+	hp_log(stderr, "%s: addr NOT found in mp=%p, addr=%p\n", __FUNCTION__, mp, p);
 #endif /* NDEBUG */
 }
 

@@ -4,6 +4,7 @@
  * test for zlib: apt source zlib1g-dev
  * code from zlib/zpipe.c
  */
+#include "config.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -150,5 +151,5 @@ int test_zlib_main(int argc, char ** argv)
     return 0;
 }
 
-#endif
+#endif //CPP_TEST_WITH_ZLIB
 

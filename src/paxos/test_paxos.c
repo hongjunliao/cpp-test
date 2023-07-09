@@ -22,7 +22,7 @@
 #include "hp/hp_net.h"
 #include "hp/hp_epoll.h"    /* hp_epolld */
 #include "klist.h"        /* list_head */
-
+#include "hp/hp_log.h"
 /* generated from paxos_msg.proto */
 #include "paxos_msg.pb-c.h"
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -99,7 +99,7 @@ static hp_epolld ghp_httpfd_ed_obj = { 0 };
 static hp_epolld g_stdin_ed_obj = { 0 };
 /////////////////////////////////////////////////////////////////////////////////////////
 /* log level */
-int                   gloglevel = 1;
+static int                   loglevel = 1;
 
 static int            g_paxos_fd = 0;
 static paxos_config * g_paxos_cfg = &g_cfg_obj;
@@ -241,7 +241,7 @@ static int propose_ok_list_comp_by_t(void * priv, struct list_head *a, struct li
 static int epoll_handle_paxos_node_fd_io(struct epoll_event * ev)
 {
 #ifndef NDEBUG
-	if(gloglevel > 8){
+	if(loglevel > 8){
 		char buf[64];
 		hp_log(stdout, "%s: fd=%d, events='%s'\n", __FUNCTION__
 				, hp_epoll_fd(ev), hp_epoll_e2str(ev->events, buf, sizeof(buf)));
@@ -353,7 +353,7 @@ static void paxos_ctx_write(paxos_ctx * ctx)
 static int epoll_handle_paxos_fd_io(struct epoll_event * ev)
 {
 #ifndef NDEBUG
-	if(gloglevel > 8){
+	if(loglevel > 8){
 		char buf[64];
 		hp_log(stdout, "%s: fd=%d, events='%s'\n", __FUNCTION__
 				, hp_epoll_fd(ev), hp_epoll_e2str(ev->events, buf, sizeof(buf)));
@@ -549,7 +549,7 @@ int paxos_config_load(paxos_config * cfg, int argc, char ** argv)
 			fprintf(stderr, "%s: unsupported, arg: '%s'\n", __FUNCTION__, arg);
 	}
 
-	if(loglevelstr) gloglevel = atoi(loglevelstr);
+	if(loglevelstr) loglevel = atoi(loglevelstr);
 	if(nodeidstr)   g_paxos_cfg->node_id = atoi(nodeidstr);
 
 	char * p, * q;
@@ -602,7 +602,7 @@ void paxos_config_print(paxos_config * cfg)
 			, cfg->node_id
 			, cfg->addr, cfg->ip, cfg->port, cfg->nodestr, cfg->n_nodes
 			, cfg->echo_file
-			, gloglevel
+			, loglevel
 			, dumpstr(cfg->buf, 512, 64)
 		);
 
@@ -705,7 +705,7 @@ static int paxos_echo(paxos_ctx * ctx, char const * str, int len)
 static int epoll_handle_stdin(struct epoll_event * ev)
 {
 #ifndef NDEBUG
-	if(gloglevel > 2){
+	if(loglevel > 2){
 		char buf[64];
 		hp_log(stdout, "%s: fd=%d, events='%s'\n", __FUNCTION__
 				, hp_epoll_fd(ev), hp_epoll_e2str(ev->events, buf, sizeof(buf)));
@@ -831,7 +831,7 @@ int test_paxos_main(int argc, char ** argv)
 
 	paxos_init(g_paxos_ctx);
 
-	if(gloglevel > 2)
+	if(loglevel > 2)
 		hp_log(stdout, "%s: UDP on port=%d, fd=%d, ready\n", __FUNCTION__, g_paxos_cfg->port, g_paxos_fd);
 	for(;;){
 
@@ -849,7 +849,7 @@ int test_paxos_main(int argc, char ** argv)
 		}
 
 #ifndef NDEBUG
-		if(gloglevel > 8){
+		if(loglevel > 8){
 			hp_log(stdout, "%s: epoll_wait done, ret=%d, maxfd=%d\n"
 				, __FUNCTION__, n, g_paxos_epoll->ev_len);
 		}
@@ -872,7 +872,7 @@ int test_paxos_main(int argc, char ** argv)
 				continue;
 			}
 #ifndef NDEBUG
-			if(gloglevel > 0){
+			if(loglevel > 0){
 				char buf[64];
 				hp_log(stderr, "%s: epoll callback NOT set!, fd=%d, events='%s'\n", __FUNCTION__
 						, evdata->fd, hp_epoll_e2str(ev->events, buf, sizeof(buf)));

@@ -22,61 +22,57 @@
 #define HAVE_CONFIG_H
 #endif
 
-/* define to enable cJSON cjson_XXX */
-#define LIBHP_WITH_CJSON
+#define LIBHP_WITH_MQTT
+/* define to test cJSON cjson_XXX */
+#define CPP_TEST_WITH_CJSON
 
-/* define to use zlib, hp_zc_XXX */
-#define  LIBHP_WITH_ZLIB
-/* define to use libcurl, hp_curl_XXX */
-#define  LIBHP_WITH_CURL
-/* define to use libssl, hp_ssl_XXX */
-#define  LIBHP_WITH_SSL
+/* define to test cJSON libuv */
+#define CPP_TEST_WITH_UV
 
-#define  LIBHP_WITH_ZLOG
+/* define to test zlib, hp_zc_XXX */
+#define  CPP_TEST_WITH_ZLIB
+/* define to test libcurl,  */
+#define  CPP_TEST_WITH_CURL
+/* define to test libssl, hp_ssl_XXX */
+#define  CPP_TEST_WITH_SSL
 
-#define  LIBHP_WITH_JNI
+#define  CPP_TEST_WITH_ZLOG
 
-/* define to use MQTT client, hp_mqtt_XXX
+#define  CPP_TEST_WITH_JNI
+
+/* define to test MQTT client, hp_mqtt_XXX
  * using paho.mqtt.c
  *  */
-#define  LIBHP_WITH_MQTT
+#define  CPP_TEST_WITH_MQTT
 
-/* define to use Redis client, hp_redis_XXX */
-#define  LIBHP_WITH_REDIS
+/* define to test Redis client, hp_redis_XXX */
+#define  CPP_TEST_WITH_REDIS
 
-/* mainly for hiredis, define if you want to use
- * https://github.com/microsoftarchive/redis.git
- * else use https://github.com/redis/hiredis.git
- */
-#ifdef _MSC_VER
- #define  LIBHP_WITH_WIN32_INTERROP
-#endif /* _MSC_VER */
+/* define to test MySQL/MariaDB client, hp_mysql_XXX */
+#define  CPP_TEST_WITH_MYSQL
 
-/* define to use MySQL/MariaDB client, hp_mysql_XXX */
-#define  LIBHP_WITH_MYSQL
+#define  CPP_TEST_WITH_AMQP
+#define  CPP_TEST_WITH_PROC_SYSINFO
 
-#define  LIBHP_WITH_AMQP
-#define  LIBHP_WITH_PROC_SYSINFO
-
-/* define to use libhp HTTP module ht_http_XXX,
+/* define to test libhp HTTP module ht_http_XXX,
  * using http-parser */
-#define  LIBHP_WITH_HTTP
+#define  CPP_TEST_WITH_HTTP
 
-/* define to use timer fd (current Linux only?), hp_timerfd_XXX */
-#define  LIBHP_WITH_TIMERFD
+/* define to test timer fd (current Linux only?), hp_timerfd_XXX */
+#define  CPP_TEST_WITH_TIMERFD
 
-/* define to use Berkeley DB, hp_bdb_XXX */
-#define  LIBHP_WITH_BDB
+/* define to test Berkeley DB, hp_bdb_XXX */
+#define  CPP_TEST_WITH_BDB
 
-/* define to use dlfcn-win32 */
-#define LIBHP_WITH_DLFCN
+/* define to test dlfcn-win32 */
+#define CPP_TEST_WITH_DLFCN
 
-/* define to use optparse */
-#define LIBHP_WITH_OPTPARSE
+/* define to test optparse */
+#define CPP_TEST_WITH_OPTPARSE
 
 /* define if you want using libhp DEPRECADTED API
  * Deprecated code is no longer actively maintained !
  * */
-#define LIBHP_DEPRECADTED
+#define CPP_TEST_DEPRECADTED
 
 #endif /* CPP_TEST_CONFIG_H */
