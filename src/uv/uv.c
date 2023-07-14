@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "hp/sdsinc.h"
 #if defined(CPP_TEST_WITH_UV) && defined(CPP_TEST_WITH_CURL)
 
 #include <uv.h>
@@ -16,21 +17,59 @@ static uv_timer_t timeout;
 
 #define TEST_URL "https://download.electrum.org/4.4.5/electrum-4.4.5-x86_64.AppImage"
 #define TEST_SHA256 "ad341c9c47c7685acbbcf9c8d48665f6e9360f43452e7d0f49a1ac23d2b22ebe"
-#define TEST_FSIZE 14609181
+#define TEST_FSIZE 62534848
 #define TEST_FILE __FUNCTION__
 
+typedef struct hp_uv_curlm hp_uv_curlm;
 
-typedef struct curl_context_s {
-    uv_poll_t poll_handle;
-    curl_socket_t sockfd;
-} curl_context_t;
+/* callback
+ *	 bytes:   bytes received
+ *   content_length:   total bytes of body if has "Content-Length"
+ *   resp:    @see hp_uv_curlm_add
+ *   arg:     @see hp_uv_curlm_add
+ */
+typedef int (* hp_uv_curl_proress_cb_t)(int bytes, int content_length, sds resp, void * arg);
+typedef int (* hp_uv_curl_done_cb_t)(hp_uv_curlm * curlm, char const * url, sds str, void * arg);
 
-static curl_context_t *create_curl_context(curl_socket_t sockfd) {
-    curl_context_t *context;
 
-    context = (curl_context_t*) malloc(sizeof *context);
+struct hp_uv_curlm {
+	CURLM *     curl_handle;        /* the libcurl multi handle */
+	uv_timer_t  timeout;
+	uv_loop_t * loop;
+};
 
-    context->sockfd = sockfd;
+typedef struct hp_uv_curlm_easy {
+	CURL * 		curl;
+	uv_poll_t 	poll_handle;
+	curl_socket_t fd;
+
+	sds      	resp;   /* the response */
+	FILE *      f;      /* the response, write to file? */
+
+	/* for progress */
+	int 	    bytes;
+	int 	    content_length;
+
+	hp_uv_curl_proress_cb_t on_proress;
+	hp_uv_curl_done_cb_t on_done;
+	void *      arg;
+
+	hp_uv_curlm * curlm;  /* ref to context */
+
+	struct curl_slist * hdrs;
+#if (LIBCURL_VERSION_MAJOR >=7 && LIBCURL_VERSION_MINOR >= 56)
+	curl_mime *	form;
+#else
+	struct curl_httppost * form;
+#endif /* LIBCURL_VERSION_MINOR */
+} hp_uv_curlm_easy;
+
+static hp_uv_curlm_easy *create_curl_context(curl_socket_t sockfd) {
+    hp_uv_curlm_easy *context;
+
+    context = (hp_uv_curlm_easy*) malloc(sizeof *context);
+
+    context->fd = sockfd;
 
     int r = uv_poll_init_socket(loop, &context->poll_handle, sockfd);
     assert(r == 0);
@@ -40,11 +79,11 @@ static curl_context_t *create_curl_context(curl_socket_t sockfd) {
 }
 
 static void curl_close_cb(uv_handle_t *handle) {
-    curl_context_t *context = (curl_context_t*) handle->data;
+    hp_uv_curlm_easy *context = (hp_uv_curlm_easy*) handle->data;
     free(context);
 }
 
-static void destroy_curl_context(curl_context_t *context) {
+static void destroy_curl_context(hp_uv_curlm_easy *context) {
     uv_close((uv_handle_t*) &context->poll_handle, curl_close_cb);
 }
 
@@ -98,11 +137,11 @@ static void curl_perform(uv_poll_t *req, int status, int events) {
     if (!status && events & UV_READABLE) flags |= CURL_CSELECT_IN;
     if (!status && events & UV_WRITABLE) flags |= CURL_CSELECT_OUT;
 
-    curl_context_t *context;
+    hp_uv_curlm_easy *context;
 
-    context = (curl_context_t*)req;
+    context = (hp_uv_curlm_easy*)req;
 
-    curl_multi_socket_action(curl_handle, context->sockfd, flags, &running_handles);
+    curl_multi_socket_action(curl_handle, context->fd, flags, &running_handles);
     check_multi_info();   
 }
 
@@ -119,10 +158,10 @@ static void start_timeout(CURLM *multi, long timeout_ms, void *userp) {
 }
 
 static int handle_socket(CURL *easy, curl_socket_t s, int action, void *userp, void *socketp) {
-    curl_context_t *curl_context;
+    hp_uv_curlm_easy *curl_context;
     if (action == CURL_POLL_IN || action == CURL_POLL_OUT) {
         if (socketp) {
-            curl_context = (curl_context_t*) socketp;
+            curl_context = (hp_uv_curlm_easy*) socketp;
         }
         else {
             curl_context = create_curl_context(s);
@@ -139,8 +178,8 @@ static int handle_socket(CURL *easy, curl_socket_t s, int action, void *userp, v
             break;
         case CURL_POLL_REMOVE:
             if (socketp) {
-                uv_poll_stop(&((curl_context_t*)socketp)->poll_handle);
-                destroy_curl_context((curl_context_t*) socketp);                
+                uv_poll_stop(&((hp_uv_curlm_easy*)socketp)->poll_handle);
+                destroy_curl_context((hp_uv_curlm_easy*) socketp);
                 curl_multi_assign(curl_handle, s, NULL);
             }
             break;
