@@ -14,7 +14,7 @@
 #ifndef _MSC_VER
 #include <unistd.h>     /* getpid, isatty */
 #include <sys/time.h>   /* gettimeofday */
-#include "sds/sds.h"        /* sds */
+#include "hp/sdsinc.h"       /* sds */
 #else
 #include <windows.h>
 #include <io.h>         /* isatty */

@@ -26,14 +26,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # sources and deps
 set(g_withs UV CURL 1 1 1 1 1
 	)
-set(g_hdrs uv.h curl/curl.h .nullfilesub.h .nullfilesrc.h .nullfilesrc.h .nullfilesrc.h zlib.h
+set(g_hdrs uv.h curl/curl.h .nullfilesub.h .nullfilesrc.h .nullfilesrc.h google/protobuf-c/protobuf-c.h zlib.h
 	)
-set(g_incs .find_path .find_path "deps/libhp/include/"  "${PROJECT_BINARY_DIR}/ deps/ src/" .find_path .find_path .find_path)
+set(g_incs .find_path .find_path "deps/libhp/include/ deps/libhp/deps"  "${PROJECT_BINARY_DIR}/ deps/ src/" .find_path .find_path .find_path)
 set(g_deps uv curl libhp .src phxpaxos protobuf-c zlib
 	)
 set(g_libs uv curl libhp "src/**/**/*.c src/**/*.c src/**/*.cpp src/**/*.cc src/* src/*.cc"
 	"deps/phxpaxos/**/*.c"
-	"deps/protobuf-c/**/*.c"
+	protobuf-c
 	z
 	)
 ###########################################################################################
