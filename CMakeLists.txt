@@ -42,7 +42,7 @@ set(g_libs uv curl libhp "src/**/**/*.c src/**/*.c src/**/*.cpp src/**/*.cc src/
 # fot cpp-test
 set(CPP_TEST_WITH_UV 1 CACHE INTERNAL "CPP_TEST_WITH_UV")
 set(CPP_TEST_WITH_CURL 1 CACHE INTERNAL "CPP_TEST_WITH_CURL")
-hp_cmake_find_deps(SRCS CPP_TEST_WITH_ g_withs g_hdrs g_incs g_deps g_libs)
+hp_cmake_find_deps(SRCS CPP_TEST_WITH_ deps g_withs g_hdrs g_incs g_deps g_libs)
 #build as library
 add_executable(cpp-test ${SRCS})
 
