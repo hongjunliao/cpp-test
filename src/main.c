@@ -14,7 +14,9 @@ int do_main(int argc, char ** argv)
 #ifdef CPP_TEST_WITH_UV
 	rc = test_uv_main(argc, argv);assert(rc == 0);
 #endif //WITH_LIBUV
+#ifndef NDEBUG
 	rc = libhp_all_tests_main(argc, argv);
+#endif //NDEBUG
 //	rc = test_libdb_main(argc, argv);assert(rc == 0);
 #ifndef NDEBUG
 //	rc = test_hp_str_main(argc, argv);assert(rc == 0);
