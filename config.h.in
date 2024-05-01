@@ -21,58 +21,7 @@
 #ifndef HAVE_CONFIG_H
 #define HAVE_CONFIG_H
 #endif
+#include "deps/libhp/config.h"
 
-#define LIBHP_WITH_MQTT
-/* define to test cJSON cjson_XXX */
-#define CPP_TEST_WITH_CJSON
 
-/* define to test cJSON libuv */
-#define CPP_TEST_WITH_UV
-
-/* define to test zlib, hp_zc_XXX */
-#define  CPP_TEST_WITH_ZLIB
-/* define to test libcurl,  */
-#define  CPP_TEST_WITH_CURL
-/* define to test libssl, hp_ssl_XXX */
-#define  CPP_TEST_WITH_SSL
-
-#define  CPP_TEST_WITH_ZLOG
-
-#define  CPP_TEST_WITH_JNI
-
-/* define to test MQTT client, hp_mqtt_XXX
- * using paho.mqtt.c
- *  */
-#define  CPP_TEST_WITH_MQTT
-
-/* define to test Redis client, hp_redis_XXX */
-#define  CPP_TEST_WITH_REDIS
-
-/* define to test MySQL/MariaDB client, hp_mysql_XXX */
-#define  CPP_TEST_WITH_MYSQL
-
-#define  CPP_TEST_WITH_AMQP
-#define  CPP_TEST_WITH_PROC_SYSINFO
-
-/* define to test libhp HTTP module ht_http_XXX,
- * using http-parser */
-#define  CPP_TEST_WITH_HTTP
-
-/* define to test timer fd (current Linux only?), hp_timerfd_XXX */
-#define  CPP_TEST_WITH_TIMERFD
-
-/* define to test Berkeley DB, hp_bdb_XXX */
-#define  CPP_TEST_WITH_BDB
-
-/* define to test dlfcn-win32 */
-#define CPP_TEST_WITH_DLFCN
-
-/* define to test optparse */
-#define CPP_TEST_WITH_OPTPARSE
-
-/* define if you want using libhp DEPRECADTED API
- * Deprecated code is no longer actively maintained !
- * */
-#define CPP_TEST_DEPRECADTED
-
-#endif /* CPP_TEST_CONFIG_H */
+#endif
