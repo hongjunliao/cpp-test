@@ -1,3 +1,8 @@
+/*!
+ * This file is PART of cpp-test project
+ * @author hongjun.liao <docici@126.com>
+ * */
+#include "config.h"
 #include "hp/string_util.h"
 #include <stdio.h>
 

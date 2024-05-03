@@ -22,7 +22,30 @@ endif()
 # https://clangd.llvm.org/installation.html
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-###########################################################################################
+################################################################################################################################
+# for libhp
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set(LIBHP_WITH_SSL 1 CACHE INTERNAL "LIBHP_WITH_SSL")
+	set(LIBHP_WITH_ZLIB 1 CACHE INTERNAL "LIBHP_WITH_ZLIB")
+	set(LIBHP_WITH_BDB 1 CACHE INTERNAL "LIBHP_WITH_BDB")
+	set(LIBHP_WITH_CURL 1 CACHE INTERNAL "LIBHP_WITH_CURL")
+	set(LIBHP_WITH_REDIS 1 CACHE INTERNAL "LIBHP_WITH_REDIS")
+	set(LIBHP_WITH_MYSQL 1 CACHE INTERNAL "LIBHP_WITH_MYSQL")
+	set(LIBHP_WITH_HTTP 1 CACHE INTERNAL "LIBHP_WITH_HTTP")
+	set(LIBHP_WITH_MQTT 1 CACHE INTERNAL "LIBHP_WITH_MQTT")
+	set(LIBHP_WITH_PROC_SYSINFO 1 CACHE INTERNAL "LIBHP_WITH_PROC_SYSINFO")
+	set(LIBHP_WITH_AMQP 1 CACHE INTERNAL "LIBHP_WITH_AMQP")
+#	set(LIBHP_WITH_ZLOG 1 CACHE INTERNAL "LIBHP_WITH_ZLOG")
+	set(LIBHP_WITH_TIMERFD 1 CACHE INTERNAL "LIBHP_WITH_TIMERFD")
+	set(LIBHP_WITH_JNI 1 CACHE INTERNAL "LIBHP_WITH_JNI")
+	set(LIBHP_WITH_CJSON 1 CACHE INTERNAL "LIBHP_WITH_CJSON")
+	set(LIBHP_WITH_OPTPARSE 1 CACHE INTERNAL "LIBHP_WITH_OPTPARSE")
+	set(LIBHP_WITH_DLFCN 1 CACHE INTERNAL "LIBHP_WITH_DLFCN")
+	set(CPP_TEST_WITH_UV 1 CACHE INTERNAL "CPP_TEST_WITH_UV")
+	set(CPP_TEST_WITH_CURL 1 CACHE INTERNAL "CPP_TEST_WITH_CURL")
+#	set(LIBHP_DEPRECADTED 1 CACHE INTERNAL "LIBHP_DEPRECADTED")
+endif()
+######################################################
 # sources and deps
 set(g_withs UV CURL 1 1 1 1 1
 	)
@@ -36,12 +59,7 @@ set(g_libs uv curl libhp "src/**/**/*.c src/**/*.c src/**/*.cpp src/**/*.cc src/
 	protobuf-c
 	z
 	)
-###########################################################################################
-# for libhp
-#  set(LIBHP_WITH_MQTT 1 CACHE INTERNAL "LIBHP_WITH_MQTT")
-# fot cpp-test
-set(CPP_TEST_WITH_UV 1 CACHE INTERNAL "CPP_TEST_WITH_UV")
-set(CPP_TEST_WITH_CURL 1 CACHE INTERNAL "CPP_TEST_WITH_CURL")
+
 hp_cmake_find_deps(SRCS CPP_TEST_WITH_ deps cmakes g_withs g_hdrs g_incs g_deps g_libs)
 #build as library
 add_executable(cpp-test ${SRCS})

@@ -5,7 +5,7 @@
  * merge_sort for link_list
  * */
 
-#include "klist.h"
+#include "hp/klist.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>

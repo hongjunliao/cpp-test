@@ -32,4 +32,6 @@ $ ./mytest rbtree_insert arg1 arg2 ...
 
 ## build
 
-cd gcc_shared; make all;
+	$ cd ${cpp-test}/
+	$ mkdir build && cd build
+	$ rm -rf * && cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCPP_TEST_WITH_OPENSSL=1 && make -j

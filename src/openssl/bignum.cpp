@@ -1,5 +1,5 @@
 /*!
- * This file is PART of xh_http_proxy project
+ * This file is PART of cpp-test project
  * @author hongjun.liao <docici@126.com>
  * */
 #include "config.h"
